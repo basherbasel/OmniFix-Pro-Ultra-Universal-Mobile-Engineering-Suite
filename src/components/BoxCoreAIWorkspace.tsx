@@ -92,36 +92,61 @@ export const BoxCoreAIWorkspace: React.FC<BoxCoreAIWorkspaceProps> = ({ device, 
   
   // Preset Selection State
   const [selectedPresetId, setSelectedPresetId] = useState<string>('qualcomm-8gen3');
+  const [toolStatus, setToolStatus] = useState<Record<string, boolean>>({});
 
   // Execution State
   const [isExecuting, setIsExecuting] = useState(false);
   const [executionLog, setExecutionLog] = useState<string[]>([]);
 
+  // Check Tool Status on Mount
+  React.useEffect(() => {
+    fetch('/api/system/check')
+      .then(res => res.json())
+      .then(data => setToolStatus(data.status))
+      .catch(console.error);
+  }, []);
+
   const handleExecuteRepair = async () => {
     if (!result) return;
+
+    // Run safety check
+    const safety = await realUsbService.checkRepairSafetyPreconditions(device);
+    if (!safety.safe) {
+      setExecutionLog([`SAFETY ABORT: ${safety.reason}`]);
+      return;
+    }
+
     setIsExecuting(true);
     setExecutionLog([`Starting repair protocol for ${result.SoC_Model}...`]);
 
     try {
       // Execute each command from AI analysis sequentially
       for (const cmd of result.Hex_Commands) {
-        setExecutionLog(prev => [...prev, `Executing: ${cmd}`]);
+        setExecutionLog(prev => [...prev, `--- Executing: ${cmd} ---`]);
         const [toolName, ...args] = cmd.split(' ');
         
-        // This maps to the backend USB/CLI Engine we implemented
-        const response = await fetch('/api/usb/execute', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ toolName, args })
+        // SSE streaming consumption
+        const query = new URLSearchParams({ toolName, args: args.join(',') }).toString();
+        const eventSource = new EventSource(`/api/usb/stream-execute?${query}`);
+
+        await new Promise<void>((resolve, reject) => {
+          eventSource.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.type === 'log' || data.type === 'error') {
+              setExecutionLog(prev => [...prev, data.message]);
+            }
+          };
+
+          eventSource.onerror = (err) => {
+            eventSource.close();
+            reject(err);
+          };
+
+          eventSource.addEventListener('close', () => {
+            eventSource.close();
+            resolve();
+          });
         });
-        
-        const data = await response.json();
-        if (data.success) {
-          setExecutionLog(prev => [...prev, `SUCCESS: ${data.output}`]);
-        } else {
-          setExecutionLog(prev => [...prev, `ERROR: ${data.error}`]);
-          break;
-        }
       }
     } catch (e: any) {
       setExecutionLog(prev => [...prev, `CRITICAL ERROR: ${e.message}`]);
@@ -224,9 +249,12 @@ export const BoxCoreAIWorkspace: React.FC<BoxCoreAIWorkspaceProps> = ({ device, 
               <h2 className="text-base font-bold text-white">
                 {isAr ? 'النواة الذكية والمحلل المعماري لبوكس الصيانة (Box Core AI Processor)' : 'Box Core AI Deep Protocol Analyzer'}
               </h2>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-                AI INTEGRATION API
-              </span>
+              {/* Tool Health Indicators */}
+              <div className="flex gap-1.5 ml-2">
+                {Object.entries(toolStatus).map(([tool, ready]) => (
+                  <div key={tool} title={tool} className={`w-2.5 h-2.5 rounded-full ${ready ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                ))}
+              </div>
             </div>
             <p className="text-xs text-slate-400 mt-0.5">
               {isAr
@@ -237,7 +265,6 @@ export const BoxCoreAIWorkspace: React.FC<BoxCoreAIWorkspaceProps> = ({ device, 
         </div>
       </div>
 
-      {/* Hardware Presets Selector Bar */}
       <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2.5">
         <div className="flex items-center gap-2 text-xs font-bold text-slate-300">
           <Sliders className="w-4 h-4 text-cyan-400" />
@@ -415,6 +442,23 @@ export const BoxCoreAIWorkspace: React.FC<BoxCoreAIWorkspaceProps> = ({ device, 
                 <p className="text-slate-300 leading-relaxed font-mono text-[11px]">
                   {result.Risk_Cyber_Interpretation}
                 </p>
+              </div>
+
+              {/* Repair Execution Console */}
+              <div className="space-y-3 pt-4 border-t border-slate-800">
+                <button
+                  onClick={handleExecuteRepair}
+                  disabled={isExecuting}
+                  className="w-full py-3 bg-red-600 hover:bg-red-500 text-white font-bold text-xs uppercase tracking-wider rounded-lg flex items-center justify-center gap-2 shadow-lg shadow-red-600/25 cursor-pointer disabled:opacity-50"
+                >
+                  {isExecuting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+                  <span>{isExecuting ? 'Executing Repair...' : 'Execute Repair Sequence'}</span>
+                </button>
+                {executionLog.length > 0 && (
+                  <div className="p-3 bg-black border border-slate-900 font-mono text-[10px] text-white space-y-1 max-h-40 overflow-y-auto rounded">
+                    {executionLog.map((log, i) => <div key={i}>{log}</div>)}
+                  </div>
+                )}
               </div>
 
               {/* Hex Commands Console Preview */}

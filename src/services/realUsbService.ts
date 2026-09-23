@@ -432,6 +432,16 @@ export class RealUsbService {
     }
   }
 
+  public async checkRepairSafetyPreconditions(device: ConnectedDevice): Promise<{ safe: boolean, reason?: string }> {
+    if (device.batteryLevel < 20) {
+      return { safe: false, reason: 'Battery too low for safe repair (min 20%)' };
+    }
+    if (device.knoxStatus?.includes('Tripped')) {
+      return { safe: false, reason: 'Device Knox tripped: High brick risk on some models' };
+    }
+    return { safe: true };
+  }
+
   private async callBackendUsbApi(toolName: string, args: string[]): Promise<UsbExecutionResult> {
     const startTime = Date.now();
     try {

@@ -4,7 +4,7 @@ import fs from 'fs';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
-import { exec } from 'child_process';
+import { spawn, exec } from 'child_process';
 import util from 'util';
 
 const execPromise = util.promisify(exec);
@@ -12,29 +12,23 @@ const execPromise = util.promisify(exec);
 dotenv.config();
 
 const app = express();
-// ... (rest of existing code)
+// ---------------- NEW: SYSTEM TOOL HEALTH CHECK ----------------
+app.get('/api/system/check', async (req, res) => {
+  const tools = ['heimdall', 'fastboot', 'adb', 'mtk-client', 'edl-tool'];
+  const status: Record<string, boolean> = {};
 
-// ---------------- NEW: USB/CLI EXECUTION ENGINE ----------------
-app.post('/api/usb/execute', async (req, res) => {
-  const { command, args, toolName } = req.body;
-  
-  // Security whitelist of allowed repair tools
-  const allowedTools = ['heimdall', 'fastboot', 'adb', 'mtk-client', 'edl-tool'];
-  if (!allowedTools.includes(toolName)) {
-    return res.status(403).json({ success: false, error: 'Unauthorized tool' });
+  for (const tool of tools) {
+    try {
+      await execPromise(`which ${tool}`);
+      status[tool] = true;
+    } catch {
+      status[tool] = false;
+    }
   }
-
-  try {
-    const fullCommand = `${toolName} ${args.join(' ')}`;
-    console.log(`[SuperBox Engine] Executing: ${fullCommand}`);
-    
-    const { stdout, stderr } = await execPromise(fullCommand);
-    res.json({ success: true, output: stdout, error: stderr });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
-  }
+  res.json({ success: true, status });
 });
 // -------------------------------------------------------------
+
 
 // ... (rest of existing code)
 
