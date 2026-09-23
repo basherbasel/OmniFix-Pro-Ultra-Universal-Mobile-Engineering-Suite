@@ -6,6 +6,7 @@ import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
 import { spawn, exec } from 'child_process';
 import util from 'util';
+import { GLOBAL_DEVICE_KNOWLEDGE_GRAPH } from './src/data/deviceArchitecture';
 
 const execPromise = util.promisify(exec);
 
@@ -863,6 +864,9 @@ app.post('/api/ai/box-core-analyze', async (req, res) => {
     try {
       const systemPrompt = `You are 'Software Box Core AI Engine', an elite low-level protocol analyst for smartphone repair boxes (connected to BROM, EDL, Fastboot, ADB, Odin).
 Your role is to act as an intelligent processing layer connected directly to the (Hardware Interface Layer) of the box, to analyze the data extracted from phones through modes (EDL, BROM, Fastboot, ADB, Download Mode) and convert them into immediate repair decisions.
+
+You have access to this Global Device Architecture Knowledge Graph to ground your analysis:
+${JSON.stringify(GLOBAL_DEVICE_KNOWLEDGE_GRAPH)}
 
 Please analyze these inputs:
 - HWID (Hardware ID): ${hwid || 'Unknown'}
