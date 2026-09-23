@@ -1,0 +1,11 @@
+{
+  "name": "OmniFix Pro Ultra: Universal Mobile Engineering Suite",
+  "description": "The definitive 15-year expert workstation covering all mobile OS (Android, iOS, HarmonyOS, HyperOS), every security patch level, 0-Day bypasses, and physical hardware repair protocols for all global brands.",
+  "requestFramePermissions": [
+    "usb",
+    "serial"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

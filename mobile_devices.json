@@ -1,0 +1,303 @@
+{
+  "database_info": {
+    "name": "Apex Mobile Devices Catalog",
+    "version": "1.0.0",
+    "total_brands": 10,
+    "description": "قاعدة بيانات محلية لأسماء الشركات وموديلات الهواتف مع رقم الموديل ونوع المعالج لتسهيل عمليات السوفت وير"
+  },
+  "manufacturers": [
+    {
+      "brand": "Samsung",
+      "country": "South Korea",
+      "series": [
+        {
+          "name": "Galaxy S Series",
+          "models": [
+            {"model_name": "Galaxy S24 Ultra", "model_number": "SM-S928B", "chipset_vendor": "Qualcomm", "chipset": "Snapdragon 8 Gen 3"},
+            {"model_name": "Galaxy S24+", "model_number": "SM-S926B", "chipset_vendor": "Exynos / Qualcomm", "chipset": "Exynos 2400 / Snapdragon 8 Gen 3"},
+            {"model_name": "Galaxy S24", "model_number": "SM-S921B", "chipset_vendor": "Exynos / Qualcomm", "chipset": "Exynos 2400 / Snapdragon 8 Gen 3"},
+            {"model_name": "Galaxy S23 Ultra", "model_number": "SM-S918B", "chipset_vendor": "Qualcomm", "chipset": "Snapdragon 8 Gen 2"},
+            {"model_name": "Galaxy S23+", "model_number": "SM-S916B", "chipset_vendor": "Qualcomm", "chipset": "Snapdragon 8 Gen 2"},
+            {"model_name": "Galaxy S23", "model_number": "SM-S911B", "chipset_vendor": "Qualcomm", "chipset": "Snapdragon 8 Gen 2"},
+            {"model_name": "Galaxy S22 Ultra", "model_number": "SM-S908B", "chipset_vendor": "Exynos / Qualcomm", "chipset": "Exynos 2200 / Snapdragon 8 Gen 1"},
+            {"model_name": "Galaxy S21 Ultra 5G", "model_number": "SM-G998B", "chipset_vendor": "Exynos / Qualcomm", "chipset": "Exynos 2100 / Snapdragon 888"},
+            {"model_name": "Galaxy S20 FE 5G", "model_number": "SM-G781B", "chipset_vendor": "Qualcomm", "chipset": "Snapdragon 865"}
+          ]
+        },
+        {
+          "name": "Galaxy A Series",
+          "models": [
+            {"model_name": "Galaxy A55 5G", "model_number": "SM-A556B", "chipset_vendor": "Exynos", "chipset": "Exynos 1480"},
+            {"model_name": "Galaxy A54 5G", "model_number": "SM-A546B", "chipset_vendor": "Exynos", "chipset": "Exynos 1380"},
+            {"model_name": "Galaxy A35 5G", "model_number": "SM-A356B", "chipset_vendor": "Exynos", "chipset": "Exynos 1380"},
+            {"model_name": "Galaxy A34 5G", "model_number": "SM-A346B", "chipset_vendor": "MediaTek", "chipset": "Dimensity 1080"},
+            {"model_name": "Galaxy A25 5G", "model_number": "SM-A256B", "chipset_vendor": "Exynos", "chipset": "Exynos 1280"},
+            {"model_name": "Galaxy A15 5G", "model_number": "SM-A156B", "chipset_vendor": "MediaTek", "chipset": "Dimensity 6100+"},
+            {"model_name": "Galaxy A14", "model_number": "SM-A145F", "chipset_vendor": "MediaTek", "chipset": "Helio G80"}
+          ]
+        },
+        {
+          "name": "Galaxy Z Series",
+          "models": [
+            {"model_name": "Galaxy Z Fold 6", "model_number": "SM-F956B", "chipset_vendor": "Qualcomm", "chipset": "Snapdragon 8 Gen 3"},
+            {"model_name": "Galaxy Z Flip 6", "model_number": "SM-F741B", "chipset_vendor": "Qualcomm", "chipset": "Snapdragon 8 Gen 3"},
+            {"model_name": "Galaxy Z Fold 5", "model_number": "SM-F946B", "chipset_vendor": "Qualcomm", "chipset": "Snapdragon 8 Gen 2"},
+            {"model_name": "Galaxy Z Flip 5", "model_number": "SM-F731B", "chipset_vendor": "Qualcomm", "chipset": "Snapdragon 8 Gen 2"}
+          ]
+        }
+      ]
+    },
+    {
+      "brand": "Apple",
+      "country": "United States",
+      "series": [
+        {
+          "name": "iPhone Series",
+          "models": [
+            {"model_name": "iPhone 16 Pro Max", "model_number": "A3296", "chipset_vendor": "Apple", "chipset": "A18 Pro"},
+            {"model_name": "iPhone 16 Pro", "model_number": "A3293", "chipset_vendor": "Apple", "chipset": "A18 Pro"},
+            {"model_name": "iPhone 16 Plus", "model_number": "A3290", "chipset_vendor": "Apple", "chipset": "A18"},
+            {"model_name": "iPhone 16", "model_number": "A3287", "chipset_vendor": "Apple", "chipset": "A18"},
+            {"model_name": "iPhone 15 Pro Max", "model_number": "A3106", "chipset_vendor": "Apple", "chipset": "A17 Pro"},
+            {"model_name": "iPhone 15 Pro", "model_number": "A3102", "chipset_vendor": "Apple", "chipset": "A17 Pro"},
+            {"model_name": "iPhone 15 Plus", "model_number": "A3094", "chipset_vendor": "Apple", "chipset": "A16 Bionic"},
+            {"model_name": "iPhone 15", "model_number": "A3090", "chipset_vendor": "Apple", "chipset": "A16 Bionic"},
+            {"model_name": "iPhone 14 Pro Max", "model_number": "A2894", "chipset_vendor": "Apple", "chipset": "A16 Bionic"},
+            {"model_name": "iPhone 14 Pro", "model_number": "A2890", "chipset_vendor": "Apple", "chipset": "A16 Bionic"},
+            {"model_name": "iPhone 14", "model_number": "A2882", "chipset_vendor": "Apple", "chipset": "A15 Bionic"},
+            {"model_name": "iPhone 13 Pro Max", "model_number": "A2643", "chipset_vendor": "Apple", "chipset": "A15 Bionic"},
+            {"model_name": "iPhone 13", "model_number": "A2633", "chipset_vendor": "Apple", "chipset": "A15 Bionic"},
+            {"model_name": "iPhone 12", "model_number": "A2403", "chipset_vendor": "Apple", "chipset": "A14 Bionic"},
+            {"model_name": "iPhone 11", "model_number": "A2221", "chipset_vendor": "Apple", "chipset": "A13 Bionic"},
+            {"model_name": "iPhone SE (3rd gen)", "model_number": "A2783", "chipset_vendor": "Apple", "chipset": "A15 Bionic"}
+          ]
+        }
+      ]
+    },
+    {
+      "brand": "Xiaomi",
+      "country": "China",
+      "series": [
+        {
+          "name": "Xiaomi Flagship",
+          "models": [
+            {"model_name": "Xiaomi 14 Ultra", "model_number": "24030PN60G", "chipset_vendor": "Qualcomm", "chipset": "Snapdragon 8 Gen 3"},
+            {"model_name": "Xiaomi 14 Pro", "model_number": "23116PN5BC", "chipset_vendor": "Qualcomm", "chipset": "Snapdragon 8 Gen 3"},
+            {"model_name": "Xiaomi 14", "model_number": "23127PN0CG", "chipset_vendor": "Qualcomm", "chipset": "Snapdragon 8 Gen 3"},
+            {"model_name": "Xiaomi 13T Pro", "model_number": "23078PND5G", "chipset_vendor": "MediaTek", "chipset": "Dimensity 9200+"},
+            {"model_name": "Xiaomi 13 Pro", "model_number": "2210132G", "chipset_vendor": "Qualcomm", "chipset": "Snapdragon 8 Gen 2"}
+          ]
+        },
+        {
+          "name": "Redmi Series",
+          "models": [
+            {"model_name": "Redmi Note 13 Pro+ 5G", "model_number": "23090RA98G", "chipset_vendor": "MediaTek", "chipset": "Dimensity 7200 Ultra"},
+            {"model_name": "Redmi Note 13 Pro 5G", "model_number": "2312DRA50G", "chipset_vendor": "Qualcomm", "chipset": "Snapdragon 7s Gen 2"},
+            {"model_name": "Redmi Note 13 5G", "model_number": "23122PCD1G", "chipset_vendor": "MediaTek", "chipset": "Dimensity 6080"},
+            {"model_name": "Redmi Note 12 Pro 5G", "model_number": "22101316G", "chipset_vendor": "MediaTek", "chipset": "Dimensity 1080"},
+            {"model_name": "Redmi 13C", "model_number": "2310FPCA4G", "chipset_vendor": "MediaTek", "chipset": "Helio G85"},
+            {"model_name": "Redmi 12", "model_number": "23053RN02Y", "chipset_vendor": "MediaTek", "chipset": "Helio G88"}
+          ]
+        },
+        {
+          "name": "POCO Series",
+          "models": [
+            {"model_name": "POCO F6 Pro", "model_number": "23113RKC6G", "chipset_vendor": "Qualcomm", "chipset": "Snapdragon 8 Gen 2"},
+            {"model_name": "POCO F6", "model_number": "24069PC21G", "chipset_vendor": "Qualcomm", "chipset": "Snapdragon 8s Gen 3"},
+            {"model_name": "POCO X6 Pro 5G", "model_number": "2311DRK48G", "chipset_vendor": "MediaTek", "chipset": "Dimensity 8300 Ultra"},
+            {"model_name": "POCO X6 5G", "model_number": "23122PCD1G", "chipset_vendor": "Qualcomm", "chipset": "Snapdragon 7s Gen 2"},
+            {"model_name": "POCO M6 Pro", "model_number": "2312FPCA6G", "chipset_vendor": "MediaTek", "chipset": "Helio G99 Ultra"}
+          ]
+        }
+      ]
+    },
+    {
+      "brand": "Huawei",
+      "country": "China",
+      "series": [
+        {
+          "name": "Pura & P Series",
+          "models": [
+            {"model_name": "Pura 70 Ultra", "model_number": "HBP-LX9", "chipset_vendor": "HiSilicon", "chipset": "Kirin 9010"},
+            {"model_name": "Pura 70 Pro", "model_number": "HNV-AN00", "chipset_vendor": "HiSilicon", "chipset": "Kirin 9010"},
+            {"model_name": "P60 Pro", "model_number": "MNA-LX9", "chipset_vendor": "Qualcomm", "chipset": "Snapdragon 8+ Gen 1 4G"},
+            {"model_name": "P30 Pro", "model_number": "VOG-L29", "chipset_vendor": "HiSilicon", "chipset": "Kirin 980"}
+          ]
+        },
+        {
+          "name": "Mate Series",
+          "models": [
+            {"model_name": "Mate 60 Pro", "model_number": "ALN-AL00", "chipset_vendor": "HiSilicon", "chipset": "Kirin 9000S"},
+            {"model_name": "Mate 50 Pro", "model_number": "DCO-LX9", "chipset_vendor": "Qualcomm", "chipset": "Snapdragon 8+ Gen 1 4G"},
+            {"model_name": "Mate 40 Pro", "model_number": "NOH-NX9", "chipset_vendor": "HiSilicon", "chipset": "Kirin 9000"}
+          ]
+        },
+        {
+          "name": "Nova Series",
+          "models": [
+            {"model_name": "Nova 12 SE", "model_number": "BCO-LX1", "chipset_vendor": "Qualcomm", "chipset": "Snapdragon 680"},
+            {"model_name": "Nova 11 Pro", "model_number": "GOA-LX9", "chipset_vendor": "Qualcomm", "chipset": "Snapdragon 778G 4G"},
+            {"model_name": "Nova 9", "model_number": "NAM-LX9", "chipset_vendor": "Qualcomm", "chipset": "Snapdragon 778G 4G"}
+          ]
+        }
+      ]
+    },
+    {
+      "brand": "Oppo",
+      "country": "China",
+      "series": [
+        {
+          "name": "Find Series",
+          "models": [
+            {"model_name": "Find X7 Ultra", "model_number": "PHY110", "chipset_vendor": "Qualcomm", "chipset": "Snapdragon 8 Gen 3"},
+            {"model_name": "Find X6 Pro", "model_number": "PGEM10", "chipset_vendor": "Qualcomm", "chipset": "Snapdragon 8 Gen 2"},
+            {"model_name": "Find N3 Flip", "model_number": "CPH2519", "chipset_vendor": "MediaTek", "chipset": "Dimensity 9200"}
+          ]
+        },
+        {
+          "name": "Reno Series",
+          "models": [
+            {"model_name": "Reno 12 Pro 5G", "model_number": "CPH2629", "chipset_vendor": "MediaTek", "chipset": "Dimensity 7300 Energy"},
+            {"model_name": "Reno 11 Pro 5G", "model_number": "CPH2607", "chipset_vendor": "MediaTek", "chipset": "Dimensity 8200"},
+            {"model_name": "Reno 10 Pro 5G", "model_number": "CPH2525", "chipset_vendor": "Qualcomm", "chipset": "Snapdragon 778G"},
+            {"model_name": "Reno 8 Pro 5G", "model_number": "CPH2357", "chipset_vendor": "MediaTek", "chipset": "Dimensity 8100-MAX"}
+          ]
+        },
+        {
+          "name": "A Series",
+          "models": [
+            {"model_name": "A98 5G", "model_number": "CPH2529", "chipset_vendor": "Qualcomm", "chipset": "Snapdragon 695 5G"},
+            {"model_name": "A78 4G", "model_number": "CPH2565", "chipset_vendor": "Qualcomm", "chipset": "Snapdragon 680"},
+            {"model_name": "A58", "model_number": "CPH2577", "chipset_vendor": "MediaTek", "chipset": "Helio G85"}
+          ]
+        }
+      ]
+    },
+    {
+      "brand": "Vivo",
+      "country": "China",
+      "series": [
+        {
+          "name": "X Series",
+          "models": [
+            {"model_name": "X100 Pro", "model_number": "V2324A", "chipset_vendor": "MediaTek", "chipset": "Dimensity 9300"},
+            {"model_name": "X90 Pro", "model_number": "V2219", "chipset_vendor": "MediaTek", "chipset": "Dimensity 9200"},
+            {"model_name": "X80 Pro", "model_number": "V2185A", "chipset_vendor": "Qualcomm", "chipset": "Snapdragon 8 Gen 1"}
+          ]
+        },
+        {
+          "name": "V Series",
+          "models": [
+            {"model_name": "V30 Pro", "model_number": "V2319", "chipset_vendor": "MediaTek", "chipset": "Dimensity 8200"},
+            {"model_name": "V29 5G", "model_number": "V2250", "chipset_vendor": "Qualcomm", "chipset": "Snapdragon 778G"},
+            {"model_name": "V27 5G", "model_number": "V2246", "chipset_vendor": "MediaTek", "chipset": "Dimensity 7200"}
+          ]
+        },
+        {
+          "name": "Y Series",
+          "models": [
+            {"model_name": "Y200 5G", "model_number": "V2327", "chipset_vendor": "Qualcomm", "chipset": "Snapdragon 4 Gen 1"},
+            {"model_name": "Y36", "model_number": "V2247", "chipset_vendor": "Qualcomm", "chipset": "Snapdragon 680"}
+          ]
+        }
+      ]
+    },
+    {
+      "brand": "Realme",
+      "country": "China",
+      "series": [
+        {
+          "name": "GT Series",
+          "models": [
+            {"model_name": "GT 6", "model_number": "RMX3800", "chipset_vendor": "Qualcomm", "chipset": "Snapdragon 8s Gen 3"},
+            {"model_name": "GT Neo 5", "model_number": "RMX3708", "chipset_vendor": "Qualcomm", "chipset": "Snapdragon 8+ Gen 1"},
+            {"model_name": "GT 2 Pro", "model_number": "RMX3301", "chipset_vendor": "Qualcomm", "chipset": "Snapdragon 8 Gen 1"}
+          ]
+        },
+        {
+          "name": "Number Series",
+          "models": [
+            {"model_name": "12 Pro+ 5G", "model_number": "RMX3840", "chipset_vendor": "Qualcomm", "chipset": "Snapdragon 7s Gen 2"},
+            {"model_name": "11 Pro+ 5G", "model_number": "RMX3741", "chipset_vendor": "MediaTek", "chipset": "Dimensity 7050"},
+            {"model_name": "10 Pro+ 5G", "model_number": "RMX3686", "chipset_vendor": "MediaTek", "chipset": "Dimensity 1080"}
+          ]
+        },
+        {
+          "name": "C Series",
+          "models": [
+            {"model_name": "C67 4G", "model_number": "RMX3890", "chipset_vendor": "Qualcomm", "chipset": "Snapdragon 685"},
+            {"model_name": "C55", "model_number": "RMX3710", "chipset_vendor": "MediaTek", "chipset": "Helio G88"},
+            {"model_name": "C53", "model_number": "RMX3760", "chipset_vendor": "Unisoc", "chipset": "Tiger T612"}
+          ]
+        }
+      ]
+    },
+    {
+      "brand": "OnePlus",
+      "country": "China",
+      "series": [
+        {
+          "name": "Flagship Series",
+          "models": [
+            {"model_name": "OnePlus 12", "model_number": "CPH2581", "chipset_vendor": "Qualcomm", "chipset": "Snapdragon 8 Gen 3"},
+            {"model_name": "OnePlus 12R", "model_number": "CPH2611", "chipset_vendor": "Qualcomm", "chipset": "Snapdragon 8 Gen 2"},
+            {"model_name": "OnePlus 11 5G", "model_number": "CPH2449", "chipset_vendor": "Qualcomm", "chipset": "Snapdragon 8 Gen 2"},
+            {"model_name": "OnePlus 10 Pro", "model_number": "NE2213", "chipset_vendor": "Qualcomm", "chipset": "Snapdragon 8 Gen 1"},
+            {"model_name": "OnePlus 9 Pro", "model_number": "LE2123", "chipset_vendor": "Qualcomm", "chipset": "Snapdragon 888"}
+          ]
+        },
+        {
+          "name": "Nord Series",
+          "models": [
+            {"model_name": "OnePlus Nord 4", "model_number": "CPH2663", "chipset_vendor": "Qualcomm", "chipset": "Snapdragon 7+ Gen 3"},
+            {"model_name": "OnePlus Nord 3 5G", "model_number": "CPH2493", "chipset_vendor": "MediaTek", "chipset": "Dimensity 9000"},
+            {"model_name": "OnePlus Nord CE 4", "model_number": "CPH2613", "chipset_vendor": "Qualcomm", "chipset": "Snapdragon 7 Gen 3"},
+            {"model_name": "OnePlus Nord CE 3 Lite", "model_number": "CPH2467", "chipset_vendor": "Qualcomm", "chipset": "Snapdragon 695 5G"}
+          ]
+        }
+      ]
+    },
+    {
+      "brand": "Google",
+      "country": "United States",
+      "series": [
+        {
+          "name": "Pixel Series",
+          "models": [
+            {"model_name": "Pixel 9 Pro XL", "model_number": "GEC77", "chipset_vendor": "Google", "chipset": "Tensor G4"},
+            {"model_name": "Pixel 9 Pro", "model_number": "G1MNW", "chipset_vendor": "Google", "chipset": "Tensor G4"},
+            {"model_name": "Pixel 9", "model_number": "GUR25", "chipset_vendor": "Google", "chipset": "Tensor G4"},
+            {"model_name": "Pixel 8 Pro", "model_number": "GC3VE", "chipset_vendor": "Google", "chipset": "Tensor G3"},
+            {"model_name": "Pixel 8", "model_number": "GKWS6", "chipset_vendor": "Google", "chipset": "Tensor G3"},
+            {"model_name": "Pixel 8a", "model_number": "G6GPR", "chipset_vendor": "Google", "chipset": "Tensor G3"},
+            {"model_name": "Pixel 7 Pro", "model_number": "GP4BC", "chipset_vendor": "Google", "chipset": "Tensor G2"},
+            {"model_name": "Pixel 7", "model_number": "GVU6C", "chipset_vendor": "Google", "chipset": "Tensor G2"},
+            {"model_name": "Pixel 6a", "model_number": "GX7AS", "chipset_vendor": "Google", "chipset": "Tensor G1"}
+          ]
+        }
+      ]
+    },
+    {
+      "brand": "Motorola",
+      "country": "United States",
+      "series": [
+        {
+          "name": "Edge Series",
+          "models": [
+            {"model_name": "Edge 50 Ultra", "model_number": "XT2401-1", "chipset_vendor": "Qualcomm", "chipset": "Snapdragon 8s Gen 3"},
+            {"model_name": "Edge 50 Pro", "model_number": "XT2403-2", "chipset_vendor": "Qualcomm", "chipset": "Snapdragon 7 Gen 3"},
+            {"model_name": "Edge 40 Pro", "model_number": "XT2301-4", "chipset_vendor": "Qualcomm", "chipset": "Snapdragon 8 Gen 2"}
+          ]
+        },
+        {
+          "name": "Moto G Series",
+          "models": [
+            {"model_name": "Moto G84 5G", "model_number": "XT2347-2", "chipset_vendor": "Qualcomm", "chipset": "Snapdragon 695 5G"},
+            {"model_name": "Moto G54 5G", "model_number": "XT2343-1", "chipset_vendor": "MediaTek", "chipset": "Dimensity 7020"},
+            {"model_name": "Moto G24", "model_number": "XT2423-1", "chipset_vendor": "MediaTek", "chipset": "Helio G85"}
+          ]
+        }
+      ]
+    }
+  ]
+}
