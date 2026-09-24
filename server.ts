@@ -8,11 +8,37 @@ import { spawn, exec } from 'child_process';
 import util from 'util';
 import { GLOBAL_DEVICE_KNOWLEDGE_GRAPH } from './src/data/deviceArchitecture';
 
-const execPromise = util.promisify(exec);
-
 dotenv.config();
 
 const app = express();
+const execPromise = util.promisify(exec);
+
+// --- HARDWARE BRIDGE ---
+let pythonEngine: any = null;
+try {
+  pythonEngine = spawn('python3', [path.join(process.cwd(), 'python', 'engine.py')]);
+} catch (e) {
+  console.error("Python engine not found, continuing without hardware bridge:", e);
+}
+
+const sendToEngine = (command: string, args: any = {}): Promise<any> => {
+  return new Promise((resolve) => {
+    if (!pythonEngine) {
+      resolve({ status: "ERROR", message: "Hardware engine not available" });
+      return;
+    }
+    pythonEngine.stdout.once('data', (data) => resolve(JSON.parse(data.toString())));
+    pythonEngine.stdin.write(JSON.stringify({ command, args }) + '\n');
+  });
+};
+
+app.use(express.json()); // التأكد من تفعيل json parsing
+
+app.post('/api/hardware/bridge', async (req, res) => {
+  const { command, args } = req.body;
+  const result = await sendToEngine(command, args);
+  res.json(result);
+});
 // ---------------- NEW: SYSTEM TOOL HEALTH CHECK ----------------
 app.get('/api/system/check', async (req, res) => {
   const tools = ['heimdall', 'fastboot', 'adb', 'mtk-client', 'edl-tool'];
