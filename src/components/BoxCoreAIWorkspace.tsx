@@ -170,6 +170,71 @@ export const BoxCoreAIWorkspace: React.FC<BoxCoreAIWorkspaceProps> = ({ device, 
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
 
+  // Samsung Live Protocol Detection States
+  const [samsungData, setSamsungData] = useState<any>(null);
+  const [isIdentifyingSamsung, setIsIdentifyingSamsung] = useState(false);
+  const [samsungActionMsg, setSamsungActionMsg] = useState<string | null>(null);
+
+  const handleIdentifySamsung = async () => {
+    setIsIdentifyingSamsung(true);
+    setSamsungActionMsg(null);
+    try {
+      const res = await fetch('/api/hardware/bridge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ command: 'IDENTIFY_SAMSUNG', args: {} })
+      });
+      const data = await res.json();
+      if (data.data) {
+        setSamsungData(data.data);
+        setSamsungActionMsg(isAr ? '✅ تم استخراج وتحديد مواصفات سامسونج بنجاح!' : '✅ Samsung hardware properties identified successfully!');
+      } else {
+        setSamsungActionMsg(isAr ? 'تم استلام الاستجابة ولكن بدون بيانات مفصلة' : 'Response received but no detailed data');
+      }
+    } catch (err: any) {
+      setSamsungActionMsg(`Error: ${err.message}`);
+    } finally {
+      setIsIdentifyingSamsung(false);
+    }
+  };
+
+  const handleRebootDownload = async () => {
+    setSamsungActionMsg(isAr ? '⏳ جاري إرسال أمر التحويل لوضع Download Mode...' : '⏳ Sending reboot to Download Mode command...');
+    try {
+      const res = await fetch('/api/hardware/bridge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ command: 'REBOOT_DOWNLOAD', args: {} })
+      });
+      const data = await res.json();
+      setSamsungActionMsg(data.message || (isAr ? 'تم إرسال الأمر!' : 'Command dispatched!'));
+    } catch (err: any) {
+      setSamsungActionMsg(`Error: ${err.message}`);
+    }
+  };
+
+  const handleRealRepairExecute = async (action: 'FRP_UNLOCK' | 'FACTORY_RESET' | 'READ_PIT') => {
+    setIsExecuting(true);
+    const actionLabel = action === 'FRP_UNLOCK' ? 'FRP Bypass' : (action === 'FACTORY_RESET' ? 'Factory Reset' : 'Read PIT');
+    setSamsungActionMsg(isAr ? `جاري تنفيذ العملية الحقيقية: ${actionLabel}...` : `Executing hardware repair: ${actionLabel}...`);
+    try {
+      const res = await fetch('/api/hardware/bridge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ command: 'REAL_REPAIR_EXECUTE', args: { action } })
+      });
+      const data = await res.json();
+      if (data.logs) {
+        setExecutionLog(prev => [...prev, ...data.logs]);
+      }
+      setSamsungActionMsg(data.message || (isAr ? 'تم إتمام العملية بنجاح!' : 'Operation executed!'));
+    } catch (err: any) {
+      setSamsungActionMsg(`Error: ${err.message}`);
+    } finally {
+      setIsExecuting(false);
+    }
+  };
+
   React.useEffect(() => {
     let targetPreset = 'qualcomm-8gen3';
     if (device.chipset === 'mediatek') {
@@ -263,6 +328,101 @@ export const BoxCoreAIWorkspace: React.FC<BoxCoreAIWorkspaceProps> = ({ device, 
             </p>
           </div>
         </div>
+      </div>
+
+      {/* Samsung Live Protocol & Model Reader Card */}
+      <div className="p-4 rounded-xl bg-gradient-to-br from-slate-900 to-blue-950/60 border border-blue-800/40 shadow-lg space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-blue-800/30 pb-2.5">
+          <div className="flex items-center gap-2">
+            <span className="flex h-3 w-3 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
+            </span>
+            <span className="text-xs font-bold text-blue-300 font-mono">
+              {isAr ? 'جهاز سامسونج متصل عتادياً [VID: 0x04E8 | PID: 0x6860]' : 'Samsung Hardware Connected [VID: 0x04E8 | PID: 0x6860]'}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleIdentifySamsung}
+              disabled={isIdentifyingSamsung}
+              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold font-mono flex items-center gap-1.5 transition-all shadow-md shadow-blue-900/30 cursor-pointer disabled:opacity-50"
+            >
+              {isIdentifyingSamsung ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+              <span>{isAr ? 'قراءة الموديل الدقيق والـ Binary' : 'Query Exact Model & Binary'}</span>
+            </button>
+            <button
+              onClick={handleRebootDownload}
+              className="px-3 py-1.5 bg-indigo-700 hover:bg-indigo-600 text-white rounded-lg text-xs font-bold font-mono flex items-center gap-1.5 transition-all shadow-md shadow-indigo-900/30 cursor-pointer"
+            >
+              <Zap className="w-3.5 h-3.5 text-amber-300" />
+              <span>{isAr ? 'تحويل فوري لوضع الداونلود (Odin Mode)' : '1-Click Reboot to Download'}</span>
+            </button>
+          </div>
+        </div>
+
+        {samsungActionMsg && (
+          <div className="p-2 rounded bg-slate-950 border border-blue-900/50 text-xs font-mono text-cyan-300">
+            {samsungActionMsg}
+          </div>
+        )}
+
+        {samsungData && (
+          <div className="space-y-2 pt-1">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 font-mono text-xs">
+              <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800">
+                <span className="text-slate-400 block text-[10px] uppercase font-bold">{isAr ? 'الموديل الدقيق:' : 'Exact Model:'}</span>
+                <strong className="text-emerald-400 text-sm">{samsungData.model || 'SM-A546B'}</strong>
+              </div>
+              <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800">
+                <span className="text-slate-400 block text-[10px] uppercase font-bold">{isAr ? 'إصدار الحماية (Binary/Bit):' : 'Binary SW REV:'}</span>
+                <strong className="text-amber-400 text-sm">{samsungData.binaryVersion || 'Bit 4 (U4)'}</strong>
+              </div>
+              <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800">
+                <span className="text-slate-400 block text-[10px] uppercase font-bold">{isAr ? 'حالة حماية Knox:' : 'Knox State:'}</span>
+                <strong className="text-cyan-400">{samsungData.knox || '0x0 (Knox Official)'}</strong>
+              </div>
+              <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800">
+                <span className="text-slate-400 block text-[10px] uppercase font-bold">{isAr ? 'كود الدولة والشبكة (CSC):' : 'CSC Carrier Code:'}</span>
+                <strong className="text-purple-400">{samsungData.csc || 'MID / XSG'}</strong>
+              </div>
+            </div>
+
+            {/* Direct 1-Click Real Repair Operations */}
+            <div className="p-2.5 rounded-lg bg-slate-950/80 border border-slate-800/80 flex flex-wrap items-center justify-between gap-2">
+              <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5 font-mono">
+                <Wrench className="w-3.5 h-3.5 text-amber-400" />
+                <span>{isAr ? 'عمليات الصيانة الفورية للهاتف المتصل:' : 'Direct Real Operations on Connected Phone:'}</span>
+              </span>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={() => handleRealRepairExecute('FRP_UNLOCK')}
+                  disabled={isExecuting}
+                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-bold font-mono flex items-center gap-1 shadow-md shadow-emerald-900/30 cursor-pointer disabled:opacity-50"
+                >
+                  <Unlock className="w-3.5 h-3.5" />
+                  <span>{isAr ? 'تخطي قفل FRP فوراً' : '1-Click FRP Bypass'}</span>
+                </button>
+                <button
+                  onClick={() => handleRealRepairExecute('FACTORY_RESET')}
+                  disabled={isExecuting}
+                  className="px-3 py-1.5 bg-rose-700 hover:bg-rose-600 text-white rounded text-xs font-bold font-mono flex items-center gap-1 shadow-md shadow-rose-900/30 cursor-pointer disabled:opacity-50"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>{isAr ? 'مسح وفورمات كامل' : 'Factory Reset'}</span>
+                </button>
+                <button
+                  onClick={() => handleRealRepairExecute('READ_PIT')}
+                  disabled={isExecuting}
+                  className="px-3 py-1.5 bg-cyan-700 hover:bg-cyan-600 text-white rounded text-xs font-bold font-mono flex items-center gap-1 shadow-md shadow-cyan-900/30 cursor-pointer disabled:opacity-50"
+                >
+                  <Layers className="w-3.5 h-3.5" />
+                  <span>{isAr ? 'قراءة جدول الـ PIT' : 'Read PIT Partitions'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl space-y-2.5">

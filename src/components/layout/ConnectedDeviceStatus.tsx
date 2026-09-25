@@ -12,7 +12,7 @@ interface ConnectedDeviceStatusProps {
 
 export function ConnectedDeviceStatus({ device, isBusy, lang }: ConnectedDeviceStatusProps) {
   const isAr = lang === 'ar';
-  const { setUsbModalOpen, addLog, setCurrentDevice } = useWorkstation();
+  const { setUsbModalOpen, setDiagnosticsModalOpen, addLog, setCurrentDevice } = useWorkstation();
   const [isReading, setIsReading] = useState(false);
   const [justRead, setJustRead] = useState(false);
 
@@ -82,6 +82,16 @@ export function ConnectedDeviceStatus({ device, isBusy, lang }: ConnectedDeviceS
         <span className="whitespace-nowrap">
           {isReading ? (isAr ? 'جاري القراءة...' : 'Reading...') : justRead ? (isAr ? 'تمت القراءة!' : 'Device Read!') : (isAr ? 'قراءة الهاتف' : 'Read Phone')}
         </span>
+      </button>
+
+      {/* 🩺 Diagnostics & Repair Modal Trigger */}
+      <button
+        onClick={() => setDiagnosticsModalOpen(true)}
+        className="px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/30 transition-all cursor-pointer"
+        title={isAr ? 'فحص وتشخيص وإصلاح الهاتف المباشر' : 'Device Diagnostics & 1-Click Repair'}
+      >
+        <ShieldCheck size={13} className="text-indigo-400" />
+        <span className="hidden xl:inline">{isAr ? 'فحص وإصلاح' : 'Diagnose & Fix'}</span>
       </button>
 
       {/* Target Device Status Card */}

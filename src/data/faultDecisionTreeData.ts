@@ -166,33 +166,72 @@ export const FAULT_DECISION_TREE_QUESTIONS: Record<string, DecisionTreeQuestion>
 
   q_network_detail: {
     id: 'q_network_detail',
-    questionAr: 'هل يظهر رقم السيريال IMEI عند كتابة #06#* في لوحة الاتصال؟',
-    questionEn: 'Does the IMEI serial appear when typing *#06# on dialpad?',
+    questionAr: 'ما هي حالة رقم الـ IMEI وإصدار البيسباند (Baseband) والشبكة في الهاتف؟',
+    questionEn: 'What is the exact state of the IMEI, Baseband Version, and Cellular Signal on the device?',
     options: [
       {
-        labelAr: 'لا يظهر أي رقم (فارغ أو Null / 00000000000000)',
-        labelEn: 'Nothing appears (Blank or Null / 00000000000000)',
+        labelAr: 'الـ IMEI فارغ تماماً أو Null أو أصفار (000000000000000) مع إصدار Baseband غير معروف (Unknown)',
+        labelEn: 'IMEI is completely Blank/Null/Zeroes with Baseband Version showing UNKNOWN',
         classification: 'SOFTWARE_GLITCH',
         diagnosisResult: {
-          titleAr: 'تلف في قطاع تشفير الشبكة (NVRAM / EFS / QCN Corrupted)',
-          titleEn: 'Corrupted NVRAM / EFS Calibration Partition Tables',
-          rootCauseAr: 'فقدان ملفات المعايرة الراديوية في بارتشن modemst1/modemst2 أو nvdata.',
-          rootCauseEn: 'Raw NV items in modem calibration partitions erased or corrupted.',
+          titleAr: 'تلف برمجي في ملفات المودم أو قطاعات المعايرة (EFS / NVRAM Corruption)',
+          titleEn: 'Modem Firmware Mismatch or EFS/NVRAM Partition Damage',
+          rootCauseAr: 'فقدان قراءة ملفات الراديو في بارتشن modemst1/modemst2 أو nvram نتيجة تفليش روم غير مكتمل أو خطأ في ملفات الـ CP. يتطلب تفليش روم رسمي كامل 4-Files مع ملف CP متطابق لحماية الهاتف.',
+          rootCauseEn: 'Radio calibration files corrupted in EFS/NVRAM or modem binary missing after incomplete flash. Requires official 4-file stock firmware with matching binary CP file.',
           actionType: 'ONE_CLICK_FLASH',
-          actionPayload: 'restore_nvram_backup'
+          actionPayload: 'match_official_firmware_binary'
         }
       },
       {
-        labelAr: 'السيريال سليم ومكتوب لكن لا توجد أي إشارة شبكة (Emergency Calls Only)',
-        labelEn: 'IMEI is valid and visible, but 0 bars signal (Emergency Calls Only)',
+        labelAr: 'الـ IMEI فارغ أو لا يظهر مع حرارة في لوحة الهاتف بعد سقوط أو صدمة ميكانيكية',
+        labelEn: 'IMEI Null/Empty with motherboard heating after mechanical drop or impact',
         classification: 'HARDWARE_FAILURE',
         diagnosisResult: {
-          titleAr: 'عطل آيسي الإرسال والاستقبال اللاسلكي (WTR/SDR) أو مضخم الطاقة (PA)',
-          titleEn: 'RF Transceiver (WTR5975) or Front-End PA Power Amplifier Failure',
-          rootCauseAr: 'انقطاع تغذية 1.0V التناظرية لآيسي الـ WTR أو تلف كرات اللحام نتيجة الصدمات.',
-          rootCauseEn: 'Missing 1.0V clean analog rail or cracked BGA balls under RF transceiver.',
+          titleAr: 'عطل عتادي في كرات لحام آيسي البيسباند (Baseband IC BGA Disconnection) أو مسار التغذية',
+          titleEn: 'Baseband IC Solder Ball Fracture or Missing PMIC VREG LDO Rail',
+          rootCauseAr: 'انفصال كرات اللحام الدقيقة تحت معالج البيسباند أو تلف خط التغذية 1.8V / 1.0V القادم من الـ PMIC. يتطلب فحص الممانعة وشبلنة آيسي البيسباند.',
+          rootCauseEn: 'Fractured micro-solder balls under Baseband processor or broken 1.8V/1.0V supply rail from PMIC. Requires diode mode measurement and BGA reballing.',
           actionType: 'HARDWARE_MICRO_SOLDER',
           actionPayload: 'baseband-rf-transceiver-failure'
+        }
+      },
+      {
+        labelAr: 'الـ IMEI سليم ويظهر في #06#* ولكن الهاتف يكتب "لا توجد خدمة" (No Service) أو يبحث باستمرار',
+        labelEn: 'IMEI is valid in *#06#, but phone displays "No Service" or searches infinitely',
+        classification: 'HARDWARE_FAILURE',
+        diagnosisResult: {
+          titleAr: 'عطل مسار الهوائي أو آيسي الـ Transceiver (WTR/SDR) أو مضخم الطاقة (PA)',
+          titleEn: 'RF Front-End, Coaxial Antenna Cable or Transceiver Failure',
+          rootCauseAr: 'معالج البيسباند سليم ولكن مسار الإرسال/الاستقبال منقطع، إما بسبب تلف كيبل الهوائي، أو عطل آيسي الترددات WTR، أو انقطاع تغذية مضخم الإرسال PA.',
+          rootCauseEn: 'Baseband processor is operational but RF path is disconnected. Typical culprits: coaxial antenna disconnect, faulty WTR transceiver, or unpowered PA module.',
+          actionType: 'HARDWARE_MICRO_SOLDER',
+          actionPayload: 'baseband-rf-transceiver-failure'
+        }
+      },
+      {
+        labelAr: 'الـ IMEI سليم ولكن الهاتف يعطي "مكالمات الطوارئ فقط" (Emergency Calls Only) والشريحة مقروءة',
+        labelEn: 'IMEI valid but shows "Emergency Calls Only" while SIM card is properly detected',
+        classification: 'SOFTWARE_GLITCH',
+        diagnosisResult: {
+          titleAr: 'رفض تسجيل الشبكة أو عدم تطابق ترددات المشغل (PLMN Registration Denied / APN)',
+          titleEn: 'PLMN Cell Registration Failure or Network Lock / APN Misconfiguration',
+          rootCauseAr: 'الهاتف يتعرف على الشريحة ولكنه غير قادر على التسجيل في برج التغطية. غالباً بسبب إعدادات نقاط الوصول APN، أو حظر مؤقت، أو حاجة لإعادة ضبط شبكة المودم عبر AT+CFUN=1,1.',
+          rootCauseEn: 'SIM is detected but carrier tower registration fails. Solution involves APN profile rebuilding, network settings reset, or forced PLMN rescan.',
+          actionType: 'ONE_CLICK_FLASH',
+          actionPayload: 'reset_apn_settings'
+        }
+      },
+      {
+        labelAr: 'الهاتف لا يشعر بوجود شريحة الاتصال نهائياً (No SIM Card Inserted)',
+        labelEn: 'Device fails to detect any inserted SIM card (No SIM Inserted)',
+        classification: 'HARDWARE_FAILURE',
+        diagnosisResult: {
+          titleAr: 'عطل مسار كشف الشريحة (SIM_DETECT) أو جهد تغذية الشريحة (VDD_SIM 1.8V/3.0V)',
+          titleEn: 'SIM Tray Detection Switch or VDD_SIM Power Rail Fault',
+          rootCauseAr: 'كسر في ريش بيت الخط، أو انقطاع مسار كشف الشريحة SIM_DETECT، أو غياب جهد VDD_SIM المنظم من الـ PMIC.',
+          rootCauseEn: 'Bent contact pins in SIM tray socket, broken SIM_DETECT switch, or missing VDD_SIM rail from PMIC.',
+          actionType: 'HARDWARE_MICRO_SOLDER',
+          actionPayload: 'charging-vbus-failure'
         }
       }
     ]

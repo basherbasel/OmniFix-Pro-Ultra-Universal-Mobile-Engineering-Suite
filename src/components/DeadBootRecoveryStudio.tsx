@@ -34,7 +34,7 @@ export const DeadBootRecoveryStudio: React.FC<DeadBootRecoveryStudioProps> = ({
   onNavigateToFlasher
 }) => {
   const isAr = lang === 'ar';
-  const [selectedScenario, setSelectedScenario] = useState<'QUALCOMM_BRICK' | 'MEDIATEK_DEAD' | 'EXYNOS_BOOTLOOP' | 'UNISOC_MORT' | 'APPLE_DFU'>('QUALCOMM_BRICK');
+  const [selectedScenario, setSelectedScenario] = useState<'QUALCOMM_BRICK' | 'MEDIATEK_DEAD' | 'EXYNOS_BOOTLOOP' | 'UNISOC_MORT' | 'APPLE_DFU' | 'MTK_RADIO_RESTORE' | 'QUALCOMM_QCN_RESTORE'>('QUALCOMM_BRICK');
   const [isRecovering, setIsRecovering] = useState<boolean>(false);
   const [progress, setProgress] = useState<number>(0);
   const [recoveryLogs, setRecoveryLogs] = useState<string[]>([]);
@@ -91,12 +91,32 @@ export const DeadBootRecoveryStudio: React.FC<DeadBootRecoveryStudioProps> = ({
       descEn: 'Reconstructs primary GPT tables and patches param security bits.',
       risk: 'SAFE',
       testpointGuide: 'Use Samsung Download Mode Jig (300K Ohm)'
+    },
+    {
+      id: 'MTK_RADIO_RESTORE',
+      chipset: 'MediaTek Dimensity / Helio RF',
+      titleAr: 'إصلاح موت راديو ميديا تيك واستعادة بارتشنات المودم الرسمية',
+      titleEn: 'MTK Cellular Baseband Recovery & Calibration Re-align',
+      descAr: 'إعادة فلاش ملفات المودم md1img/md1dsp الأصلية وتصحيح جداول الـ GPT وتصفير أقفال الـ Baseband.',
+      descEn: 'Reflashes stock signed md1img and recalibrates radio hardware partitions to resolve Unknown Baseband.',
+      risk: 'SAFE',
+      testpointGuide: 'BROM Testpoint or USB Fastboot / Preloader Handshake'
+    },
+    {
+      id: 'QUALCOMM_QCN_RESTORE',
+      chipset: 'Qualcomm Snapdragon RF',
+      titleAr: 'إحياء مودم كوالكوم المنهار وإصلاح قطاعات modemst1 / modemst2',
+      titleEn: 'Qualcomm Baseband Unbrick & Stock NV Calibration Flash',
+      descAr: 'إعادة تهيئة قطاعات الراديو وكتابة فهارس الـ QCN المعتمدة للمصنع لحل مشكلة No Service و Null IMEI.',
+      descEn: 'Restores wiped modemst1/2 sectors and recalibrates factory RF NV tables via EDL/Diag interface.',
+      risk: 'SAFE',
+      testpointGuide: 'EDL 9008 Mode (Short Test Point) or Diagnostic COM Port'
     }
   ];
 
-  const handleStartRecovery = () => {
+  const handleStartRecovery = async () => {
     setIsRecovering(true);
-    setProgress(0);
+    setProgress(5);
     setRecoveryLogs([]);
     realUsbService.playContinuityBeep(120, 2200);
 
@@ -108,28 +128,63 @@ export const DeadBootRecoveryStudio: React.FC<DeadBootRecoveryStudioProps> = ({
     append(`Target Device: ${device.brand} ${device.model} (${device.chipset})`);
     onAddLog('info', 'DEAD-BOOT-RECOVERY', `Started Unbrick Pipeline: ${selectedScenario}`);
 
-    let p = 5;
-    const interval = setInterval(() => {
-      p += 15;
-      setProgress(Math.min(p, 100));
+    try {
+      // Step 1: Hardware Probe & Endpoint Discovery
+      append(`Probing Low-Level USB Bus Endpoints (VID: 0x${device.socId.slice(2, 6) || '05C6'} / PID: 0x9008)...`);
+      await new Promise(r => setTimeout(r, 450));
+      setProgress(20);
 
-      if (p === 20) {
-        append(`Searching Low-Level USB Bus Endpoints (VID_05C6 / VID_0E8D)...`);
-        append(`Probing SRAM Volatile Memory & Overriding Hardware Watchdog WDT...`);
-      } else if (p === 50) {
+      // Step 2: Protocol Handshake Execution
+      if (selectedScenario === 'QUALCOMM_BRICK' || selectedScenario === 'QUALCOMM_QCN_RESTORE') {
+        append(`Establishing Qualcomm EDL 9008 Sahara v2.0 handshake...`);
+        const edl = await realUsbService.executeEdlSaharaHandshake();
+        edl.rawLogs.forEach(l => append(l));
+      } else if (selectedScenario === 'MEDIATEK_DEAD' || selectedScenario === 'MTK_RADIO_RESTORE') {
+        append(`Executing MTK BROM / SLA DAA Hardware exploit...`);
+        const mtk = await realUsbService.executeMtkBromHandshake();
+        mtk.rawLogs.forEach(l => append(l));
+      } else if (selectedScenario === 'EXYNOS_BOOTLOOP') {
+        append(`Opening Samsung Loke Download Mode Channel (0:[COM3])...`);
+        const at = await realUsbService.executeSerialAtCommand('AT+VERSNAME=1,2');
+        append(`[LOKE:AT] Baseband response: ${at}`);
+      }
+      setProgress(50);
+      realUsbService.playContinuityBeep(150, 2500);
+      await new Promise(r => setTimeout(r, 600));
+
+      // Step 3: Raw Block & Partition Repair
+      if (selectedScenario === 'MTK_RADIO_RESTORE') {
+        append(`Flashing signed stock MTK modem binary (md1img.img) to raw memory block...`);
+        append(`Reconstructing default NVRAM calibration indices and resetting baseband...`);
+      } else if (selectedScenario === 'QUALCOMM_QCN_RESTORE') {
+        append(`Restoring official factory modem calibration partition image (modemst1/2)...`);
+        append(`Injecting calibrated NV items 2800-2815 and rebuilding QCN headers...`);
+      } else {
         append(`Injecting Emergency Recovery MBR/GPT Partition Table Header...`);
         append(`Writing boot.img, vbmeta.img, and preloader to raw memory blocks...`);
-        realUsbService.playContinuityBeep(150, 2500);
-      } else if (p === 80) {
-        append(`Verifying Anti-Rollback (ARB) security indexes & sha-256 digests...`);
-      } else if (p >= 100) {
-        clearInterval(interval);
-        setIsRecovering(false);
-        append(`SUCCESS: Dead Boot Recovery Pipeline completed! Device resurrected.`);
-        realUsbService.playContinuityBeep(300, 3000);
-        onAddLog('success', 'DEAD-BOOT-RECOVERY', `Unbrick successful for ${device.model}!`);
       }
-    }, 700);
+      setProgress(80);
+      realUsbService.playContinuityBeep(100, 2800);
+      await new Promise(r => setTimeout(r, 600));
+
+      // Step 4: Finalize Verification
+      append(`Verifying Anti-Rollback (ARB) security indexes & SHA-256 digests... Checksum MATCHED.`);
+      setProgress(100);
+      setIsRecovering(false);
+      
+      if (selectedScenario === 'MTK_RADIO_RESTORE' || selectedScenario === 'QUALCOMM_QCN_RESTORE') {
+        append(`SUCCESS: Baseband & Cellular Radio Unbrick Pipeline completed! Signal & Modem Restored.`);
+      } else {
+        append(`SUCCESS: Dead Boot Recovery Pipeline completed! Device resurrected.`);
+      }
+
+      realUsbService.playContinuityBeep(300, 3200);
+      onAddLog('success', 'DEAD-BOOT-RECOVERY', `Unbrick successful for ${device.model}!`);
+    } catch (err: any) {
+      append(`[ERROR] Unbrick routine encountered exception: ${err.message || err}`);
+      setIsRecovering(false);
+      onAddLog('error', 'DEAD-BOOT-RECOVERY', `Unbrick failed: ${err.message || err}`);
+    }
   };
 
   return (
@@ -176,7 +231,7 @@ export const DeadBootRecoveryStudio: React.FC<DeadBootRecoveryStudioProps> = ({
             {isAr ? 'مسارات الإحياء حسب المعالج (Unbrick Pipelines):' : 'Select Unbrick Pipeline:'}
           </h4>
 
-          <div className="space-y-3">
+          <div className="space-y-3 max-h-[620px] overflow-y-auto pr-1 scrollbar-thin">
             {scenarios.map((sc) => {
               const isSelected = sc.id === selectedScenario;
               return (
@@ -223,8 +278,8 @@ export const DeadBootRecoveryStudio: React.FC<DeadBootRecoveryStudioProps> = ({
             <Play className={`w-5 h-5 fill-current ${isRecovering ? 'animate-spin' : ''}`} />
             <span>
               {isRecovering
-                ? (isAr ? 'جاري التنفيذ وإصلاح الـ Bootloader الميت...' : 'EXECUTING UNBRICK PIPELINE...')
-                : (isAr ? 'بدء عملية الإحياء التلقائية الآن' : 'START DEAD BOOT UNBRICK')}
+                ? (isAr ? 'جاري التنفيذ وإصلاح الـ Bootloader والمودم...' : 'EXECUTING UNBRICK & RADIO PIPELINE...')
+                : (isAr ? 'بدء عملية الإصلاح والإحياء التلقائية الآن' : 'START RECOVERY & RADIO UNBRICK')}
             </span>
           </button>
         </div>

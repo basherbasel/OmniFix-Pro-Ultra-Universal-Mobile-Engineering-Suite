@@ -19,9 +19,11 @@ import {
   Copy,
   Check,
   Activity,
-  Wrench
+  Wrench,
+  Usb
 } from 'lucide-react';
 import { ConnectedDevice, DeviceMode } from '../types';
+import { realUsbService } from '../services/realUsbService';
 
 interface MultiModeDeviceReaderProps {
   device: ConnectedDevice;
@@ -244,6 +246,19 @@ export const MultiModeDeviceReader: React.FC<MultiModeDeviceReaderProps> = ({
               <span>{isAr ? '🩺 فحص وتشخيص الأعطال الشامل' : '🩺 FULL DIAGNOSTICS & REPAIR'}</span>
             </button>
           )}
+
+          <button
+            onClick={async () => {
+              const res = await realUsbService.requestAndPairWebUsbDevice();
+              if (res.success && res.device) {
+                onReadDeviceDeepInfo(res.device.mode);
+              }
+            }}
+            className="flex items-center gap-2 px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/30 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-sm"
+          >
+            <Usb className="w-3.5 h-3.5 text-cyan-400" />
+            <span>{isAr ? 'فحص واستعلام منفذ USB المباشر' : 'PROBE LIVE USB HARDWARE'}</span>
+          </button>
 
           <button
             onClick={() => onReadDeviceDeepInfo(selectedReadMode)}

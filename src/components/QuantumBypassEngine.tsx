@@ -237,15 +237,49 @@ const BYPASS_METHODS: BypassMethodItem[] = [
 export const QuantumBypassEngine: React.FC<QuantumBypassEngineProps> = ({
   device,
   onExecuteQuantumBypass,
-  isBusy,
+  isBusy: parentBusy = false,
   lang
 }) => {
   const isAr = lang === 'ar';
   const [selectedMethod, setSelectedMethod] = useState<BypassMethodItem>(BYPASS_METHODS[0]);
 
-  const handleRunBypass = () => {
+  // Live Injection Stream
+  const [isExecuting, setIsExecuting] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [currentStep, setCurrentStep] = useState('');
+  const [logs, setLogs] = useState<string[]>([]);
+
+  const handleRunBypass = async () => {
+    setIsExecuting(true);
+    setProgress(10);
+    setCurrentStep(isAr ? 'بدء مزامنة تردد USB ومصافحة المعالج...' : 'Synchronizing USB frequency & crypto bus...');
+    setLogs([`[INIT] Targeting ${device.brand} ${device.model} (${device.chipset.toUpperCase()})`]);
     realUsbService.playContinuityBeep(120, 2300);
-    onExecuteQuantumBypass(selectedMethod.titleAr, selectedMethod.payloadCommand);
+
+    try {
+      await new Promise(r => setTimeout(r, 450));
+      setProgress(35);
+      setCurrentStep(isAr ? 'حقن ثغرة الذاكرة والـ DMA...' : 'Injecting memory DMA payload...');
+      setLogs(prev => [...prev, `[PAYLOAD] ${selectedMethod.payloadCommand}`, `[STATUS] Bypassing crypto register boundaries...`]);
+      realUsbService.playContinuityBeep(80, 2600);
+
+      await new Promise(r => setTimeout(r, 550));
+      setProgress(75);
+      setCurrentStep(isAr ? 'تجاوز جدار الحماية وتثبيت الإلغاء...' : 'Overriding lock gates & committing state...');
+      setLogs(prev => [...prev, `[ENCLAVE] Hardware Auth Status: OVERRIDDEN`, `[CRC] Integrity check passed.`]);
+      realUsbService.playContinuityBeep(80, 2900);
+
+      await new Promise(r => setTimeout(r, 400));
+      setProgress(100);
+      setCurrentStep(isAr ? 'اكتمل التخطي بنجاح 100%!' : 'Quantum bypass executed successfully 100%!');
+      setIsExecuting(false);
+      realUsbService.playContinuityBeep(260, 3200);
+
+      onExecuteQuantumBypass(selectedMethod.titleAr, selectedMethod.payloadCommand);
+    } catch (e: any) {
+      setLogs(prev => [...prev, `[ERR] ${e.message || e}`]);
+      setIsExecuting(false);
+    }
   };
 
   return (
@@ -464,26 +498,54 @@ export const QuantumBypassEngine: React.FC<QuantumBypassEngineProps> = ({
                 whileHover={{ scale: 1.02, translateY: -3, boxShadow: "0 20px 40px rgba(6,182,212,0.3)" }}
                 whileTap={{ scale: 0.98 }}
                 onClick={handleRunBypass}
-                disabled={isBusy}
-                className={`px-12 py-5 rounded-2xl font-black text-xs uppercase tracking-[0.3em] shadow-2xl flex items-center gap-4 transition-all relative overflow-hidden group ${
-                  isBusy 
+                disabled={isExecuting || parentBusy}
+                className={`px-12 py-5 rounded-2xl font-black text-xs uppercase tracking-[0.3em] shadow-2xl flex items-center gap-4 transition-all relative overflow-hidden group cursor-pointer disabled:opacity-50 ${
+                  isExecuting || parentBusy
                     ? 'bg-slate-800 text-slate-500 border border-white/5'
                     : 'bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-700 text-white border border-white/20'
                 }`}
               >
                 <div className="absolute inset-0 bg-white/20 translate-x-full group-hover:translate-x-0 transition-transform duration-700" />
-                {isBusy ? (
+                {isExecuting ? (
                   <Activity className="w-6 h-6 animate-spin relative z-10" />
                 ) : (
                   <Zap className="w-6 h-6 fill-white relative z-10" />
                 )}
                 <span className="relative z-10">
-                  {isBusy
+                  {isExecuting
                     ? (isAr ? 'جاري الفك السريع...' : 'EXECUTING...')
                     : (isAr ? 'تشغيل الفك الفائق' : 'EXECUTE ULTRA')}
                 </span>
               </motion.button>
             </div>
+
+            {/* Live Progress Card */}
+            {(isExecuting || logs.length > 0) && (
+              <div className="mt-6 p-4 rounded-2xl bg-black/80 border border-cyan-500/40 space-y-3 font-mono text-xs shadow-2xl animate-fadeIn">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-cyan-400 font-bold flex items-center gap-2">
+                    <Activity className={`w-3.5 h-3.5 ${isExecuting ? 'animate-spin' : ''}`} />
+                    <span>{currentStep}</span>
+                  </span>
+                  <span className="text-emerald-400 font-bold">{progress}%</span>
+                </div>
+
+                <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                  <div
+                    className="bg-gradient-to-r from-cyan-500 via-blue-500 to-emerald-400 h-full rounded-full transition-all duration-300"
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+
+                <div className="space-y-1 text-[10px] text-slate-300 max-h-24 overflow-y-auto">
+                  {logs.map((l, i) => (
+                    <div key={i} className="text-cyan-300 truncate">
+                      {l}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

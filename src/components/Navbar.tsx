@@ -27,7 +27,8 @@ import {
   Briefcase,
   Home,
   ChevronRight,
-  BookOpen
+  BookOpen,
+  Unlock
 } from 'lucide-react';
 import { motion, AnimatePresence, Reorder } from 'motion/react';
 import { useWorkstation } from '../context/WorkstationContext';
@@ -52,6 +53,7 @@ export const Navbar: React.FC = () => {
     { id: 'dead-boot', category: 'smart', labelEn: 'Dead Boot Recovery & Unbrick', labelAr: 'إحياء الهواتف الميتة والإنعاش', icon: RotateCcw, badge: 'UNBRICK' },
     { id: 'quantum-bypass', category: 'smart', labelEn: 'Quantum Ultra Bypass', labelAr: 'التخطي السريع والفك الفائق', icon: Zap, badge: 'ULTRA' },
     { id: 'frp', category: 'smart', labelEn: 'FRP & Account Bypass Hub', labelAr: 'تخطي الحسابات و FRP', icon: ShieldAlert, badge: 'FRP 2026' },
+    { id: 'security-bypass', category: 'smart', labelEn: 'Security & KG Bypass Lab', labelAr: 'تخطي الحمايات و Knox Guard', icon: Unlock, badge: 'KG 2026' },
     { id: 'forensic-decrypt', category: 'smart', labelEn: 'Forensic & Data Recovery', labelAr: 'الاسترداد الجنائي وفك التشفير', icon: HardDrive, badge: 'FORENSIC' },
 
     // 2. HARDWARE DIAGNOSTICS & MICRO-SOLDERING (التشخيص والقياسات والمايكروسولدرينغ)
@@ -64,6 +66,7 @@ export const Navbar: React.FC = () => {
     { id: 'power-lab', category: 'diagnostics', labelEn: 'Power Signature Lab', labelAr: 'محلل استهلاك التيار', icon: Zap, badge: 'POWER ANALYZER' },
     { id: 'thermal-rosin', category: 'diagnostics', labelEn: 'Thermal & Rosin Short Isolation', labelAr: 'الكاميرا الحرارية وفاحص الشورت', icon: Flame, badge: 'DC INJECT' },
     { id: 'ai-thermal-lidar', category: 'diagnostics', labelEn: 'AI Thermal LiDAR Studio', labelAr: 'الكاميرا الحرارية بالليزر والـ AI', icon: Radio, badge: 'LIDAR' },
+    { id: 'voltage-bridge', category: 'diagnostics', labelEn: 'VoltageBridge V-Rail Inspector', labelAr: 'جسر الفولتيات VoltageBridge', icon: Zap, badge: 'V-RAIL' },
     { id: 'bench-controller', category: 'diagnostics', labelEn: 'Smart Bench Controller', labelAr: 'متحكم طاولة الصيانة الذكي', icon: Monitor, badge: 'BENCH' },
 
     // 3. FLASHING, PROGRAMMING & NETWORK (التفليش والبرمجة وإصلاح السيريال والبارتشنات)
@@ -100,6 +103,10 @@ export const Navbar: React.FC = () => {
     { id: 'business', labelEn: 'Business & CRM', labelAr: 'إدارة الأعمال والعملاء', icon: Briefcase, color: 'text-amber-400' },
   ]);
 
+  const filteredTabs = selectedCategory === 'all' 
+    ? navTabs 
+    : navTabs.filter(tab => tab.category === selectedCategory);
+
   const [activeTabsOrder, setActiveTabsOrder] = React.useState<string[]>([]);
 
   React.useEffect(() => {
@@ -122,10 +129,6 @@ export const Navbar: React.FC = () => {
       }
     }
   };
-
-  const filteredTabs = selectedCategory === 'all' 
-    ? navTabs 
-    : navTabs.filter(tab => tab.category === selectedCategory);
 
   return (
     <div className="w-full flex flex-col bg-white">

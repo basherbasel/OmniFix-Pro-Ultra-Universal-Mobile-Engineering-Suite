@@ -5,6 +5,7 @@ import { CentralDashboard } from '../CentralDashboard';
 import { ApexAgentDashboard } from '../ApexAgentDashboard';
 import { AiDiagnosticEngine } from '../AiDiagnosticEngine';
 import { SmartUsbOneClickStudio } from '../SmartUsbOneClickStudio';
+import { SamsungOdinFlasherStudio } from '../SamsungOdinFlasherStudio';
 import { FlasherWorkspace } from '../FlasherWorkspace';
 import { DeadBootRecoveryStudio } from '../DeadBootRecoveryStudio';
 import { UltimateFaultRepairHub } from '../UltimateFaultRepairHub';
@@ -39,6 +40,8 @@ import { EsimSatelliteSpectrumStudio } from '../EsimSatelliteSpectrumStudio';
 import { SmartHardwareBenchController } from '../SmartHardwareBenchController';
 import { EepromTrueToneBmsStudio } from '../EepromTrueToneBmsStudio';
 import { SoftwareSecurityBypassLab } from '../SoftwareSecurityBypassLab';
+import { NextGenPredictiveWorkspace } from '../NextGenPredictiveWorkspace';
+import { VoltageBridge } from '../VoltageBridge';
 
 import { BoxCoreAIWorkspace } from '../BoxCoreAIWorkspace';
 
@@ -127,6 +130,18 @@ export function ToolCanvas() {
     case 'thermal-rosin':
       return <ThermalRosinCameraStudio lang={lang} device={currentDevice} />;
 
+    case 'odin':
+    case 'samsung-odin':
+      return (
+        <SamsungOdinFlasherStudio
+          device={currentDevice}
+          lang={lang}
+          isBusy={isBusy}
+          onAddLog={addLog}
+          onExecuteFlash={(p) => addLog(`Executing Samsung Flash: ${p}`)}
+        />
+      );
+
     case 'advanced':
     case 'flasher':
       return (
@@ -139,6 +154,7 @@ export function ToolCanvas() {
       );
 
     case 'network':
+    case 'network-rf':
       return (
         <NetworkNvramStudio 
           device={currentDevice} 
@@ -189,6 +205,9 @@ export function ToolCanvas() {
 
     case 'hardware-workbench':
       return <HardwareMicroSolderingEngine device={currentDevice} lang={lang} />;
+
+    case 'voltage-bridge':
+      return <VoltageBridge device={currentDevice} lang={lang} />;
 
     case 'pcb-explorer':
       return <InteractivePcbBitmapExplorer lang={lang} device={currentDevice} />;
@@ -261,6 +280,15 @@ export function ToolCanvas() {
           device={currentDevice} 
           lang={lang} 
         />
+      );
+
+    case 'next-gen-workspace':
+    case 'predictive-workspace':
+    case 'universal-platform':
+      return (
+        <div className="p-4 md:p-6 max-w-7xl mx-auto">
+          <NextGenPredictiveWorkspace isAr={lang === 'ar'} />
+        </div>
       );
 
     case 'codelab':

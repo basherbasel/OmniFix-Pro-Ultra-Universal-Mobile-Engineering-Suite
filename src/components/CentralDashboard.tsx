@@ -74,7 +74,7 @@ interface ToolDefinition {
 
 export const CentralDashboard: React.FC<CentralDashboardProps> = ({ onNavigate, lang }) => {
   const isAr = lang === 'ar';
-  const { currentDevice, setCurrentDevice, setUsbModalOpen, addLog, isBusy } = useWorkstation();
+  const { currentDevice, setCurrentDevice, setUsbModalOpen, setDiagnosticsModalOpen, addLog, isBusy } = useWorkstation();
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [isReadingDevice, setIsReadingDevice] = useState(false);
@@ -539,6 +539,34 @@ export const CentralDashboard: React.FC<CentralDashboardProps> = ({ onNavigate, 
       tag: 'THERMAL'
     },
     {
+      id: 'thermal-rosin',
+      nameEn: 'Thermal & Rosin Short Isolation',
+      nameAr: 'الكاميرا الحرارية وفاحص الشورت بالراتنج',
+      category: 'HARDWARE_BENCH',
+      categoryLabelEn: 'Hardware & Bench',
+      categoryLabelAr: 'الهاردوير وطاولة الصيانة',
+      icon: Flame,
+      color: 'text-orange-400',
+      bgGlow: 'from-orange-500/20 to-rose-500/5',
+      descriptionEn: 'Vaporized rosin smoke chamber & pinpoint 1.2V DC short finder.',
+      descriptionAr: 'كشف المكثفات المحروقة بحقن الفولت المباشر وتبخير دخان الروزين.',
+      tag: 'ROSIN'
+    },
+    {
+      id: 'voltage-bridge',
+      nameEn: 'VoltageBridge V-Rail Inspector',
+      nameAr: 'موديول جسر الفولتية VoltageBridge',
+      category: 'HARDWARE_BENCH',
+      categoryLabelEn: 'Hardware & Bench',
+      categoryLabelAr: 'الهاردوير وطاولة الصيانة',
+      icon: Zap,
+      color: 'text-amber-400',
+      bgGlow: 'from-amber-500/20 to-yellow-500/5',
+      descriptionEn: 'Inspect SoC power rails for Snapdragon, Kirin & Dimensity against multimeter.',
+      descriptionAr: 'تفتيش جهود V-Rail ومقارنة خطوط التغذية للمعالجات بقيم الملتيميتر الرسمية.',
+      tag: 'V-RAIL'
+    },
+    {
       id: 'ai-oscilloscope',
       nameEn: 'Digital Logic Oscilloscope',
       nameAr: 'الأوسيلوسكوب الرقمي وفحص الإشارات',
@@ -623,6 +651,118 @@ export const CentralDashboard: React.FC<CentralDashboardProps> = ({ onNavigate, 
       descriptionEn: 'ISP direct pinout, RPMB write, LUN partitioning, & health tests.',
       descriptionAr: 'قراءة وكتابة قطاعات الذاكرة عبر ISP وفحص صحة الرقاقة قبل الاستبدال.',
       tag: 'MEMORY'
+    },
+    {
+      id: 'isp-hub',
+      nameEn: 'ISP TestPoint Pinout Hub',
+      nameAr: 'نقاط لحام الـ ISP و BGA Pinout',
+      category: 'NETWORK_RF',
+      categoryLabelEn: 'Network & RF',
+      categoryLabelAr: 'الشبكة والاتصال الفضائي',
+      icon: Crosshair,
+      color: 'text-cyan-400',
+      bgGlow: 'from-cyan-500/20 to-teal-500/5',
+      descriptionEn: 'Direct eMMC/UFS CLK, CMD, DAT0 pinout with voltage pull-up instructions.',
+      descriptionAr: 'نقاط توصيل الذاكرة المباشرة ISP ومخططات الـ BGA لحل مشاكل البوت الميت.',
+      tag: 'ISP'
+    },
+    {
+      id: 'multimeter',
+      nameEn: 'Precision Multimeter Studio',
+      nameAr: 'الأفوميتر الرقمي والممانعات',
+      category: 'HARDWARE_BENCH',
+      categoryLabelEn: 'Hardware & Bench',
+      categoryLabelAr: 'الهاردوير وطاولة الصيانة',
+      icon: Activity,
+      color: 'text-emerald-400',
+      bgGlow: 'from-emerald-500/20 to-teal-500/5',
+      descriptionEn: 'Diode mode ground reference, continuity buzzer, and resistance matrix.',
+      descriptionAr: 'قياس الممانعات في وضع الدايود وصوت الجرس والجهود الحية لخطوط البوردة.',
+      tag: 'DIODE'
+    },
+    {
+      id: 'localization',
+      nameEn: 'Language & CSC Switcher',
+      nameAr: 'التعريب وتغيير منطقة CSC',
+      category: 'SOFTWARE_SECURITY',
+      categoryLabelEn: 'Software & Security',
+      categoryLabelAr: 'السوفت وير والحمايات',
+      icon: Globe,
+      color: 'text-blue-400',
+      bgGlow: 'from-blue-500/20 to-cyan-500/5',
+      descriptionEn: 'Change CSC sales code, enable call recording, and inject Arabic strings.',
+      descriptionAr: 'تغيير كود الدولة ومطابقة CSC وتفعيل تسجيل المكالمات والتعريب الكامل.',
+      tag: 'CSC'
+    },
+    {
+      id: 'safety',
+      nameEn: 'Anti-Brick Safety Suite',
+      nameAr: 'حماية مضاد الطوب والنسخ الاحتياطي',
+      category: 'SOFTWARE_SECURITY',
+      categoryLabelEn: 'Software & Security',
+      categoryLabelAr: 'السوفت وير والحمايات',
+      icon: ShieldCheck,
+      color: 'text-emerald-400',
+      bgGlow: 'from-emerald-500/20 to-teal-500/5',
+      descriptionEn: 'One-click RAW partition backup for NVRAM, EFS, VBMETA, Persist before flashing.',
+      descriptionAr: 'أخذ نسخ احتياطية فورية لقطاعات NVRAM, EFS, VBMETA, Persist الحساسة.',
+      tag: 'BACKUP'
+    },
+    {
+      id: 'device-reader',
+      nameEn: 'Multi-Mode Telemetry Reader',
+      nameAr: 'قارئ التيليميتري بكافة الأوضاع',
+      category: 'SOFTWARE_SECURITY',
+      categoryLabelEn: 'Software & Security',
+      categoryLabelAr: 'السوفت وير والحمايات',
+      icon: Smartphone,
+      color: 'text-indigo-400',
+      bgGlow: 'from-indigo-500/20 to-purple-500/5',
+      descriptionEn: 'Read device telemetry across ADB, Fastboot, EDL, DFU, and BROM with security match.',
+      descriptionAr: 'قراءة بيانات الهاتف في ADB, Fastboot, EDL, DFU, BROM ومطابقة الحماية.',
+      tag: 'TELEMETRY'
+    },
+    {
+      id: 'box-emulation',
+      nameEn: 'Native Box & Dongle Tools',
+      nameAr: 'محاكي البوكسات والدونجلات المباشرة',
+      category: 'SOFTWARE_SECURITY',
+      categoryLabelEn: 'Software & Security',
+      categoryLabelAr: 'السوفت وير والحمايات',
+      icon: Wrench,
+      color: 'text-amber-400',
+      bgGlow: 'from-amber-500/20 to-orange-500/5',
+      descriptionEn: 'Emulate protocols of Z3X, Octoplus, Chimera, UFI, Pandora, & Medusa Pro.',
+      descriptionAr: 'محاكاة بروتوكولات Z3X, Octoplus, Chimera, UFI, Pandora, Medusa Pro.',
+      tag: 'BOX'
+    },
+    {
+      id: 'cloud-security',
+      nameEn: 'Live 0-Day Exploit Hub',
+      nameAr: 'سحابة الثغرات العالمية Live 0-Day',
+      category: 'SOFTWARE_SECURITY',
+      categoryLabelEn: 'Software & Security',
+      categoryLabelAr: 'السوفت وير والحمايات',
+      icon: Flame,
+      color: 'text-rose-400',
+      bgGlow: 'from-rose-500/20 to-red-500/5',
+      descriptionEn: 'Real-time 2026 security patches, 0-day exploits, and CVE bypass engines.',
+      descriptionAr: 'تحديثات الحمايات والثغرات الفورية لعام 2026 وقواعد بيانات التخطي.',
+      tag: '0-DAY'
+    },
+    {
+      id: 'frp',
+      nameEn: 'FRP & Account Bypass Hub',
+      nameAr: 'تخطي حسابات FRP وجوجل',
+      category: 'SOFTWARE_SECURITY',
+      categoryLabelEn: 'Software & Security',
+      categoryLabelAr: 'السوفت وير والحمايات',
+      icon: ShieldAlert,
+      color: 'text-amber-400',
+      bgGlow: 'from-amber-500/20 to-yellow-500/5',
+      descriptionEn: 'MTP dialer codes, EDL erase, BROM partition wipe, & Fastboot FRP reset.',
+      descriptionAr: 'فك حسابات جوجل في وضع MTP و EDL و BROM و Fastboot لجميع الموديلات.',
+      tag: 'FRP'
     },
 
     // --- Category: Shop Management & QA Forensics ---
@@ -784,6 +924,14 @@ export const CentralDashboard: React.FC<CentralDashboardProps> = ({ onNavigate, 
               </button>
 
               <button
+                onClick={() => setDiagnosticsModalOpen(true)}
+                className="px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 text-white font-black text-xs rounded-2xl flex items-center gap-2 shadow-lg shadow-indigo-500/20 transition-all hover:-translate-y-0.5"
+              >
+                <Activity size={16} />
+                {isAr ? 'فحص وإصلاح الأعطال المباشر' : 'Live Diagnostics & Fix'}
+              </button>
+
+              <button
                 onClick={() => onNavigate('security-bypass')}
                 className="px-5 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 text-slate-950 font-black text-xs rounded-2xl flex items-center gap-2 shadow-lg shadow-cyan-500/20 transition-all hover:-translate-y-0.5"
               >
@@ -886,6 +1034,15 @@ export const CentralDashboard: React.FC<CentralDashboardProps> = ({ onNavigate, 
 
           {/* Action Buttons */}
           <div className="flex items-center gap-3 flex-wrap">
+            <button
+              onClick={() => setDiagnosticsModalOpen(true)}
+              className="px-5 py-2.5 bg-gradient-to-r from-indigo-500 via-purple-600 to-pink-600 hover:from-indigo-400 hover:to-purple-500 text-white font-black text-xs rounded-xl flex items-center gap-2 shadow-lg shadow-indigo-500/20 transition-all cursor-pointer"
+              title={isAr ? 'فتح نافذة التشخيص والفحص والإصلاح المباشر' : 'Launch Smart Diagnostics & 1-Click Fix Modal'}
+            >
+              <Activity size={14} className="text-white" />
+              <span>{isAr ? '🩺 فحص وإصلاح الهاتف (Diagnostics & Fix)' : '🩺 Diagnostics & Live Repair'}</span>
+            </button>
+
             <button
               onClick={handleManualHardwareRead}
               disabled={isReadingDevice}
