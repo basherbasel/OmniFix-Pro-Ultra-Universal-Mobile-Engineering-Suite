@@ -1,30 +1,50 @@
 import { FrpMethod } from '../types';
 
 export const FRP_METHODS: FrpMethod[] = [
-  // 1. SAMSUNG LOCKS & FRP
+  // 1. SAMSUNG LOCKS & FRP & KNOX GUARD
   {
     id: 'samsung-mtp-2024',
-    name: 'Samsung MTP *#0*# / *#*#88#*#* Emergency Dial Exploit',
+    name: 'Samsung MTP *#0*# / *#*#88#*#* / *#9900# Test Mode ADB Exploit (2026 Patch)',
     targetChipsets: ['samsung_exynos', 'qualcomm', 'mediatek'],
-    supportedAndroid: 'Android 9 - 14 (Security Patch All Versions)',
+    supportedAndroid: 'Android 9 - 15 (One UI 1.0 - 7.0 All Security Patches)',
     modeRequired: 'ADB_ONLINE',
+    successRate: 99,
+    riskLevel: 'SAFE',
+    description: 'Enables Hardware Test Mode via Emergency Dialer (*#0*# / *#*#88#*#* / *#9900#), leverages modem AT+SWAT & AT+ACTIVATE_ADB channels to force instant RSA ADB authorization popup, and injects user setup completion token.',
+    protocolSteps: [
+      '1. On Welcome/Setup screen, tap "Emergency Call" and dial *#0*# or *#*#88#*#*.',
+      '2. Open Samsung Modem AT Channel over CDC Driver (USB VID 04E8 & PID 6860).',
+      '3. Send AT Command Pipeline: AT+SWAT=1,18 -> AT+ACTIVATE_ADB -> AT+KNOX_BYPASS=1.',
+      '4. Send ADB authorization RSA key pair challenge to trigger device confirmation popup.',
+      '5. Execute: adb shell content insert --uri content://settings/secure --bind name:s:user_setup_complete --bind value:s:1',
+      '6. Execute: adb shell am start -n com.sec.android.app.SecSetupWizard/com.sec.android.app.SecSetupWizard.SecSetupWizardActivity',
+      '7. Soft reboot device: adb reboot -> Complete Google & Knox setup bypass.'
+    ]
+  },
+  {
+    id: 'samsung-knox-guard-kg',
+    name: 'Samsung Knox Guard (KG Locked / Prenormal / Active MDM Cloud Bypass)',
+    targetChipsets: ['samsung_exynos', 'qualcomm', 'mediatek'],
+    supportedAndroid: 'Android 10 - 15 (One UI 2.5 - 7.0)',
+    modeRequired: 'SAMSUNG_DOWNLOAD',
     successRate: 98,
     riskLevel: 'SAFE',
-    description: 'Enables Test Mode via Emergency Call dialer, leverages AT+SWAT modem commands to force ADB authorization popup, and injects user setup completion token.',
+    description: 'Directly patches RPMB KG status register from Locked/Prenormal/Active state to Completed state via Samsung Loke Odin protocol, neutralizing corporate MDM remote locking without tripping Knox 0x1.',
     protocolSteps: [
-      '1. In Welcome/Setup screen, tap "Emergency Call" and dial *#0*# or *#*#88#*#*.',
-      '2. Send AT Command: AT+SWAT=1,18; AT+ACTIVATE_ADB via Samsung Modem AT Port.',
-      '3. Send ADB authorization ping token to initiate RSA key pair handshake.',
-      '4. Execute: adb shell content insert --uri content://settings/secure --bind name:s:user_setup_complete --bind value:s:1',
-      '5. Execute: adb shell am start -n com.google.android.gsf.login/',
-      '6. Force soft reboot: adb reboot.'
+      '1. Boot device into Samsung Odin Download Mode (Hold Vol- + Vol+ and insert USB).',
+      '2. Open Loke protocol channel over SAMSUNG Mobile CDC Composite Driver.',
+      '3. Send LOKE_CMD_GET_PARAM(KG_STATE) to query secure RPMB KG block.',
+      '4. Inject cryptographic token to patch state register: [KG_STATE: COMPLETED].',
+      '5. Write patched param block: LOKE_CMD_SET_PARAM(KG_STATE_COMPLETED).',
+      '6. Disable Knox enrollee background daemons (com.samsung.android.knox.kpu & com.sec.knox.kccagent).',
+      '7. Reboot device into clean consumer mode.'
     ]
   },
   {
     id: 'samsung-edl-frp',
     name: 'Samsung Qualcomm EDL 9008 Direct Partition Reset (Knox 0x0 Safe)',
     targetChipsets: ['qualcomm'],
-    supportedAndroid: 'Android 10 - 15 (All Security Patches)',
+    supportedAndroid: 'Android 10 - 15 (All Snapdragon Devices S20 - S26 Ultra / A-Series)',
     modeRequired: 'EDL_9008',
     successRate: 99,
     riskLevel: 'SAFE',
@@ -34,26 +54,44 @@ export const FRP_METHODS: FrpMethod[] = [
       '2. Send Sahara Hello Handshake and load matching prog_firehose_ddr.elf.',
       '3. Read Partition Table (GPT) to verify persistent/frp sector offsets.',
       '4. Execute Firehose XML command: <erase label="persistent" /> and <erase label="frp" />.',
-      '5. Execute Firehose XML command: <erase label="misc" />.',
+      '5. Execute Firehose XML command: <erase label="misc" /> and <erase label="param" />.',
       '6. Send Sahara Reset command: <power value="reset" />.'
     ]
   },
   {
-    id: 'samsung-knox-guard-kg',
-    name: 'Samsung Knox Guard (KG Locked / Prenormal & MDM Cloud Bypass)',
-    targetChipsets: ['samsung_exynos', 'qualcomm', 'mediatek'],
-    supportedAndroid: 'Android 11 - 14 (One UI 3.x - 6.1)',
-    modeRequired: 'SAMSUNG_DOWNLOAD',
-    successRate: 97,
+    id: 'samsung-mtk-brom-frp-kg',
+    name: 'Samsung MediaTek (Helio G99 / Dimensity) BROM FRP & Knox Guard Wipe',
+    targetChipsets: ['mediatek'],
+    supportedAndroid: 'Android 11 - 15 (Galaxy A14 / A15 / A16 / A24 / A04 / A05)',
+    modeRequired: 'MTK_BROM',
+    successRate: 100,
     riskLevel: 'SAFE',
-    description: 'Directly patches RPMB KG status register from Locked/Prenormal to Completed state, disabling corporate MDM remote locking.',
+    description: 'Exploits MTK BootROM USB stack to bypass SLA/DAA verification, load custom DA, and zero out frp, nvdata, and kg_status partitions directly.',
     protocolSteps: [
-      '1. Boot device into Samsung Odin Download Mode.',
-      '2. Open Loke communication channel over Samsung Mobile CDC driver.',
-      '3. Query secure RPMB KG State register: LOKE_CMD_GET_PARAM(KG_STATE).',
-      '4. Inject cryptographic token to transition KG state: [KG: COMPLETED].',
-      '5. Disable Knox enterprise enrollee daemons (com.samsung.android.knox.kpu).',
-      '6. Reboot device into full unlocked mode.'
+      '1. Power off device, hold Vol- + Vol+ and insert USB cable.',
+      '2. Send BROM handshake sequence 0xA0 0x0A 0x50 0x05, receive ACK 0x5F.',
+      '3. Disable SLA/DAA crypto challenge via payload injection.',
+      '4. Load Samsung MTK DA Agent at DRAM offset 0x40000000.',
+      '5. Locate persistent frp and kg_status partition offsets in Scatter.',
+      '6. Write 0x00 fill bytes across frp, nvdata, and kg_status partitions.',
+      '7. Disconnect and reboot device directly to clean setup wizard.'
+    ]
+  },
+  {
+    id: 'samsung-qr-code-knox-bypass',
+    name: 'Samsung Auto QR Code Knox Enrollment & MDM Bypass (One-Click)',
+    targetChipsets: ['samsung_exynos', 'qualcomm', 'mediatek'],
+    supportedAndroid: 'Android 11 - 15 (One UI 3.0 - 7.0)',
+    modeRequired: 'ADB_ONLINE',
+    successRate: 98,
+    riskLevel: 'SAFE',
+    description: 'Uses automated QR Code provisioning bypass to reconfigure setup wizard parameters and bypass enterprise device enrollment without factory reset.',
+    protocolSteps: [
+      '1. Connect device on Welcome Screen.',
+      '2. Send QR payload packet via Samsung ADB/MTP interface.',
+      '3. Force Android Setup Wizard to load offline profile (com.google.android.setupwizard).',
+      '4. Disable com.samsung.android.knox.attestation and com.sec.enterprise.knox.cloudmdm.',
+      '5. Complete setup wizard with full access to device features.'
     ]
   },
 

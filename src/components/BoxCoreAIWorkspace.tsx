@@ -29,6 +29,9 @@ import {
 } from 'lucide-react';
 import { ConnectedDevice } from '../types';
 import { realUsbService } from '../services/realUsbService';
+import { ToolExecutionHub } from './ToolExecutionHub';
+
+import { PythonDesktopArchitectureModal } from './PythonDesktopArchitectureModal';
 
 interface BoxCoreAIWorkspaceProps {
   device: ConnectedDevice;
@@ -90,6 +93,9 @@ const DEVICE_PRESETS = [
 export const BoxCoreAIWorkspace: React.FC<BoxCoreAIWorkspaceProps> = ({ device, lang }) => {
   const isAr = lang === 'ar';
   
+  // Python Desktop Architecture Modal State
+  const [isPythonModalOpen, setIsPythonModalOpen] = useState(false);
+
   // Preset Selection State
   const [selectedPresetId, setSelectedPresetId] = useState<string>('qualcomm-8gen3');
   const [toolStatus, setToolStatus] = useState<Record<string, boolean>>({});
@@ -328,7 +334,21 @@ export const BoxCoreAIWorkspace: React.FC<BoxCoreAIWorkspaceProps> = ({ device, 
             </p>
           </div>
         </div>
+
+        <button
+          onClick={() => setIsPythonModalOpen(true)}
+          className="px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-lg text-xs font-bold font-mono flex items-center gap-2 shadow-lg shadow-emerald-600/20 transition-all cursor-pointer shrink-0"
+        >
+          <Sparkles className="w-4 h-4 text-amber-300" />
+          <span>{isAr ? 'عرض سورس كود بوكس الصيانة بلغة Python' : 'View Desktop Python Box Architecture'}</span>
+        </button>
       </div>
+
+      <PythonDesktopArchitectureModal 
+        isOpen={isPythonModalOpen} 
+        onClose={() => setIsPythonModalOpen(false)} 
+        lang={lang} 
+      />
 
       {/* Samsung Live Protocol & Model Reader Card */}
       <div className="p-4 rounded-xl bg-gradient-to-br from-slate-900 to-blue-950/60 border border-blue-800/40 shadow-lg space-y-3">
@@ -664,6 +684,9 @@ export const BoxCoreAIWorkspace: React.FC<BoxCoreAIWorkspaceProps> = ({ device, 
           )}
         </div>
       </div>
+
+      {/* --- Unified GSM & Odin High-Speed Tool Execution Hub --- */}
+      <ToolExecutionHub device={device} lang={lang} />
     </div>
   );
 };

@@ -193,5 +193,73 @@ export const PROFESSIONAL_BOXES: ProfessionalBox[] = [
         actionCommand: 'INFINITY_PIXEL_FLASH_SLOT_A_B --reboot-fastbootd'
       }
     ]
+  },
+  {
+    id: 'qualcomm-sahara-firehose-native',
+    name: 'Qualcomm Sahara & Firehose Native Engine',
+    vendor: 'Qualcomm Technologies Inc.',
+    version: '2026.09-QUALCOMM-CORE',
+    licenseStatus: 'ACTIVATED_PRO',
+    supportedBrands: ['Samsung', 'Xiaomi', 'Oppo', 'Vivo', 'Realme', 'OnePlus', 'Motorola', 'Asus', 'Lenovo'],
+    icon: 'Cpu',
+    descriptionAr: 'بروتوكول كوالكوم المباشر 9008 (Qualcomm HS-USB QDLoader 9008): مصافحة Sahara Protocol v2.0 وتحميل Firehose Loader (.elf / .mbn)، والتخاطب بلغة XML لمعالجة الـ GPT والـ Partition Sector I/O.',
+    descriptionEn: 'Native Qualcomm EDL 9008 protocol engine: Sahara v2.0 handshake, Firehose XML packet streamer, GPT partition table parsing, and sector-level read/write.',
+    featuredProtocols: [
+      {
+        nameAr: 'مصافحة Sahara وتحميل مبرمج Firehose Loader',
+        nameEn: 'Sahara Handshake (0x01 HELLO) & Firehose Loader Ingestion',
+        modeRequired: 'EDL_9008',
+        targetChipset: 'Qualcomm Snapdragon All Series',
+        actionCommand: 'SAHARA_HANDSHAKE_INIT --loader prog_firehose_ddr.elf --cmd-done 0x05'
+      },
+      {
+        nameAr: 'تهيئة الذاكرة وتهيئة حزم XML Firehose (eMMC/UFS)',
+        nameEn: 'Firehose Storage Configuration XML (<configure MemoryName="UFS" />)',
+        modeRequired: 'EDL_9008',
+        targetChipset: 'Qualcomm UFS / eMMC',
+        actionCommand: 'FIREHOSE_XML_SEND --cmd-config --memory UFS --max-payload 1048576'
+      },
+      {
+        nameAr: 'قراءة جدول الأقسام GPT وقراءة/كتابة القطاعات النيئة',
+        nameEn: 'Firehose Raw Partition Read/Program Sector Streaming',
+        modeRequired: 'EDL_9008',
+        targetChipset: 'Qualcomm Snapdragon',
+        actionCommand: 'FIREHOSE_SECTOR_IO --op PROGRAM --sector-size 512 --partition-num 0'
+      }
+    ]
+  },
+  {
+    id: 'mediatek-brom-da-native',
+    name: 'MediaTek BROM & Download Agent (DA) Engine',
+    vendor: 'MediaTek Inc.',
+    version: '2026.09-MTK-CORE',
+    licenseStatus: 'ACTIVATED_PRO',
+    supportedBrands: ['Samsung', 'Xiaomi', 'Redmi', 'Poco', 'Oppo', 'Vivo', 'Realme', 'Tecno', 'Infinix'],
+    icon: 'Zap',
+    descriptionAr: 'بروتوكول ميديا تيك المباشر (BROM & DA Protocol): مصافحة البوت روم BROM Sync Bytes (0xA0 0x0A 0x50 0x05)، ومرحلتين تحميل الـ DA (SRAM DA1 ثم DRAM DA2)، وأوامر العتاد الثنائية 0xD0-0xD9.',
+    descriptionEn: 'Native MediaTek BROM & Download Agent protocol engine: Sync bytes handshake, SRAM DA1 & DRAM DA2 dual-stage loading, and binary command execution (0xD0 - 0xD9).',
+    featuredProtocols: [
+      {
+        nameAr: 'مصافحة البوت روم BROM Sync Handshake (0xA0 0x0A 0x50 0x05)',
+        nameEn: 'MTK BROM Sync Bytes Handshake & ACK (0x5F Verification)',
+        modeRequired: 'MTK_BROM',
+        targetChipset: 'MediaTek Dimensity / Helio',
+        actionCommand: 'MTK_BROM_SYNC_INIT --send-bytes A00A5005 --expect-ack 5F'
+      },
+      {
+        nameAr: 'تحميل وكيل التنزيل ثنائي المرحلة (SRAM DA1 ثم DRAM DA2)',
+        nameEn: 'MTK Dual-Stage DA Ingestion (SRAM DA1 & EMI DRAM Setup DA2)',
+        modeRequired: 'MTK_BROM',
+        targetChipset: 'MediaTek All Series',
+        actionCommand: 'MTK_DA_LOAD_DUAL_STAGE --da1 SRAM_DA.bin --da2 DRAM_DA.bin'
+      },
+      {
+        nameAr: 'تنفيذ الأوامر الثنائية D0 (Target Config) و D7/D8/D9 (Write/Read/Format)',
+        nameEn: 'MTK DA Binary Protocol Execution (0xD0 Config, 0xD7 Write, 0xD9 Format)',
+        modeRequired: 'MTK_BROM',
+        targetChipset: 'MediaTek Dimensity / Helio',
+        actionCommand: 'MTK_DA_BINARY_CMD --cmd 0xD0 --read-config --format-sector 0xD9'
+      }
+    ]
   }
 ];

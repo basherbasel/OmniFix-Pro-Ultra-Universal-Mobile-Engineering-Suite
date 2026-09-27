@@ -205,6 +205,46 @@ export const FAULT_REPAIRS: FaultRepairItem[] = [
 
   // 2. NETWORK & BASEBAND & IMEI ENGINES
   {
+    id: 'samsung-a24-mtk-baseband-fix',
+    titleAr: 'إصلاح البيسباند والتعليق لسامسونج A24 و MediaTek (Galaxy A24 A245F / A14 / A15 / A16 Baseband & NVData Repair)',
+    titleEn: 'Samsung Galaxy A24 (A245F) & MTK Helio G99 Baseband & Unknown Modem Fix',
+    category: 'NETWORK',
+    severity: 'HIGH',
+    descriptionAr: 'حل مشكلة اختفاء البيسباند (Unknown Baseband)، السيريال Null، والتعليق الشديد لهواتف سامسونج معالجات ميديا تيك (مثل Galaxy A24 A245F Helio G99) عبر تفليش ملفات الـ PIT والـ CP المخصصة، روم الكومبينيشن الإصلاحي، وتصفير الـ NVData.',
+    descriptionEn: 'Resolves Unknown Baseband, Null IMEI, and severe system lag on Samsung MediaTek devices (Galaxy A24 A245F Helio G99) by flashing dedicated PIT & CP modem binaries, Combination Repair Firmware, and server-side NVData reconstruction.',
+    icon: 'Radio',
+    supportedModes: ['SAMSUNG_DOWNLOAD', 'MTK_BROM', 'ADB_ONLINE', 'SPD_DIAG'],
+    supportedChipsets: ['mediatek', 'samsung_exynos', 'qualcomm'],
+    riskAr: 'حل جذري نهائي لإعادة تقسيم الفولديرات التالفة وضخ ملفات الشبكة الرسمية',
+    riskEn: 'Definitive fix: re-partitions corrupt folders and injects official modem firmware',
+    protocolPipeline: [
+      {
+        stepNumber: 1,
+        actionAr: 'تفليش ملف الـ PIT واستخراج ملف المودم CP المنفصل عبر Odin / Loke مع Re-Partition',
+        actionEn: 'Flash PIT repartition table and separate CP modem package via Odin / Loke with Re-Partition enabled',
+        commandPreview: 'heimdall flash --PIT a245f.pit --CP CP_A245FXXU4.tar.md5 --repartition'
+      },
+      {
+        stepNumber: 2,
+        actionAr: 'تفليش فريموير الكومبينيشن أو المودم الإصلاحي (A245F Combination / Repair CP Firmware)',
+        actionEn: 'Flash Combination Repair Firmware or engineered CP Modem to revive Baseband response',
+        commandPreview: 'heimdall flash --CP COMBINATION_A245F_CP.tar.md5'
+      },
+      {
+        stepNumber: 3,
+        actionAr: 'تصفير قطاع NVData عبر أداة البوكس (Wipe NVData) وضخ ملفات الشبكة عبر سيرفر CPID',
+        actionEn: 'Execute Wipe NVData, repair security registers, and inject clean network profile via CPID Server',
+        protocolCode: 'MTK_BROM: ERASE_NVDATA 0x08000000 0x02000000 -> CPID_INJECT_CERT()'
+      },
+      {
+        stepNumber: 4,
+        actionAr: 'إعادة التشغيل والتأكد من ظهور رقم إصدار البيسباند والسيريال الرسمي',
+        actionEn: 'Reboot device, verify Baseband version string, and restore official IMEI status',
+        commandPreview: 'adb shell getprop gsm.version.baseband'
+      }
+    ]
+  },
+  {
     id: 'baseband-imei-fix',
     titleAr: 'إصلاح فقدان الشبكة والسيريال (Unknown Baseband / Null IMEI / No Service)',
     titleEn: 'Unknown Baseband & Null IMEI Radio Recovery',

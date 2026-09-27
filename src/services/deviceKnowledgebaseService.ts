@@ -23,7 +23,23 @@ export interface DeviceKnowledgeProfile {
 
 // Built-in Extensive OEM Knowledgebase Matrix for 1000+ Device Series
 const OEM_KNOWLEDGE_MATRIX: Record<string, Partial<DeviceKnowledgeProfile>> = {
-  // Samsung A-Series (including Galaxy A16 5G & 4G)
+  // Samsung A-Series (including Galaxy A32 4G SM-A325F)
+  'SM-A325': {
+    brand: 'Samsung',
+    model: 'SM-A325F/M/N',
+    marketName: 'Galaxy A32 4G (Helio G80 MT6769V)',
+    chipset: 'mediatek',
+    chipsetName: 'MediaTek Helio G80 12nm (MT6769V/CU)',
+    socId: '0x0067690000000000',
+    storageType: 'eMMC 5.1',
+    storageSizeGb: 128,
+    androidVersion: 'Android 13 (One UI 5.1)',
+    securityPatch: '2024-04-01',
+    frpMethod: 'MTP *#0*# Test Mode ADB / MTK BROM 1-Click Frp Wipe',
+    bromAuthBypass: true,
+    odinPitSupport: true,
+    notes: 'Helio G80 MT6769. Supports MTK BROM SLA Bypass, Knox Guard Removal, and Baseband Repair.'
+  },
   'SM-A166': {
     brand: 'Samsung',
     model: 'SM-A166B/E/U',
@@ -454,25 +470,27 @@ class DeviceKnowledgebaseService {
       }
 
       if (matchedProfile) {
-        model = matchedProfile.model || 'SM-A166B';
-        marketName = matchedProfile.marketName || 'Galaxy A16 5G (Dimensity 6300)';
-        chipset = matchedProfile.chipset || 'mediatek';
-        chipsetName = matchedProfile.chipsetName || 'MediaTek Dimensity 6300 5G (MT6835)';
-        socId = matchedProfile.socId || '0x0068350000000000';
+        model = matchedProfile.model || 'SM-Generic';
+        marketName = matchedProfile.marketName || 'Samsung Galaxy Target';
+        chipset = matchedProfile.chipset || 'samsung_exynos';
+        chipsetName = matchedProfile.chipsetName || 'Samsung Exynos / Qualcomm Baseband Architecture';
+        socId = matchedProfile.socId || `0x00${cleanVid}${cleanPid}`;
       } else if (isGenericString) {
-        // Dynamic detection from real USB descriptors instead of forced SM-A166B fallback
+        // Dynamic detection from real USB descriptors: default Samsung to Exynos/Qualcomm bus
         model = cleanProd !== 'SAMSUNG_Android' && cleanProd !== 'SAMSUNG' ? cleanProd : 'SAMSUNG_Android';
         marketName = cleanProd !== 'SAMSUNG_Android' && cleanProd !== 'SAMSUNG' 
           ? (cleanProd.toUpperCase().startsWith('SAMSUNG') ? cleanProd.replace(/^SAMSUNG_?/i, '').trim() : cleanProd)
-          : `Galaxy Phone (VID:0x${cleanVid} PID:0x${cleanPid})`;
-        chipset = 'mediatek';
-        chipsetName = `Samsung Mobile USB Bus Device (PID: 0x${cleanPid})`;
+          : `Samsung Galaxy Target [VID:0x${cleanVid} PID:0x${cleanPid}]`;
+        chipset = (cleanPid === '9008' || cleanPid === '686A') ? 'qualcomm' : 'samsung_exynos';
+        chipsetName = chipset === 'qualcomm' 
+          ? 'Qualcomm Snapdragon / Shannon Modem Bus' 
+          : 'Samsung Exynos / Shannon CP Coprocessor';
         socId = `0x00${cleanVid}${cleanPid}`;
       } else {
         model = cleanProd || 'SM-Generic-MTP';
-        marketName = cleanProd.toUpperCase().startsWith('SAMSUNG') ? cleanProd.replace(/^SAMSUNG_?/i, '').trim() : (cleanProd || 'Mobile Device');
-        chipset = 'mediatek';
-        chipsetName = 'Samsung Mobile USB Composite Architecture';
+        marketName = cleanProd.toUpperCase().startsWith('SAMSUNG') ? cleanProd.replace(/^SAMSUNG_?/i, '').trim() : (cleanProd || 'Samsung Galaxy Target');
+        chipset = 'samsung_exynos';
+        chipsetName = 'Samsung Exynos / Shannon Baseband Controller';
       }
     }
     // 2. XIAOMI DETECTION
@@ -536,6 +554,17 @@ class DeviceKnowledgebaseService {
     this.saveDevice(identifiedDevice);
 
     return identifiedDevice;
+  }
+
+  public getProfileByModel(modelStr: string): DeviceKnowledgeProfile | undefined {
+    if (!modelStr) return undefined;
+    const cleanKey = Object.keys(OEM_KNOWLEDGE_MATRIX).find(k => 
+      modelStr.toUpperCase().includes(k.toUpperCase())
+    );
+    if (cleanKey) {
+      return OEM_KNOWLEDGE_MATRIX[cleanKey] as DeviceKnowledgeProfile;
+    }
+    return undefined;
   }
 }
 

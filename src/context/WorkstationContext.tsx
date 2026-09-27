@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { ConnectedDevice, DeviceMode } from '../types';
 import { DEVICE_PRESETS } from '../data/devicePresets';
 import { deviceKnowledgebaseService } from '../services/deviceKnowledgebaseService';
+import { apexAgent, ApexDiagnosticResult } from '../services/ApexAgent';
 
 interface WorkstationState {
   activeTab: string;
@@ -17,6 +18,7 @@ interface WorkstationState {
   cloudStatus: 'online' | 'syncing' | 'updated' | 'offline';
   lastUpdate: string;
   isDeviceAuthorized: boolean;
+  apexDiagnostic: ApexDiagnosticResult | null;
 }
 
 interface WorkstationContextType extends WorkstationState {
@@ -34,6 +36,7 @@ interface WorkstationContextType extends WorkstationState {
   requestUsbConnection: () => Promise<void>;
   checkCloudUpdates: () => Promise<void>;
   setIsDeviceAuthorized: (auth: boolean) => void;
+  runApexDiagnostics: () => ApexDiagnosticResult;
 }
 
 const WorkstationContext = createContext<WorkstationContextType | undefined>(undefined);
@@ -51,10 +54,26 @@ export function WorkstationProvider({ children }: { children: ReactNode }) {
   const [cloudStatus, setCloudStatus] = useState<'online' | 'syncing' | 'updated' | 'offline'>('online');
   const [lastUpdate, setLastUpdate] = useState<string>(new Date().toLocaleDateString());
   const [isDeviceAuthorized, setIsDeviceAuthorized] = useState<boolean>(false);
+  const [apexDiagnostic, setApexDiagnostic] = useState<ApexDiagnosticResult | null>(null);
   const [terminalLogs, setTerminalLogs] = useState<string[]>(['[SYSTEM] OmniFix Pro Ultra Engine Initialized...', '[CLOUD] Connection to Neural-Hub Established.']);
 
   const addLog = (log: string) => setTerminalLogs(prev => [...prev.slice(-49), `[${new Date().toLocaleTimeString()}] ${log}`]);
   const clearLogs = () => setTerminalLogs([]);
+
+  // Automatically trigger ApexAgent diagnostics on device change or discovery
+  const runApexDiagnostics = () => {
+    const diag = apexAgent.analyzeDevice(currentDevice);
+    setApexDiagnostic(diag);
+    addLog(`[APEX_AGENT:DIAGNOSTIC] 🧠 ApexAgent analyzed target: ${diag.brand} ${diag.model} (${diag.bootloaderState}) | Risk Level: ${diag.riskLevel}`);
+    if (diag.correctiveCommands.length > 0) {
+      addLog(`[APEX_AGENT:CORRECTIVE] Generated ${diag.correctiveCommands.length} corrective commands (Primary: ${diag.correctiveCommands[0].nameEn})`);
+    }
+    return diag;
+  };
+
+  React.useEffect(() => {
+    runApexDiagnostics();
+  }, [currentDevice.id, currentDevice.mode, currentDevice.vidPid, currentDevice.frpStatus, currentDevice.bootloaderStatus]);
 
   const checkCloudUpdates = async () => {
     setCloudStatus('syncing');
@@ -163,16 +182,26 @@ export function WorkstationProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const requestUsbConnection = async () => {
-    addLog('Initiating Real WebUSB Hardware Discovery...');
+    addLog('Initiating Real WebUSB Hardware Discovery & Protocol Handshake...');
     setIsBusy(true);
     try {
-      if (typeof navigator !== 'undefined' && 'usb' in navigator) {
-        const res = await (navigator as any).usb.requestDevice({ filters: [] });
-        if (res) {
-          addLog(`[WEBUSB:SUCCESS] Device linked: ${res.productName || 'USB Target'} (VID: 0x${res.vendorId.toString(16)})`);
-        }
-      } else {
-        addLog('WebUSB API not supported in this browser. Please use Chrome/Edge.');
+      const { usbBridge } = await import('../core/USBBridge');
+      const res = await usbBridge.requestDevicePermission();
+      if (res.success && res.deviceInfo) {
+        addLog(`[WEBUSB:SUCCESS] Mobile device linked: ${res.deviceInfo.productName} (VID: ${res.deviceInfo.vendorId}, PID: ${res.deviceInfo.productId})`);
+        
+        const autoDevice = deviceKnowledgebaseService.identifyAndProfileHardware(
+          res.deviceInfo.vendorId.replace('0x', ''),
+          res.deviceInfo.productId.replace('0x', ''),
+          res.deviceInfo.manufacturerName,
+          res.deviceInfo.productName,
+          res.deviceInfo.serialNumber
+        );
+
+        setCurrentDevice(autoDevice);
+        addLog(`[HW-SYNC] Active workstation target updated to: ${autoDevice.brand} ${autoDevice.marketName} (${autoDevice.mode})`);
+      } else if (res.error) {
+        addLog(`[WEBUSB:NOTE] ${res.error}`);
       }
     } catch (err: any) {
       addLog(`Connection note: ${err.message || 'Cancelled'}`);
@@ -195,7 +224,8 @@ export function WorkstationProvider({ children }: { children: ReactNode }) {
       terminalLogs, addLog, clearLogs,
       requestUsbConnection,
       cloudStatus, lastUpdate, checkCloudUpdates,
-      isDeviceAuthorized, setIsDeviceAuthorized
+      isDeviceAuthorized, setIsDeviceAuthorized,
+      apexDiagnostic, runApexDiagnostics
     }}>
       {children}
     </WorkstationContext.Provider>

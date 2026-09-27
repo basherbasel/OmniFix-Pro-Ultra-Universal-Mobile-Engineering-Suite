@@ -234,6 +234,8 @@ const BYPASS_METHODS: BypassMethodItem[] = [
   }
 ];
 
+import { pluginRegistry, DeviceContext, eventBus } from '../services/eventDrivenPipelineEngine';
+
 export const QuantumBypassEngine: React.FC<QuantumBypassEngineProps> = ({
   device,
   onExecuteQuantumBypass,
@@ -251,33 +253,46 @@ export const QuantumBypassEngine: React.FC<QuantumBypassEngineProps> = ({
 
   const handleRunBypass = async () => {
     setIsExecuting(true);
-    setProgress(10);
-    setCurrentStep(isAr ? 'بدء مزامنة تردد USB ومصافحة المعالج...' : 'Synchronizing USB frequency & crypto bus...');
-    setLogs([`[INIT] Targeting ${device.brand} ${device.model} (${device.chipset.toUpperCase()})`]);
+    setProgress(5);
+    setCurrentStep(isAr ? 'بدء تشغيل محرك المسارات المرنة (Declarative Pipeline)...' : 'Initializing Declarative Pipeline Engine...');
+    setLogs([`[DECLARATIVE_PIPELINE] Target: ${device.brand} ${device.model} (${device.chipset.toUpperCase()})`]);
     realUsbService.playContinuityBeep(120, 2300);
 
+    const pluginId = device.chipset.includes('mediatek') ? 'mtk_engine.dll' : 'qualcomm_engine.dll';
+    const plugin = pluginRegistry.getPlugin(pluginId) || pluginRegistry.listPlugins()[0];
+
+    const pipeline = plugin.createFrpPipeline();
+
+    const devCtx: DeviceContext = {
+      devicePath: `\\\\?\\USB#VID_${device.vidPid || '0E8D:2000'}#0`,
+      vid: parseInt(device.vidPid?.split(':')[0] || '0E8D', 16),
+      pid: parseInt(device.vidPid?.split(':')[1] || '2000', 16),
+      vidPidHex: device.vidPid || '0E8D:2000',
+      chipsetType: device.chipset.includes('mediatek') ? 'MediaTek' : device.chipset.includes('qualcomm') ? 'Qualcomm' : 'Samsung',
+      mode: (device.mode as any) || 'MTK_BROM',
+      serialNumber: device.serialNumber,
+      isHotPlugged: true,
+      timestamp: new Date().toLocaleTimeString()
+    };
+
     try {
-      await new Promise(r => setTimeout(r, 450));
-      setProgress(35);
-      setCurrentStep(isAr ? 'حقن ثغرة الذاكرة والـ DMA...' : 'Injecting memory DMA payload...');
-      setLogs(prev => [...prev, `[PAYLOAD] ${selectedMethod.payloadCommand}`, `[STATUS] Bypassing crypto register boundaries...`]);
-      realUsbService.playContinuityBeep(80, 2600);
+      const result = await pipeline.run(devCtx, (percent, stepName, logMsg) => {
+        setProgress(percent);
+        setCurrentStep(stepName);
+        if (logMsg) setLogs(prev => [...prev, logMsg]);
+      });
 
-      await new Promise(r => setTimeout(r, 550));
-      setProgress(75);
-      setCurrentStep(isAr ? 'تجاوز جدار الحماية وتثبيت الإلغاء...' : 'Overriding lock gates & committing state...');
-      setLogs(prev => [...prev, `[ENCLAVE] Hardware Auth Status: OVERRIDDEN`, `[CRC] Integrity check passed.`]);
-      realUsbService.playContinuityBeep(80, 2900);
-
-      await new Promise(r => setTimeout(r, 400));
-      setProgress(100);
-      setCurrentStep(isAr ? 'اكتمل التخطي بنجاح 100%!' : 'Quantum bypass executed successfully 100%!');
       setIsExecuting(false);
-      realUsbService.playContinuityBeep(260, 3200);
 
-      onExecuteQuantumBypass(selectedMethod.titleAr, selectedMethod.payloadCommand);
+      if (result.success) {
+        setProgress(100);
+        setCurrentStep(isAr ? 'اكتملت العملية بنجاح 100%!' : 'Pipeline executed successfully 100%!');
+        onExecuteQuantumBypass(selectedMethod.titleAr, selectedMethod.payloadCommand);
+      } else {
+        setLogs(prev => [...prev, `[PIPELINE_ERROR] ${result.error || 'Execution aborted.'}`]);
+      }
     } catch (e: any) {
-      setLogs(prev => [...prev, `[ERR] ${e.message || e}`]);
+      setLogs(prev => [...prev, `[PIPELINE_EXCEPTION] ${e.message || e}`]);
       setIsExecuting(false);
     }
   };

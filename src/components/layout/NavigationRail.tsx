@@ -1,6 +1,10 @@
 import React from 'react';
 import { 
   LayoutDashboard, 
+  Lock,
+  Layers,
+  Cable,
+  FileCode,
   Sparkles, 
   Activity, 
   Cpu, 
@@ -28,6 +32,12 @@ export function NavigationRail() {
 
   const categories = [
     { id: 'dashboard', targetTab: 'dashboard', labelEn: 'Dashboard', labelAr: 'الرئيسية', icon: LayoutDashboard },
+    { id: 'frp-oem-lock', targetTab: 'frp-oem-lock', labelEn: 'FRP & OEM Lock', labelAr: 'فك FRP و OEM', icon: Lock },
+    { id: 'unified-core', targetTab: 'unified-core', labelEn: 'Unified Core', labelAr: 'النواة الموحدة C++', icon: Cable },
+    { id: 'master-prompt', targetTab: 'master-prompt', labelEn: 'AI Prompt', labelAr: 'البرومبت المعماري', icon: FileCode },
+    { id: 'all-chipsets', targetTab: 'all-chipsets', labelEn: 'All Chipsets', labelAr: 'كافة المعالجات', icon: Cpu },
+    { id: 'normal-cable', targetTab: 'pure-software-usb', labelEn: 'Normal Cable', labelAr: 'كابل عادي', icon: Cable },
+    { id: 'ecosystem', targetTab: 'nexus-ecosystem', labelEn: 'Ecosystem', labelAr: 'المنظومة الموحدة', icon: Layers },
     { id: 'universal', targetTab: 'universal-platform', labelEn: 'Next-Gen AI', labelAr: 'المنصة الذكية', icon: BrainCircuit },
     { id: 'cloud-security', targetTab: 'cloud-security', labelEn: 'Cloud Intel', labelAr: 'ذكاء السحابة', icon: Globe },
     { id: 'smart', targetTab: 'smart-1click', labelEn: '1-Click', labelAr: 'نقرة واحدة', icon: Sparkles },

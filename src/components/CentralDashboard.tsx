@@ -367,6 +367,48 @@ export const CentralDashboard: React.FC<CentralDashboardProps> = ({ onNavigate, 
   const allTools: ToolDefinition[] = useMemo(() => [
     // --- Category: AI & 1-Click Fast Repair ---
     {
+      id: 'mtk-pro-tool',
+      nameEn: 'MTK Pro Tool (BROM & Kamakiri)',
+      nameAr: 'أداة ميدياتيك المتقدمة (MTK PRO TOOL)',
+      category: 'SOFTWARE_SECURITY',
+      categoryLabelEn: 'Software & Security',
+      categoryLabelAr: 'السوفت وير والحمايات',
+      icon: Cpu,
+      color: 'text-amber-400',
+      bgGlow: 'from-amber-500/20 to-orange-500/5',
+      descriptionEn: 'Mtkclient + Kamakiri SLA/DAA Auth Bypass & Dimensity 9300/9400 Custom DA dispatch.',
+      descriptionAr: 'تخطي حمايات BootROM SLA/DAA وتفريغ الذواكر وإزالة FRP وتفليش أحدث معالجات Dimensity.',
+      tag: 'MTK V1'
+    },
+    {
+      id: 'pure-software-usb',
+      nameEn: 'Pure Software USB (Box-less)',
+      nameAr: 'التفليش بكابل عادي (بدون بوكسات)',
+      category: 'AI_FAST',
+      categoryLabelEn: 'AI & Quick Action',
+      categoryLabelAr: 'الذكاء والإصلاح الفوري',
+      icon: Usb,
+      color: 'text-cyan-400',
+      bgGlow: 'from-cyan-500/20 to-blue-500/5',
+      descriptionEn: 'Direct PC xHCI USB 3.2 host controller, microsecond BROM catching, & WinUSB C++20.',
+      descriptionAr: 'التفليش بكابل عادي بالاعتماد المباشر على عتاد الكمبيوتر xHCI وثغرة 0.5s BROM.',
+      tag: 'NEW 2026'
+    },
+    {
+      id: 'nexus-ecosystem',
+      nameEn: 'Nexus Ecosystem Architecture',
+      nameAr: 'المنظومة الموحدة (Ecosystem)',
+      category: 'AI_FAST',
+      categoryLabelEn: 'AI & Quick Action',
+      categoryLabelAr: 'الذكاء والإصلاح الفوري',
+      icon: Layers,
+      color: 'text-indigo-400',
+      bgGlow: 'from-indigo-500/20 to-purple-500/5',
+      descriptionEn: 'Central Event Bus orchestrating Software Unlocks, Hardware Programmers, & ERP Tickets.',
+      descriptionAr: 'الناقل المركزي للأحداث يربط بين السوفتوير وبرمجة الذواكر والشاشات وكرت الصيانة.',
+      tag: 'ECOSYSTEM'
+    },
+    {
       id: 'smart-1click',
       nameEn: 'Smart 1-Click Studio',
       nameAr: 'استوديو النقرة الواحدة الذكي',

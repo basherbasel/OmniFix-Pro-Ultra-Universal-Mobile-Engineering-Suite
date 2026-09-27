@@ -26,6 +26,7 @@ import { PROFESSIONAL_BOXES, ProfessionalBox } from '../data/professionalBoxes';
 import { realUsbService } from '../services/realUsbService';
 
 import { useWorkstation } from '../context/WorkstationContext';
+import { SoftwareSecurityBypassLab } from './SoftwareSecurityBypassLab';
 
 interface BoxEmulationHubProps {
   device: ConnectedDevice;
@@ -42,6 +43,7 @@ export const BoxEmulationHub: React.FC<BoxEmulationHubProps> = ({
 }) => {
   const isAr = lang === 'ar';
   const { setActiveTab } = useWorkstation();
+  const [viewMode, setViewMode] = useState<'boxes' | 'security2026'>('boxes');
   const [selectedBox, setSelectedBox] = useState<ProfessionalBox>(PROFESSIONAL_BOXES[0]);
   const [selectedProtocolIndex, setSelectedProtocolIndex] = useState<number>(0);
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -90,6 +92,31 @@ export const BoxEmulationHub: React.FC<BoxEmulationHubProps> = ({
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
+            <button
+              onClick={() => setViewMode('boxes')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                viewMode === 'boxes'
+                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Key className="w-3.5 h-3.5" />
+              <span>{isAr ? 'بروتوكولات البوكسات' : 'Hardware Boxes'}</span>
+            </button>
+            <button
+              onClick={() => setViewMode('security2026')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                viewMode === 'security2026'
+                  ? 'bg-gradient-to-r from-rose-600 to-amber-600 text-white shadow-md shadow-rose-600/30'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Unlock className="w-3.5 h-3.5" />
+              <span>{isAr ? 'تخطي حمايات 2026' : '2026 Security Bypass'}</span>
+            </button>
+          </div>
+
           <button
             onClick={() => setActiveTab('box-core-ai')}
             className="flex items-center gap-1.5 text-xs font-bold text-cyan-300 bg-cyan-950/40 hover:bg-cyan-950/80 px-3 py-1.5 rounded-lg border border-cyan-800/40 transition-colors cursor-pointer"
@@ -105,8 +132,17 @@ export const BoxEmulationHub: React.FC<BoxEmulationHubProps> = ({
         </div>
       </div>
 
-      {/* Main Layout: Boxes Selector on Left, Protocol Workspace on Right */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      {/* Main View Mode Selector Content */}
+      {viewMode === 'security2026' ? (
+        <SoftwareSecurityBypassLab
+          lang={lang}
+          device={device}
+          onAddLog={(log) => onExecuteBoxProtocol('2026 Security Engine', 'Log', log)}
+          onNavigateToTool={setActiveTab}
+        />
+      ) : (
+        /* Main Layout: Boxes Selector on Left, Protocol Workspace on Right */
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* Left: Professional Boxes Cards List */}
         <div className="lg:col-span-5 space-y-3">
           <div className="relative">
@@ -284,6 +320,7 @@ export const BoxEmulationHub: React.FC<BoxEmulationHubProps> = ({
           </div>
         </div>
       </div>
+      )}
 
       {/* COMPREHENSIVE BOX USER GUIDE - NEW FEATURE */}
       <div className="p-5 rounded-xl bg-slate-950 border border-slate-800 space-y-4">

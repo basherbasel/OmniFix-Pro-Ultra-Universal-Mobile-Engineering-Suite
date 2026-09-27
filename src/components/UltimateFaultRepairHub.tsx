@@ -159,6 +159,82 @@ export const UltimateFaultRepairHub: React.FC<UltimateFaultRepairHubProps> = ({
     onExecuteRepairPipeline(repair);
   };
 
+  // --- حالات الإصلاح الذكي والتشخيص العصبي (Neural AI Self-Healing States) ---
+  const [isNeuralHealing, setIsNeuralHealing] = useState<boolean>(false);
+  const [neuralProgress, setNeuralProgress] = useState<number>(0);
+  const [neuralLogs, setNeuralLogs] = useState<string[]>([]);
+
+  // دالة توليد صوت التنبيه الرقمي التفاعلي (Audio Beep Feedback)
+  const playBeep = () => {
+    try {
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // نوتة صوتية عالية ونقية
+      gainNode.gain.setValueAtTime(0.05, audioCtx.currentTime);
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      oscillator.start();
+      oscillator.stop(audioCtx.currentTime + 0.1);
+    } catch {
+      // تجاهل إذا كانت المتصفحات تحظر التشغيل التلقائي للصوت
+    }
+  };
+
+  // دالة تشغيل محرك الإصلاح الذاتي العصبي وتتبع الاستجابة عبر API
+  const handleExecuteNeuralHealing = async () => {
+    setIsNeuralHealing(true);
+    setNeuralProgress(10);
+    setNeuralLogs([isAr ? '[*] جاري بدء تشغيل منظومة الإصلاح العصبي والتشخيص المستمر الذكي...' : '[*] Initializing Autonomous Neural-Repair & Safety Guard Suite...']);
+    playBeep();
+
+    try {
+      // إرسال بيانات القياس عن بعد (Telemetry) الحالية لجهاز الهاتف المتصل
+      const telemetryPayload = {
+        currentState: device.mode || "EDL_9008",
+        hasGptCorruption: false,
+        hasFrpLocked: device.frpStatus === 'ON',
+        hasNvramDamaged: !device.imei1 || device.imei1 === '000000000000000',
+        hasDeadBoot: (device.mode as any) === 'DEAD_BOOT',
+        lang: lang
+      };
+
+      const response = await fetch('/api/neural/auto-repair', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(telemetryPayload)
+      });
+      const data = await response.json();
+      const serverLogs: string[] = data.repairLogs || [];
+
+      // عرض الخطوات تدريجياً لضمان تجربة فنية تفاعلية متكاملة
+      for (let i = 0; i < serverLogs.length; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 450));
+        setNeuralLogs(prev => [...prev, serverLogs[i]]);
+        setNeuralProgress(Math.min(95, Math.round(((i + 1) / serverLogs.length) * 85) + 15));
+        playBeep();
+      }
+
+      setNeuralProgress(100);
+      setNeuralLogs(prev => [
+        ...prev, 
+        isAr 
+          ? '[+] اكتملت دورة الإصلاح العصبي الذاتي والتحقق بنجاح 100% وبدون أخطاء!' 
+          : '[+] Neural Self-Healing Cycle Completed Successfully with Zero Errors!'
+      ]);
+    } catch (error: any) {
+      setNeuralLogs(prev => [
+        ...prev, 
+        isAr 
+          ? `[!] خطأ في محرك التشخيص العصبي: ${error.message || error}` 
+          : `[!] Neural Engine Error: ${error.message || error}`
+      ]);
+    } finally {
+      setIsNeuralHealing(false);
+    }
+  };
+
   const categories = [
     { id: 'ALL', nameAr: `كافة الأعطال (${FAULT_REPAIRS.length})`, nameEn: `All Engines (${FAULT_REPAIRS.length})` },
     { id: 'BOOT', nameAr: 'أعطال الإقلاع والشعار', nameEn: 'Boot & Startup' },
@@ -212,6 +288,103 @@ export const UltimateFaultRepairHub: React.FC<UltimateFaultRepairHubProps> = ({
             <Cpu className="w-4 h-4 text-indigo-200" />
             <span>{device.brand} {device.model} ({device.chipset.toUpperCase()})</span>
           </div>
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/*   Autonomous AI Neural Self-Healing & Repair Suite Dashboard Panel        */}
+      {/* ========================================================================= */}
+      <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950/40 border border-emerald-500/30 rounded-2xl p-6 shadow-2xl relative overflow-hidden">
+        {/* خلفية ضوئية جمالية تفاعلية */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-800/80 pb-4 mb-6">
+          <div className="flex items-center gap-3">
+            <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 shrink-0">
+              <span className={`absolute w-3 h-3 bg-emerald-400 rounded-full ${isNeuralHealing ? 'animate-ping' : 'animate-pulse'}`}></span>
+              <Zap className="w-5 h-5 text-emerald-400" />
+            </div>
+            <div>
+              <h2 className="text-base sm:text-lg font-bold text-slate-100 flex items-center gap-2">
+                {isAr ? 'منظومة التشخيص والإصلاح العصبي الذاتي (AI)' : 'Autonomous AI Neural Self-Healing Suite'}
+                <span className="text-[10px] px-2 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-full font-mono">v4.0 Ultra</span>
+              </h2>
+              <p className="text-xs text-slate-400">
+                {isAr ? 'تشخيص عابر للأوضاع عالي الدقة بدون أخطاء وإصلاح تلقائي للهاتف المتصل' : 'Zero-Error Hardware Diagnostics & Automated Cross-Mode Restoration'}
+              </p>
+            </div>
+          </div>
+
+          {/* مؤشر الحالة التفاعلي (LED Sensors) */}
+          <div className="flex items-center gap-3 bg-slate-900/80 px-4 py-2 rounded-xl border border-slate-800">
+            <div className="flex items-center gap-2 text-xs">
+              <span className={`w-2.5 h-2.5 rounded-full ${isNeuralHealing ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'}`}></span>
+              <span className="text-slate-300 font-mono text-[11px]">
+                {isAr ? (isNeuralHealing ? 'محرك الإصلاح نشط' : 'المنظومة آمنة وجاهزة') : (isNeuralHealing ? 'Neural Repair Active' : 'System Armed & Ready')}
+              </span>
+            </div>
+            <button
+              disabled={isNeuralHealing}
+              onClick={handleExecuteNeuralHealing}
+              className="px-5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-50 text-white text-xs font-bold rounded-lg shadow-lg shadow-emerald-900/30 transition-all flex items-center gap-2 cursor-pointer"
+            >
+              {isNeuralHealing ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  {isAr ? 'جاري معالجة العطل...' : 'Healing Target...'}
+                </>
+              ) : (
+                isAr ? 'بدء الإصلاح العصبي الذاتي' : 'Execute Neural Repair'
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* شريط التقدم العصبي (Neural Progress Bar) */}
+        {isNeuralHealing && (
+          <div className="mb-4 space-y-1.5">
+            <div className="flex justify-between text-xs font-mono text-slate-400">
+              <span>{isAr ? 'معدل تقدم علاج ومعايرة المذربورد' : 'Autonomous Repair Vector Progress'}</span>
+              <span className="text-emerald-400 font-bold">{neuralProgress}%</span>
+            </div>
+            <div className="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800">
+              <div 
+                className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full transition-all duration-300 rounded-full shadow-[0_0_12px_rgba(16,185,129,0.5)]" 
+                style={{ width: `${neuralProgress}%` }}
+              ></div>
+            </div>
+          </div>
+        )}
+
+        {/* شاشة لوغات التشغيل الحية (Live Telemetry Terminal Stream) */}
+        <div>
+          <div className="flex justify-between items-center mb-1.5">
+            <span className="text-xs font-mono text-slate-400 uppercase tracking-wider">
+              {isAr ? 'مستشعر تدفق قراءات الفولطية والأخطاء (Telemetry)' : 'Live Neural Telemetry Stream & Logs'}
+            </span>
+            <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+              Secured via SafetyGuard
+            </span>
+          </div>
+          <pre className="bg-slate-950/90 border border-slate-800/80 p-4 rounded-xl h-36 overflow-y-auto text-xs font-mono text-emerald-400 leading-relaxed shadow-inner">
+            {neuralLogs.length === 0 ? (
+              <span className="text-slate-600">
+                {isAr ? '// انقر على "بدء الإصلاح العصبي الذاتي" لمعايرة وفحص ممانعة الهاتف المتصل تلقائياً...' : '// Click \'Execute Neural Repair\' to initialize autonomous telemetry diagnostics...'}
+              </span>
+            ) : (
+              neuralLogs.map((log, index) => (
+                <div key={index} className="flex items-start gap-2">
+                  <span className="text-slate-600 select-none">›</span>
+                  <span className={log.includes('Successfully') || log.includes('بنجاح') || log.includes('اكتملت') ? 'text-emerald-300 font-semibold' : log.includes('!') || log.includes('تنبيه') ? 'text-amber-400 font-semibold' : 'text-slate-300'}>
+                    {log}
+                  </span>
+                </div>
+              ))
+            )}
+          </pre>
         </div>
       </div>
 

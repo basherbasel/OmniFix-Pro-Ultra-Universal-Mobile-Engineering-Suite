@@ -42,8 +42,17 @@ import { EepromTrueToneBmsStudio } from '../EepromTrueToneBmsStudio';
 import { SoftwareSecurityBypassLab } from '../SoftwareSecurityBypassLab';
 import { NextGenPredictiveWorkspace } from '../NextGenPredictiveWorkspace';
 import { VoltageBridge } from '../VoltageBridge';
+import { DeviceManager } from '../devices/DeviceManager';
 
 import { BoxCoreAIWorkspace } from '../BoxCoreAIWorkspace';
+import { NexusEcosystemArchitecture } from '../NexusEcosystemArchitecture';
+import { UniversalSoCProtocolEngineWorkspace } from '../UniversalSoCProtocolEngineWorkspace';
+import { PureSoftwareUsbEngineStudio } from '../PureSoftwareUsbEngineStudio';
+import { MasterSystemPromptStudio } from '../MasterSystemPromptStudio';
+import { MediaTekProToolStudio } from '../MediaTekProToolStudio';
+import { AllChipsetsProStudio } from '../AllChipsetsProStudio';
+import { UnifiedCoreCppStudio } from '../UnifiedCoreCppStudio';
+import { FrpOemLockStudio } from '../FrpOemLockStudio';
 
 export function ToolCanvas() {
   const { 
@@ -64,6 +73,44 @@ export function ToolCanvas() {
   switch (activeTab) {
     case 'dashboard':
       return <CentralDashboard lang={lang} onNavigate={setActiveTab} />;
+
+    case 'ecosystem':
+    case 'nexus-ecosystem':
+      return <NexusEcosystemArchitecture device={currentDevice} lang={lang} onAddLog={addLog} />;
+
+    case 'universal-soc':
+    case 'soc-engine':
+    case 'universal-platform':
+      return <UniversalSoCProtocolEngineWorkspace device={currentDevice} lang={lang} onAddLog={addLog} />;
+
+    case 'pure-software-usb':
+    case 'normal-cable':
+    case 'dongleless':
+      return <PureSoftwareUsbEngineStudio device={currentDevice} lang={lang} onAddLog={addLog} />;
+
+    case 'mtk-pro-tool':
+    case 'mtkclient':
+    case 'kamakiri':
+      return <MediaTekProToolStudio device={currentDevice} lang={lang} onAddLog={addLog} />;
+
+    case 'all-chipsets':
+    case 'chipsets-pro':
+      return <AllChipsetsProStudio device={currentDevice} lang={lang} onAddLog={addLog} />;
+
+    case 'unified-core':
+    case 'cpp-core':
+    case 'winusb-serial':
+      return <UnifiedCoreCppStudio device={currentDevice} lang={lang} onAddLog={addLog} />;
+
+    case 'frp-oem-lock':
+    case 'frp-reset':
+    case 'oem-unlock':
+    case 'frp-bypass':
+      return <FrpOemLockStudio device={currentDevice} lang={lang} onAddLog={addLog} />;
+
+    case 'master-prompt':
+    case 'ai-system-prompt':
+      return <MasterSystemPromptStudio lang={lang} onAddLog={addLog} />;
 
     case 'apex-agent':
       return <ApexAgentDashboard device={currentDevice} onNavigate={setActiveTab} lang={lang} />;
@@ -189,18 +236,22 @@ export function ToolCanvas() {
       );
 
     case 'device-reader':
+    case 'device-manager':
       return (
-        <MultiModeDeviceReader 
-          device={currentDevice} 
-          lang={lang} 
-          isBusy={isBusy}
-          onSwitchDeviceMode={(newMode) => {
-            setCurrentDevice({ ...currentDevice, mode: newMode });
-            addLog(`Device Mode switched to: ${newMode}`);
-          }}
-          onReadDeviceDeepInfo={(mode) => addLog(`Reading deep telemetry for mode: ${mode}`)}
-          onExecuteAdbCommand={(cmd) => addLog(`Executing Shell Command: ${cmd}`)}
-        />
+        <div className="space-y-8">
+          <DeviceManager />
+          <MultiModeDeviceReader 
+            device={currentDevice} 
+            lang={lang} 
+            isBusy={isBusy}
+            onSwitchDeviceMode={(newMode) => {
+              setCurrentDevice({ ...currentDevice, mode: newMode });
+              addLog(`Device Mode switched to: ${newMode}`);
+            }}
+            onReadDeviceDeepInfo={(mode) => addLog(`Reading deep telemetry for mode: ${mode}`)}
+            onExecuteAdbCommand={(cmd) => addLog(`Executing Shell Command: ${cmd}`)}
+          />
+        </div>
       );
 
     case 'hardware-workbench':

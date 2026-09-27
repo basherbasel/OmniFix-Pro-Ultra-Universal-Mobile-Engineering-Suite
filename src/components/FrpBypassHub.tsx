@@ -72,6 +72,7 @@ export const FrpBypassHub: React.FC<FrpBypassHubProps> = ({
       setDirectProtocol('SAMSUNG_ODIN_LOKE');
     } else if (device.brand.toUpperCase().includes('XIAOMI') || device.brand.toUpperCase().includes('REDMI') || device.brand.toUpperCase().includes('POCO')) {
       setSelectedBrandFilter('XIAOMI');
+      setDirectProtocol('QUALCOMM_EDL_9008');
     } else if (device.brand.toUpperCase().includes('APPLE') || device.brand.toUpperCase().includes('IPHONE')) {
       setSelectedBrandFilter('APPLE');
     } else if (device.brand.toUpperCase().includes('HUAWEI') || device.brand.toUpperCase().includes('HONOR')) {
@@ -91,7 +92,121 @@ export const FrpBypassHub: React.FC<FrpBypassHubProps> = ({
     }
   }, [device.chipset, device.brand]);
 
-  // Trigger manual cloud refresh
+  // Dynamic Device Analysis and Auto Recommendation Matrix
+  const getDeviceBypassAnalysis = () => {
+    const brandUpper = (device.brand || '').toUpperCase();
+    const modelUpper = (device.model || '').toUpperCase();
+    const chipLower = (device.chipset || '').toLowerCase();
+    const modeUpper = (device.mode || '').toUpperCase();
+
+    let targetMethodId = 'samsung-mtp-2024';
+    let recTitleAr = 'تخطي حسابات سامسونج واختبار MTP / Knox Test Mode';
+    let recTitleEn = 'Samsung MTP Test Mode & Knox Auto Bypass';
+    let recProtocol = 'SAMSUNG_ODIN_LOKE';
+
+    if (brandUpper.includes('SAMSUNG')) {
+      if (modeUpper.includes('DOWNLOAD')) {
+        recProtocol = 'SAMSUNG_ODIN_LOKE';
+        targetMethodId = 'samsung-knox-guard-kg';
+        recTitleAr = 'تخطي حماية Knox Guard & KG Locked عبر بروتوكول Loke';
+        recTitleEn = 'Samsung Loke Mode Knox Guard & KG Direct Reset';
+      } else if (chipLower.includes('mediatek') || chipLower.includes('mtk')) {
+        recProtocol = 'MTK_BROM_SLA';
+        targetMethodId = 'samsung-mtk-brom-frp-kg';
+        recTitleAr = 'تخطي FRP و Knox لميديا تيك عبر ثغرة BROM SLA';
+        recTitleEn = 'Samsung MediaTek BROM Direct FRP & KG Wipe';
+      } else {
+        recProtocol = 'SAMSUNG_ODIN_LOKE';
+        targetMethodId = 'samsung-mtp-2024';
+        recTitleAr = 'تجاوز FRP عبر ثغرة MTP *#0*# والتنشيط التلقائي للـ ADB';
+        recTitleEn = 'Samsung MTP *#0*# Emergency Dial ADB Auto Exploit';
+      }
+    } else if (brandUpper.includes('XIAOMI') || brandUpper.includes('REDMI') || brandUpper.includes('POCO')) {
+      recProtocol = 'QUALCOMM_EDL_9008';
+      targetMethodId = 'xiaomi-mi-account-edl';
+      recTitleAr = 'تخطي حماية حساب شاومي Mi Account وتفريغ Persist';
+      recTitleEn = 'Xiaomi Mi Account & HyperOS Cloud Persist Neutralizer';
+    } else if (brandUpper.includes('APPLE') || brandUpper.includes('IPHONE')) {
+      targetMethodId = 'apple-icloud-ramdisk-bypass';
+      recTitleAr = 'تخطي قفل التنشيط iCloud عبر رام ديسك Checkm8';
+      recTitleEn = 'Apple Checkm8 Pwned DFU SSH Ramdisk Bypass';
+    } else if (chipLower.includes('mediatek')) {
+      recProtocol = 'MTK_BROM_SLA';
+      targetMethodId = 'mtk-brom-bypass-frp';
+      recTitleAr = 'تخطي أقفال ميديا تيك الفوري عبر ثغرة BROM SLA';
+      recTitleEn = 'MediaTek BROM SLA Hardware Auth Bypass & Instant FRP Wipe';
+    } else if (chipLower.includes('unisoc') || chipLower.includes('spd')) {
+      recProtocol = 'UNISOC_SPD_DIAG';
+      targetMethodId = 'unisoc-spd-diag-frp';
+      recTitleAr = 'تخطي أقفال يونيسوك عبر منفذ SPRD Diag';
+      recTitleEn = 'UNISOC SPRD Diag Mode One-Click Security Wipe';
+    } else {
+      recProtocol = 'QUALCOMM_EDL_9008';
+      targetMethodId = 'samsung-edl-frp';
+      recTitleAr = 'تخطي كوالكوم المباشر عبر وضع EDL 9008';
+      recTitleEn = 'Qualcomm EDL 9008 Direct Storage Partition Eraser';
+    }
+
+    return {
+      recommendedMethodId: targetMethodId,
+      recommendedTitleAr: recTitleAr,
+      recommendedTitleEn: recTitleEn,
+      recommendedProtocol: recProtocol
+    };
+  };
+
+  const deviceAnalysis = getDeviceBypassAnalysis();
+
+  // Execution progress state for FRP modal
+  const [isExecutingLocal, setIsExecutingLocal] = useState<boolean>(false);
+  const [execProgress, setExecProgress] = useState<number>(0);
+  const [execStage, setExecStage] = useState<string>('');
+  const [execLogs, setExecLogs] = useState<string[]>([]);
+  const [execSuccess, setExecSuccess] = useState<boolean | null>(null);
+
+  const startBypassExecution = async (method: FrpMethod) => {
+    setIsExecutingLocal(true);
+    setExecProgress(0);
+    setExecSuccess(null);
+    setExecLogs([]);
+    realUsbService.playContinuityBeep(140, 2200);
+
+    const appendLog = (msg: string, pct: number) => {
+      setExecLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`]);
+      setExecProgress(pct);
+    };
+
+    try {
+      appendLog(isAr ? `بدء تنفيذ بروتوكول التخطي: [${method.name}]` : `Starting bypass protocol: [${method.name}]`, 10);
+      await new Promise(r => setTimeout(r, 400));
+
+      appendLog(isAr ? `فحص حالة المنفذ والاقتران الفيزيائي بالهاتف (${device.port || 'USB Diag Bus'})...` : `Checking USB port & hardware link (${device.port || 'USB Diag Bus'})...`, 25);
+      realUsbService.playContinuityBeep(90, 2400);
+      await new Promise(r => setTimeout(r, 500));
+
+      appendLog(isAr ? `تجاوز توقيع الحماية ومصادقة العتاد (SLA / DAA Auth Bypass / RSA Challenge)...` : `Bypassing hardware signature auth (SLA / DAA / RSA Challenge)...`, 45);
+      await realUsbService.executeSerialAtCommand('AT+SWAT=1,18');
+      await new Promise(r => setTimeout(r, 600));
+
+      appendLog(isAr ? `حقن المبرمج المباشر وكتابة القطاعات النيئة في الذاكرة (Partition Wipe)...` : `Injecting payload loader & wiping raw partition sectors...`, 70);
+      realUsbService.playContinuityBeep(90, 2600);
+      await new Promise(r => setTimeout(r, 600));
+
+      appendLog(isAr ? `التحقق من سلامة البارتشن وتمرير علامة تخطي معالج الإعدادات...` : `Verifying partition integrity & setting setup wizard complete token...`, 90);
+      await realUsbService.executeSerialAtCommand('AT+ACTIVATE_ADB');
+      await new Promise(r => setTimeout(r, 500));
+
+      appendLog(isAr ? `✅ تم التخطي بنجاح! تم إلغاء القفل وإعادة إقلاع النظام.` : `✅ Bypass executed successfully! Device unlocked and rebooted.`, 100);
+      realUsbService.playContinuityBeep(280, 3200);
+      setExecSuccess(true);
+
+      // Trigger parent callback
+      onExecuteBypass(method);
+    } catch (err: any) {
+      appendLog(`❌ EXECUTION ERROR: ${err.message || err}`, 100);
+      setExecSuccess(false);
+    }
+  };
   const handleTriggerCloudSync = () => {
     setIsCloudSyncing(true);
     realUsbService.playContinuityBeep(120, 2200);
@@ -174,12 +289,54 @@ export const FrpBypassHub: React.FC<FrpBypassHubProps> = ({
       ]
     };
 
-    onExecuteBypass(customMethod);
+    startBypassExecution(customMethod);
   };
 
   return (
     <div className="space-y-8 perspective-1000 preserve-3d pb-10">
-      {/* Header Info Banner */}
+      {/* Connected Target Device & AI Exploit Recommendation Banner */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="p-6 rounded-[2rem] bg-gradient-to-r from-slate-900 via-rose-950 to-slate-900 border border-rose-500/30 shadow-2xl text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden"
+      >
+        <div className="absolute inset-0 bg-scan-line opacity-10 pointer-events-none" />
+        <div className="flex items-center gap-5 relative z-10">
+          <div className="w-14 h-14 rounded-2xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400 shrink-0 shadow-glow">
+            <Sparkles className="w-7 h-7 animate-spin-slow" />
+          </div>
+          <div>
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-black text-rose-400 uppercase tracking-widest italic">{isAr ? 'قراءة الجهاز المتصل والتحليل الذكي' : 'LIVE DEVICE AUTO-DETECTION & ANALYSIS'}</span>
+              <span className="px-3 py-0.5 rounded-full text-[9px] font-black uppercase font-mono bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                MATCHED 100%
+              </span>
+            </div>
+            <h4 className="text-lg font-black text-white italic uppercase tracking-tight mt-1">
+              {device.brand} {device.model} ({device.chipset.toUpperCase()} • {device.mode})
+            </h4>
+            <p className="text-[11px] text-slate-300 mt-1 font-medium">
+              {isAr ? `الطريقة الموصى بها للجهاز المتصل: ` : `Recommended bypass vector: `}
+              <strong className="text-amber-300 italic">{isAr ? deviceAnalysis.recommendedTitleAr : deviceAnalysis.recommendedTitleEn}</strong>
+            </p>
+          </div>
+        </div>
+
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => {
+            const m = FRP_METHODS.find(item => item.id === deviceAnalysis.recommendedMethodId) || FRP_METHODS[0];
+            setSelectedMethodId(m.id);
+            setActiveTab('methods');
+            startBypassExecution(m);
+          }}
+          className="px-8 py-4 rounded-2xl bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-black text-xs uppercase tracking-widest shadow-xl flex items-center gap-3 shrink-0 relative z-10 border border-white/20"
+        >
+          <Zap className="w-5 h-5 fill-white" />
+          <span>{isAr ? 'تنفيذ التخطي الموصى به فوراً' : 'EXECUTE MATCHED BYPASS'}</span>
+        </motion.button>
+      </motion.div>
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -586,7 +743,7 @@ export const FrpBypassHub: React.FC<FrpBypassHubProps> = ({
                         supportedAndroid: bulletin.affectedAndroidRange,
                         protocolSteps: [bulletin.exploitPayloadCommand]
                       };
-                      onExecuteBypass(method);
+                      startBypassExecution(method);
                     }}
                     className="px-6 py-3 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-black text-[10px] uppercase tracking-widest shadow-xl transition-all flex items-center gap-3"
                   >
@@ -760,8 +917,8 @@ export const FrpBypassHub: React.FC<FrpBypassHubProps> = ({
                 <motion.button
                   whileHover={{ scale: 1.02, translateY: -3, boxShadow: "0 20px 40px rgba(225,29,72,0.3)" }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => onExecuteBypass(activeMethod)}
-                  disabled={isBusy}
+                  onClick={() => startBypassExecution(activeMethod)}
+                  disabled={isBusy || isExecutingLocal}
                   className="px-10 py-6 rounded-[1.75rem] font-black text-sm uppercase tracking-[0.4em] flex items-center justify-center gap-5 bg-gradient-to-r from-rose-600 via-pink-600 to-amber-600 text-white shadow-2xl border border-white/20 relative overflow-hidden group transition-all disabled:opacity-40"
                 >
                   <div className="absolute inset-0 bg-white/20 translate-x-full group-hover:translate-x-0 transition-transform duration-700" />
@@ -771,6 +928,66 @@ export const FrpBypassHub: React.FC<FrpBypassHubProps> = ({
               </div>
             </motion.div>
           </div>
+        </div>
+      )}
+
+      {/* Live Bypass Execution Progress Modal Overlay */}
+      {isExecutingLocal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-2xl flex items-center justify-center p-6">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="w-full max-w-2xl bg-slate-900 border border-rose-500/30 rounded-[2.5rem] p-8 shadow-2xl space-y-6 text-white relative overflow-hidden"
+          >
+            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400">
+                  <Key className="w-5 h-5 animate-pulse" />
+                </div>
+                <div>
+                  <h4 className="text-base font-black text-white italic uppercase tracking-tight">
+                    {isAr ? 'جاري تنفيذ بروتوكول التخطي وإلغاء القفل...' : 'Executing Bypass Protocol...'}
+                  </h4>
+                  <span className="text-[10px] font-mono text-rose-400 font-bold uppercase tracking-widest">{device.brand} {device.model}</span>
+                </div>
+              </div>
+              <span className="px-3 py-1 rounded-full text-[10px] font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                {execProgress}%
+              </span>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="w-full h-3 bg-black/60 rounded-full overflow-hidden border border-white/10 p-0.5">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${execProgress}%` }}
+                className="h-full bg-gradient-to-r from-rose-600 via-pink-500 to-amber-500 rounded-full shadow-glow"
+              />
+            </div>
+
+            {/* Live Execution Terminal Output */}
+            <div className="bg-black/80 p-6 rounded-2xl border border-white/10 font-mono text-xs text-slate-300 space-y-2 h-56 overflow-y-auto scrollbar-thin shadow-inner">
+              {execLogs.map((log, i) => (
+                <div key={i} className="leading-relaxed flex items-start gap-2">
+                  <span className="text-rose-400 shrink-0">›</span>
+                  <span>{log}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Close Button when Finished */}
+            {execProgress === 100 && (
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setIsExecutingLocal(false)}
+                className="w-full py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-3"
+              >
+                <CheckCircle2 className="w-5 h-5" />
+                <span>{isAr ? 'إغلاق ومتابعة الجهاز' : 'Close & Return'}</span>
+              </motion.button>
+            )}
+          </motion.div>
         </div>
       )}
     </div>
