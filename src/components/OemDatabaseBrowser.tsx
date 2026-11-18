@@ -21,6 +21,12 @@ import {
 import { OEM_DEVICE_DATABASE } from '../data/oemDeviceDatabase';
 import { OemDeviceRecord } from '../types';
 import { DeviceIngestionPipeline } from '../services/deviceIngestionPipeline';
+import {
+  DEVICE_MODELS_ATLAS,
+  IC_FAULT_CATALOG,
+  USB_HARDWARE_SIGNATURES,
+  searchDeviceAtlas,
+} from '../data/hardwareAtlas';
 
 interface OemDatabaseBrowserProps {
   onSelectModelToTarget?: (record: OemDeviceRecord) => void;
@@ -38,7 +44,9 @@ export const OemDatabaseBrowser: React.FC<OemDatabaseBrowserProps> = ({
   const [copiedItemCode, setCopiedItemCode] = useState<string | null>(null);
 
   // New Live Database States
-  const [viewSource, setViewSource] = useState<'live' | 'static'>('live');
+  const [viewSource, setViewSource] = useState<'atlas' | 'live' | 'static'>('atlas');
+  const [expandedAtlasId, setExpandedAtlasId] = useState<string>(DEVICE_MODELS_ATLAS[0]?.id || '');
+  const [copiedCmd, setCopiedCmd] = useState<string | null>(null);
   const [liveManufacturers, setLiveManufacturers] = useState<any[]>([]);
   const [dbInfo, setDbInfo] = useState<any>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -99,11 +107,20 @@ export const OemDatabaseBrowser: React.FC<OemDatabaseBrowserProps> = ({
   const normalizedRecords = OEM_DEVICE_DATABASE.map(rec => DeviceIngestionPipeline.ingestRecord(rec));
   const coverageReport = DeviceIngestionPipeline.generateCoverageReport(normalizedRecords);
 
+  const atlasMatches = searchDeviceAtlas(searchQuery, selectedBrand === 'ALL' ? '' : selectedBrand);
+
   const handleCopyFullJson = () => {
-    const targetData = viewSource === 'live' ? liveManufacturers : filteredRecords;
+    const targetData =
+      viewSource === 'atlas' ? atlasMatches : viewSource === 'live' ? liveManufacturers : filteredRecords;
     navigator.clipboard.writeText(JSON.stringify(targetData, null, 2));
     setCopiedJson(true);
     setTimeout(() => setCopiedJson(false), 2000);
+  };
+
+  const handleCopyCommand = (cmd: string) => {
+    navigator.clipboard.writeText(cmd);
+    setCopiedCmd(cmd);
+    setTimeout(() => setCopiedCmd(null), 1500);
   };
 
   const handleCopySingleJson = (rec: OemDeviceRecord) => {
@@ -160,13 +177,26 @@ export const OemDatabaseBrowser: React.FC<OemDatabaseBrowserProps> = ({
         {/* Action Controls */}
         <div className="flex items-center gap-2">
           {/* View Source Switcher */}
-          <div className="bg-slate-900/90 p-1 rounded-xl border border-slate-800 flex items-center gap-1">
+          <div className="bg-slate-900/90 p-1 rounded-xl border border-slate-800 flex items-center gap-1 flex-wrap">
+            <button
+              onClick={() => {
+                setViewSource('atlas');
+              }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                viewSource === 'atlas'
+                  ? 'bg-emerald-600 text-white shadow'
+                  : 'text-slate-400 hover:text-slate-300'
+              }`}
+            >
+              <Cpu className="w-3.5 h-3.5" />
+              <span>{isAr ? 'الأطلس الهندسي والبن آوت' : 'Pinout & IC Atlas'}</span>
+            </button>
             <button
               onClick={() => {
                 setViewSource('live');
                 setSearchQuery('');
               }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
                 viewSource === 'live'
                   ? 'bg-indigo-600 text-white shadow'
                   : 'text-slate-400 hover:text-slate-300'
@@ -180,7 +210,7 @@ export const OemDatabaseBrowser: React.FC<OemDatabaseBrowserProps> = ({
                 setViewSource('static');
                 setSearchQuery('');
               }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
                 viewSource === 'static'
                   ? 'bg-indigo-600 text-white shadow'
                   : 'text-slate-400 hover:text-slate-300'
@@ -259,7 +289,202 @@ export const OemDatabaseBrowser: React.FC<OemDatabaseBrowserProps> = ({
       </div>
 
       {/* Database Display View */}
-      {viewSource === 'live' ? (
+      {viewSource === 'atlas' ? (
+        <div className="space-y-6">
+          {/* Device Pinout, ICs & OSS Servicing Atlas */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-black text-emerald-400 uppercase tracking-wider flex items-center gap-2">
+                <Cpu className="w-4 h-4" />
+                <span>{isAr ? `أطلس الأجهزة والبن آوت ونقاط الفحص (${atlasMatches.length})` : `Device Hardware, Pinout & Testpoint Atlas (${atlasMatches.length})`}</span>
+              </h4>
+            </div>
+
+            <div className="space-y-3">
+              {atlasMatches.map((entry) => {
+                const isExpanded = expandedAtlasId === entry.id;
+                return (
+                  <div key={entry.id} className="bg-slate-900/90 border border-slate-800 rounded-xl overflow-hidden">
+                    <div className="p-4 flex flex-wrap items-center justify-between gap-3">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-mono text-[10px] font-bold">
+                            {entry.brand}
+                          </span>
+                          <span className="text-sm font-black text-white">{entry.model}</span>
+                          <span className="px-2 py-0.5 rounded bg-slate-950 border border-slate-800 font-mono text-[10px] text-cyan-300">
+                            {entry.board_arch}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-400 font-mono">
+                          SoC: {entry.soc} • Storage: {entry.storage}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setExpandedAtlasId(isExpanded ? '' : entry.id)}
+                          className="px-3 py-1.5 rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-200 cursor-pointer"
+                        >
+                          {isExpanded
+                            ? (isAr ? 'إخفاء التفاصيل' : 'Hide Specs')
+                            : (isAr ? 'عرض البن آوت والآيسيهات' : 'Inspect Pinouts & ICs')}
+                        </button>
+                        <button
+                          onClick={() => handleSelectDevice(entry.brand, entry.model, entry.id.toUpperCase(), entry.soc)}
+                          className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-xs font-bold text-white flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <Smartphone className="w-3.5 h-3.5" />
+                          <span>{isAr ? 'تعيين كهدف' : 'Set Target'}</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {isExpanded && (
+                      <div className="border-t border-slate-800 p-4 bg-slate-950/70 space-y-4 text-xs">
+                        {/* Key ICs Grid */}
+                        <div>
+                          <span className="text-[10px] font-bold text-amber-400 uppercase block mb-2">
+                            {isAr ? 'الآيسيهات الرئيسية على البوردة (Core Board ICs):' : 'Core Motherboard ICs:'}
+                          </span>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                            {Object.entries(entry.ics).map(([role, part]) => (
+                              <div key={role} className="p-2.5 rounded-lg bg-slate-900 border border-slate-800">
+                                <span className="text-[10px] text-slate-400 uppercase block">{role}</span>
+                                <span className="font-mono text-white font-semibold">{part}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Connector Pinouts Table */}
+                        {entry.connector_pinouts.length > 0 && (
+                          <div>
+                            <span className="text-[10px] font-bold text-cyan-400 uppercase block mb-2">
+                              {isAr ? 'جدول ممانعات وفولتية الكونكتورات (Connector Pinouts):' : 'Connector Pinouts (Diode & Voltage):'}
+                            </span>
+                            <div className="overflow-x-auto rounded-lg border border-slate-800">
+                              <table className="w-full text-start font-mono text-[11px] tabular-nums">
+                                <thead className="bg-slate-900 text-slate-400">
+                                  <tr>
+                                    <th className="p-2 text-start">Connector</th>
+                                    <th className="p-2 text-start">Pin</th>
+                                    <th className="p-2 text-start">Net</th>
+                                    <th className="p-2 text-start">Diode (V)</th>
+                                    <th className="p-2 text-start">Volt (V)</th>
+                                    <th className="p-2 text-start">Notes</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-800/80">
+                                  {entry.connector_pinouts.map((pin, idx) => (
+                                    <tr key={idx} className="hover:bg-slate-900/50">
+                                      <td className="p-2 text-slate-200">{pin.connector}</td>
+                                      <td className="p-2 text-slate-400">{pin.pin}</td>
+                                      <td className="p-2 text-cyan-300 font-bold">{pin.net}</td>
+                                      <td className="p-2 text-emerald-400">{pin.diode_v.toFixed(3)}V</td>
+                                      <td className="p-2 text-amber-300">{pin.voltage_v.toFixed(2)}V</td>
+                                      <td className="p-2 text-slate-300 font-sans">{pin.notes}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Testpoints & OSS Commands */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="p-3 rounded-lg bg-slate-900 border border-slate-800 space-y-2">
+                            <span className="text-[10px] font-bold text-indigo-400 uppercase block">
+                              {isAr ? 'نقاط التست بوينت (Hardware Testpoints):' : 'Hardware Testpoints:'}
+                            </span>
+                            {entry.testpoints.map((tp, idx) => (
+                              <div key={idx} className="text-[11px] border-b border-slate-800 pb-1.5 last:border-0 last:pb-0">
+                                <span className="font-mono text-white font-bold block">{tp.name}</span>
+                                <span className="text-slate-400">{tp.method}</span>
+                              </div>
+                            ))}
+                          </div>
+
+                          <div className="p-3 rounded-lg bg-slate-900 border border-slate-800 space-y-2">
+                            <span className="text-[10px] font-bold text-emerald-400 uppercase block">
+                              {isAr ? 'أوامر الصيانة مفتوحة المصدر (OSS Commands):' : 'Open-Source Servicing Commands:'}
+                            </span>
+                            <div className="space-y-1.5">
+                              {entry.software_commands.map((cmd, idx) => (
+                                <div key={idx} className="flex items-center justify-between gap-2 p-2 rounded bg-slate-950 border border-slate-800 font-mono text-[11px]">
+                                  <code className="text-cyan-300 truncate">{cmd}</code>
+                                  <button
+                                    onClick={() => handleCopyCommand(cmd)}
+                                    className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 shrink-0 cursor-pointer"
+                                  >
+                                    {copiedCmd === cmd ? (isAr ? 'نُسخ' : 'Copied') : (isAr ? 'نسخ' : 'Copy')}
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* USB VID:PID Signatures Reference Matrix */}
+          <div className="bg-slate-900/70 border border-slate-800 rounded-xl p-4 space-y-3">
+            <h4 className="text-xs font-black text-cyan-400 uppercase tracking-wider flex items-center gap-2">
+              <Terminal className="w-4 h-4" />
+              <span>{isAr ? 'مصفوفة بصمات منافذ الـ USB الهندسية (VID:PID Signatures)' : 'USB Hardware VID:PID Signature Matrix'}</span>
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 text-xs">
+              {USB_HARDWARE_SIGNATURES.map((sig, i) => (
+                <div key={i} className="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-mono font-bold text-cyan-300">{sig.vid}:{sig.pid} — {sig.mode}</span>
+                    <span className="text-[10px] font-mono text-slate-400">{sig.chipset}</span>
+                  </div>
+                  <p className="text-[11px] text-slate-300">{isAr ? sig.description : sig.descriptionEn}</p>
+                  <div className="flex flex-wrap gap-1 pt-1">
+                    {sig.recommended_tools.map((tool, tIdx) => (
+                      <span key={tIdx} className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 font-mono text-[10px] text-emerald-300">
+                        {tool}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* IC Fault Catalog */}
+          <div className="bg-slate-900/70 border border-slate-800 rounded-xl p-4 space-y-3">
+            <h4 className="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-2">
+              <Zap className="w-4 h-4" />
+              <span>{isAr ? 'دليل أعطال الآيسيهات الشائعة (IC Fault Catalog)' : 'Critical IC Fault Diagnostic Catalog'}</span>
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+              {IC_FAULT_CATALOG.map((ic, i) => (
+                <div key={i} className="p-3.5 rounded-lg bg-slate-950 border border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-mono font-bold text-white">{ic.ic_part}</span>
+                    <span className="text-[10px] font-mono text-amber-400">{ic.manufacturer}</span>
+                  </div>
+                  <div className="text-[11px] text-indigo-300 font-semibold">{ic.function} • {ic.devices}</div>
+                  <p className="text-[11px] text-slate-300">{ic.symptoms}</p>
+                  <ul className="space-y-1 text-[11px] text-slate-400 list-disc list-inside">
+                    {ic.diagnostic_steps.map((step, sIdx) => (
+                      <li key={sIdx}>{step}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : viewSource === 'live' ? (
         <div className="space-y-4">
           {isLoading && (
             <div className="p-12 text-center flex flex-col items-center justify-center space-y-2">

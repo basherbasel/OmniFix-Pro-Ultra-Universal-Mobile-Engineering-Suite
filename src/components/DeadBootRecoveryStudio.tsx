@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 import { 
   Activity, 
   AlertTriangle, 
@@ -19,6 +19,9 @@ import {
 } from 'lucide-react';
 import { ConnectedDevice } from '../types';
 import { realUsbService } from '../services/realUsbService';
+import { qualcommFirehoseEngine } from '../services/QualcommFirehoseEngine';
+import { mediaTekProEngine } from '../services/MediaTekProEngine';
+import { odinProtocolEngine } from '../services/OdinProtocolEngine';
 
 interface DeadBootRecoveryStudioProps {
   device: ConnectedDevice;
@@ -137,14 +140,26 @@ export const DeadBootRecoveryStudio: React.FC<DeadBootRecoveryStudioProps> = ({
       // Step 2: Protocol Handshake Execution
       if (selectedScenario === 'QUALCOMM_BRICK' || selectedScenario === 'QUALCOMM_QCN_RESTORE') {
         append(`Establishing Qualcomm EDL 9008 Sahara v2.0 handshake...`);
+        try {
+          await qualcommFirehoseEngine.connect({ vendorId: 0x05C6 });
+          await qualcommFirehoseEngine.handshake();
+        } catch {}
         const edl = await realUsbService.executeEdlSaharaHandshake();
         edl.rawLogs.forEach(l => append(l));
       } else if (selectedScenario === 'MEDIATEK_DEAD' || selectedScenario === 'MTK_RADIO_RESTORE') {
         append(`Executing MTK BROM / SLA DAA Hardware exploit...`);
+        try {
+          await mediaTekProEngine.connect();
+          await mediaTekProEngine.handshake();
+        } catch {}
         const mtk = await realUsbService.executeMtkBromHandshake();
         mtk.rawLogs.forEach(l => append(l));
       } else if (selectedScenario === 'EXYNOS_BOOTLOOP') {
         append(`Opening Samsung Loke Download Mode Channel (0:[COM3])...`);
+        try {
+          await odinProtocolEngine.connect({ vendorId: 0x04E8 });
+          await odinProtocolEngine.handshake();
+        } catch {}
         const at = await realUsbService.executeSerialAtCommand('AT+VERSNAME=1,2');
         append(`[LOKE:AT] Baseband response: ${at}`);
       }

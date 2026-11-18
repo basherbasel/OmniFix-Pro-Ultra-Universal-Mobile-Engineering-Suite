@@ -848,5 +848,206 @@ export const FAULT_REPAIRS: FaultRepairItem[] = [
         commandPreview: 'adb shell df -h /data'
       }
     ]
+  },
+  {
+    id: 'water-damage-corrosion-deox',
+    titleAr: 'إصلاح أضرار السوائل والأكسدة وعزل الشورت (Ultrasonic & Low-V Short Isolation)',
+    titleEn: 'Liquid Damage Deoxidation, Ultrasonic Cleaning & Safe Short Isolation',
+    category: 'HARDWARE',
+    severity: 'CRITICAL',
+    descriptionAr: 'بروتوكول علمي آمن لإزالة الأملاح والأكسدة تحت آيسيات BGA بالمنظف الأيوني (IPA 99.9%) وعزل مكثفات الشورت بحقن جهد محدود.',
+    descriptionEn: 'Scientific protocol for stripping electrolytic corrosion under BGA ICs and isolating shorted MLCC caps using current-limited injection.',
+    icon: 'Droplets',
+    supportedModes: ['DISCONNECTED', 'ADB_ONLINE', 'APPLE_DFU', 'EDL_9008'],
+    supportedChipsets: ['apple_ios', 'qualcomm', 'mediatek', 'samsung_exynos', 'unisoc_spd', 'hisilicon_kirin', 'google_tensor'],
+    riskAr: 'تحذير حرج: لا تقم بتوصيل البطارية أو الشاحن قبل تنظيف الأكسدة وقياس ممانعة VDD_MAIN',
+    riskEn: 'CRITICAL: Never connect battery or charger before ultrasonic flux wash and VDD_MAIN diode check',
+    protocolPipeline: [
+      {
+        stepNumber: 1,
+        actionAr: 'فصل البطارية فوراً وفحص خطوط الطاقة الأساسية (VBAT / VPH_PWR / VDD_MAIN) بوضع الدايود',
+        actionEn: 'Disconnect battery immediately and measure diode drop on VBAT / VPH_PWR / VDD_MAIN',
+        protocolCode: 'DMM_DIODE: Red -> GND | Black -> VDD_MAIN (Healthy: 0.340V - 0.520V)'
+      },
+      {
+        stepNumber: 2,
+        actionAr: 'تنظيف الأكسدة بمحلول كحول أيزوبروبيل نقي IPA 99.9% أو حوض الموجات فوق الصوتية (Ultrasonic)',
+        actionEn: 'Dissolve electrolytic mineral bridges using 99.9% IPA & ultrasonic bath, then dry at 65°C',
+        protocolCode: 'IPA_ULTRASONIC: 40kHz / 180s -> Hot Air Dry 65°C 10m'
+      },
+      {
+        stepNumber: 3,
+        actionAr: 'حقن جهد منخفض آمن على المسار المقصر: 1.0V كحد أقصى للـ Buck و 3.8V/2.5A لخط VDD_MAIN مع الراتنج',
+        actionEn: 'Inject safe current-limited DC voltage (max 1.0V on Buck, 3.8V/2.5A on VDD_MAIN) over rosin flux',
+        protocolCode: 'PSU_INJECT: VDD_MAIN <= 3.80V @ 2.50A | CPU_BUCK <= 0.90V @ 2.00A'
+      },
+      {
+        stepNumber: 4,
+        actionAr: 'استبدال المكثف التالف وإعادة بناء المسارات المتآكلة (Micro-Jumper) بسلك معزول 0.01mm وطلاء UV Mask',
+        actionEn: 'Replace shorted MLCC capacitor, restore corroded pads with 0.01mm enamel wire, and cure UV solder mask',
+        protocolCode: 'UV_CURING: 395nm LED 30s -> Re-verify Diode Drop > 0.340V'
+      }
+    ]
+  },
+  {
+    id: 'three-minute-panic-thermistor',
+    titleAr: 'إصلاح ريستارت 3 دقائق وتقارير Kernel Panic / Thermistor (iOS & Android)',
+    titleEn: '3-Minute Reboot Loop, Panic-Full Parser & NTC Thermistor Calibration',
+    category: 'HARDWARE',
+    severity: 'HIGH',
+    descriptionAr: 'تشخيص أسباب إعادة التشغيل كل 180 ثانية (i2c0/i2c2 Missing Sensor، فشل خط البطارية SWI/GasGauge، أو تلف مقاومة الحراري NTC).',
+    descriptionEn: 'Diagnose 180-second thermal/watchdog resets via panic logs (missing I2C sensors, battery SWI gas gauge data, or drifted NTC thermistors).',
+    icon: 'Thermometer',
+    supportedModes: ['ADB_ONLINE', 'APPLE_RECOVERY', 'APPLE_DFU'],
+    supportedChipsets: ['apple_ios', 'qualcomm', 'mediatek', 'samsung_exynos', 'google_tensor'],
+    riskAr: 'استبدال فلاتة الشحن أو البطارية بأخرى غير أصلية قد يسبب فقدان خط بيانات I2C للمستشعر',
+    riskEn: 'Aftermarket charge/power flex cables often lack thermal sensor telemetry I2C lines',
+    protocolPipeline: [
+      {
+        stepNumber: 1,
+        actionAr: 'استخراج سجل الأعطال panic-full أو kernel last_kmsg لتحديد اسم الحساس المفقود (Prs0 / TG0B / mic1)',
+        actionEn: 'Pull panic-full logs or Android last_kmsg to pinpoint failing I2C/SWI sensor index',
+        commandPreview: 'idevicecrashreport -e ./panic_logs && adb shell cat /sys/fs/pstore/console-ramoops-0'
+      },
+      {
+        stepNumber: 2,
+        actionAr: 'قراءة قيم مستشعرات الحرارة ومقاومة BAT_THERM (القراءة السليمة ~10kΩ عند 25°C / دايود 0.55V)',
+        actionEn: 'Inspect battery thermistor values & BAT_THERM diode drop (~10kΩ at 25°C / 0.55V diode)',
+        commandPreview: 'adb shell dumpsys battery && dumpsys thermalservice'
+      },
+      {
+        stepNumber: 3,
+        actionAr: 'فحص خطي الـ I2C SDA/SCL (1.8V Pull-up) وفصل فلاتة الشحن أو الفلاش للاختبار المعزول',
+        actionEn: 'Measure I2C 1.8V pull-up resistors and isolate charging port / proximity flex to confirm culprit',
+        protocolCode: 'I2C_CHECK: SDA/SCL Diode 0.420V - 0.520V | Pull-Up 1.80V'
+      },
+      {
+        stepNumber: 4,
+        actionAr: 'تبديل الفلاتة الأصلية أو تعويض مقاومة الـ NTC 10kΩ والتأكد من ثبات الجهاز لأكثر من 10 دقائق',
+        actionEn: 'Replace OEM flex assembly or 10kΩ NTC thermistor and run 10-minute stability burn-in',
+        protocolCode: 'VERIFY_UPTIME: > 600s without Watchdog Reset'
+      }
+    ]
+  },
+  {
+    id: 'false-moisture-usb-cc-fix',
+    titleAr: 'إصلاح إنذار الرطوبة الدائم وأعطال الشحن السريع (USB-C CC1/CC2 & SBU Moisture)',
+    titleEn: 'Persistent Type-C Moisture Alert & USB-PD CC1/CC2 Resistance Repair',
+    category: 'HARDWARE',
+    severity: 'MEDIUM',
+    descriptionAr: 'معالجة رسالة "تم اكتشاف رطوبة في منفذ USB" الناتجة عن تسريب طفيف بين أرجل VBUS و CC1/CC2/SBU في منفذ Type-C أو آيسي الحماية OVP.',
+    descriptionEn: 'Resolve persistent moisture detected warnings caused by conductive carbon/oxide bridges across USB-C CC1/CC2/SBU pins or MUIC/OVP ICs.',
+    icon: 'Usb',
+    supportedModes: ['ADB_ONLINE', 'SAMSUNG_DOWNLOAD', 'DISCONNECTED'],
+    supportedChipsets: ['samsung_exynos', 'qualcomm', 'mediatek', 'google_tensor', 'unisoc_spd', 'apple_ios'],
+    riskAr: 'تنظيف المنفذ بأدوات معدنية حادة قد يكسر لسان Type-C أو يقصر خط CC2 مع VBUS 20V',
+    riskEn: 'Metal tools inside Type-C port can short CC2 directly to VBUS, destroying PMIC/SoC',
+    protocolPipeline: [
+      {
+        stepNumber: 1,
+        actionAr: 'قياس ممانعة أرجل CC1 و CC2 و SBU1/SBU2 بوضع الدايود مقارنة بالقيم المرجعية (0.55V ~ 0.72V)',
+        actionEn: 'Measure diode drops on CC1, CC2, and SBU1/SBU2 pins against healthy reference (0.55V - 0.72V)',
+        protocolCode: 'USB_C_PINOUT: CC1/CC2 = 0.620V | D+/D- = 0.580V | SBU = 0.650V'
+      },
+      {
+        stepNumber: 2,
+        actionAr: 'تنظيف قاعدة المنفذ من الداخل بكحول IPA 99% وفرشاة ناعمة غير موصلة وفحص وجود أي تفحم كربوني',
+        actionEn: 'Flush Type-C receptacle with 99% IPA and non-conductive ESD brush to strip conductive residue',
+        commandPreview: 'adb shell dumpsys usb'
+      },
+      {
+        stepNumber: 3,
+        actionAr: 'فحص دايودات الحماية ESD ورفعها مؤقتاً أو تغيير سوكيت الشحن إذا ثبت وجود تسريب تحته',
+        actionEn: 'Test ESD/TVS diodes on CC/SBU lines; replace Type-C connector or MUIC/Water-Detect IC (S2MU106/PM8550B)',
+        protocolCode: 'CC_LEAK_ISOLATION: Desolder D_ESD -> Re-check CC resistance > 100kΩ'
+      },
+      {
+        stepNumber: 4,
+        actionAr: 'اختبار تفاوض الشحن السريع USB-PD (9V/15V/20V) ونقل البيانات OTG عبر الكابل',
+        actionEn: 'Verify USB-PD fast charge negotiation (9V/15V) and USB 2.0/3.x data enumeration',
+        commandPreview: 'adb shell cat /sys/class/power_supply/usb/voltage_now'
+      }
+    ]
+  },
+  {
+    id: 'sim-not-detected-power-rail',
+    titleAr: 'إصلاح عطل لا توجد بطاقة SIM وفقدان فولتية VDD_SIM 1.8V / 3.0V',
+    titleEn: 'SIM Card Not Detected & VDD_SIM 1.8V/3.0V Dual-Voltage Rail Repair',
+    category: 'NETWORK',
+    severity: 'HIGH',
+    descriptionAr: 'تتبع خطوط قارئ الشريحة الستة (SIM_VCC, SIM_RST, SIM_CLK, SIM_DATA, SIM_DET) وتشخيص عطل التغذية المتبادلة 1.8V/3.0V من آيسي الباور.',
+    descriptionEn: 'Trace all 6 SIM tray lines (SIM_VCC, RST, CLK, DATA, DET) and diagnose missing 1.8V/3.0V PMIC LDO handshakes.',
+    icon: 'Cpu',
+    supportedModes: ['ADB_ONLINE', 'DISCONNECTED'],
+    supportedChipsets: ['qualcomm', 'mediatek', 'samsung_exynos', 'apple_ios', 'unisoc_spd', 'hisilicon_kirin'],
+    riskAr: 'اختفاء الإيمي IMEI تماماً (*#06# فارغ) يعني أن العطل في المعالج/البيسباند وليس بيت الشريحة',
+    riskEn: 'If IMEI is also Null (*#06# empty), prioritize Baseband PMIC/NVRAM before replacing SIM slot',
+    protocolPipeline: [
+      {
+        stepNumber: 1,
+        actionAr: 'التحقق من وجود رقم IMEI وإصدار Baseband أولاً للتفريق بين عطل بيت الشريحة وعطل المودم',
+        actionEn: 'Verify IMEI and Baseband version first to isolate SIM tray faults from Baseband failure',
+        commandPreview: 'adb shell getprop gsm.version.baseband && getprop gsm.sim.state'
+      },
+      {
+        stepNumber: 2,
+        actionAr: 'قياس ممانعة أرجل بيت الشريحة الستة بوضع الدايود (SIM_VCC سليم 0.480V - 0.650V، و GND = 0.000V)',
+        actionEn: 'Probe all 6 SIM socket pins in diode mode (VCC healthy 0.480V-0.650V, CLK/RST/DATA 0.450V-0.620V)',
+        protocolCode: 'SIM_DIODE: VCC=0.560V | RST=0.510V | CLK=0.510V | IO=0.520V'
+      },
+      {
+        stepNumber: 3,
+        actionAr: 'فحص سويتش الإحساس (SIM_DETECT Pin) عند إدخال بيت الشريحة ومراقبة نبضة VDD_SIM_1V8 على الأوسيلوسكوب',
+        actionEn: 'Verify mechanical SIM_DETECT switch polarity and capture PMIC 1.8V/3.0V poll burst on boot',
+        protocolCode: 'SCOPE_POLL: 1.80V pulse (200ms) upon SIM insertion -> drops if CLK/IO missing'
+      },
+      {
+        stepNumber: 4,
+        actionAr: 'إعادة لحام مقاومات التوازي (Pull-up) أو استبدال آيسي التبديل / إعادة شبلنة PMIC خط LDO_SIM',
+        actionEn: 'Restore broken series/pull-up resistors or reball PMIC LDO_SIM controller',
+        protocolCode: 'REPAIR_VERIFY: SIM_STATE=READY & Carrier IMS Registered'
+      }
+    ]
+  },
+  {
+    id: 'backlight-vs-display-diagnostics',
+    titleAr: 'تفريق وتشخيص أعطال الشاشة السوداء: عطل الإضاءة Backlight أم انعدام البيانات OLED/MIPI',
+    titleEn: 'Black Screen Isolation: Backlight Boost vs OLED Bias & MIPI DSI Data Diagnostics',
+    category: 'HARDWARE',
+    severity: 'HIGH',
+    descriptionAr: 'منهجية فحص علمية للتفرقة بين فقدان إضاءة LCD Boost (16V-28V)، وفقدان جهود AMOLED ELVDD/ELVSS (-4.4V / +4.6V)، وانقطاع خطوط البيانات MIPI.',
+    descriptionEn: 'Systematic isolation between LCD LED Boost (16-28V), AMOLED ELVDD/ELVSS (+4.6V/-4.4V) bias failures, and broken MIPI DSI filter coils.',
+    icon: 'Monitor',
+    supportedModes: ['DISCONNECTED', 'ADB_ONLINE'],
+    supportedChipsets: ['apple_ios', 'qualcomm', 'mediatek', 'samsung_exynos', 'unisoc_spd', 'hisilicon_kirin', 'google_tensor'],
+    riskAr: 'فحص سوكيت الشاشة تحت الجهد قد يحرق ملف الـ Backlight أو كونكتور الشاشة عند تركيب الشاشة والبطارية متصلة',
+    riskEn: 'Hot-plugging a display flex with battery connected frequently blows backlight anode coil or OLED bias IC',
+    protocolPipeline: [
+      {
+        stepNumber: 1,
+        actionAr: 'فحص الجهاز بكشاف جانبي والتأكد من استقبال المكالمات أو قراءة النظام via ADB لتأكيد أن البوردة مقلعة',
+        actionEn: 'Check image with side flashlight & verify OS boot via ADB / current draw (active UI > 300mA)',
+        commandPreview: 'adb shell dumpsys display | grep mScreenState'
+      },
+      {
+        stepNumber: 2,
+        actionAr: 'قياس خطوط MIPI DSI (5 أزواج تفاضلية) عبر ملفات EMI: القيمة السليمة 0.350V - 0.520V متطابقة على كل خط',
+        actionEn: 'Diode-probe all MIPI DSI differential pairs across EMI chokes (must match closely 0.350V-0.520V)',
+        protocolCode: 'MIPI_DSI: All D0..D3 +/- & CLK +/- matched within ±0.030V'
+      },
+      {
+        stepNumber: 3,
+        actionAr: 'في شاشات LCD فحص خط الأنود LED_A (شورت أو دايود الدائود Schottky وملف البوست 18V-25V)',
+        actionEn: 'For LCD: verify Backlight Boost Inductor, Schottky diode cathode, and LED_A anode (18V-25V under load)',
+        protocolCode: 'LCD_BOOST: VIN=3.8V -> VOUT_ANODE=18V-26V (with LCD plugged)'
+      },
+      {
+        stepNumber: 4,
+        actionAr: 'في شاشات AMOLED/OLED قياس فولتيات ELVDD (+4.6V) و ELVSS (-4.4V) و AVDD (+7.3V) فور تفعيل خط TE/SWIRE',
+        actionEn: 'For AMOLED/OLED: verify TPS65657 / S2DOS05 generates ELVDD +4.6V, ELVSS -4.4V, and AVDD +7.3V',
+        protocolCode: 'OLED_BIAS: ELVDD=+4.60V | ELVSS=-4.40V | VCI=3.0V | VDDIO=1.8V'
+      }
+    ]
   }
 ];
+

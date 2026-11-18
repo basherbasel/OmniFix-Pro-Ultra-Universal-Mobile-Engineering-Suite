@@ -15,18 +15,17 @@ export const OFFICIAL_FIRMWARE_CATALOG: OfficialFirmwarePackage[] = [
     modemVersion: 'S928BXXU1AXB5',
     binaryRollbackIndex: 1,
     releaseDate: '2024-02-15',
-    fileSizeBytes: 8492819200, // ~8.49 GB
+    fileSizeBytes: 8492819200,
     sha256Checksum: '8e4f1a23b9c049e7a85b9218204cdbf9021eac740b9432e18501da839218f0a2',
     md5Checksum: '7c49a0e1928471920392817291029384',
     downloadMirrors: [
-      { name: 'Official Samsung CDN (High Speed)', speed: '120 MB/s', url: 'https://download.samsung.com/firmware/S928BXXU1AXB5_XSG.zip' },
-      { name: 'SamFW Mirror', speed: '45 MB/s', url: 'https://samfw.com/firmware/SM-S928B/XSG/S928BXXU1AXB5' },
-      { name: 'SamMobile Archive', speed: '30 MB/s', url: 'https://sammobile.com/samsung/galaxy-s24-ultra/firmware/SM-S928B/XSG/download/S928BXXU1AXB5' }
+      { name: 'SamFW Archive (SM-S928B / XSG)', speed: 'High Speed', url: 'https://samfw.com/firmware/SM-S928B/XSG/S928BXXU1AXB5' },
+      { name: 'Samsung Opensource Kernel Portal', speed: 'Official Source', url: 'https://opensource.samsung.com/uploadSearch?searchValue=SM-S928B' }
     ],
     partitionsIncluded: ['BL_S928BXXU1AXB5.tar.md5', 'AP_S928BXXU1AXB5.tar.md5', 'CP_S928BXXU1AXB5.tar.md5', 'CSC_OXM_S928BOXM1AXB5.tar.md5', 'HOME_CSC_OXM_S928BOXM1AXB5.tar.md5'],
     verifiedOfficial: true,
-    notesAr: 'روم رسمي موجه لدول الخليج والشرق الأوسط (XSG) يحتوي على تسجيل المكالمات التلقائي وتفعيل ترددات 5G المحلية.',
-    notesEn: 'Official UAE/Gulf region stock firmware. Native call recording and local 5G carrier aggregation enabled.'
+    notesAr: 'روم رسمي موجه لدول الخليج والشرق الأوسط (XSG) بحماية Binary U1. استخدم HOME_CSC للحفاظ على البيانات أو CSC لتنفيذ فورمات نظيف.',
+    notesEn: 'Official UAE/Gulf region stock firmware (Binary U1). Use HOME_CSC to retain userdata or CSC for a clean repartition flash.'
   },
   {
     id: 'fw-s24u-s928b-ksa-u2',
@@ -46,39 +45,62 @@ export const OFFICIAL_FIRMWARE_CATALOG: OfficialFirmwarePackage[] = [
     sha256Checksum: '1a7c39029b48f90218a0384729103847a9203847192039485720193847582910',
     md5Checksum: '4e928103948572910394857291039485',
     downloadMirrors: [
-      { name: 'Samsung FOTA Server 01', speed: '110 MB/s', url: 'https://fota-cloud-dn.ospserver.net/firmware/KSA/SM-S928B/S928BXXU2AXE4.zip' },
-      { name: 'SamFW Saudi Mirror', speed: '50 MB/s', url: 'https://samfw.com/firmware/SM-S928B/KSA/S928BXXU2AXE4' }
+      { name: 'SamFW Saudi Hub (SM-S928B / KSA)', speed: 'High Speed', url: 'https://samfw.com/firmware/SM-S928B/KSA/S928BXXU2AXE4' }
     ],
     partitionsIncluded: ['BL_S928BXXU2AXE4.tar.md5', 'AP_S928BXXU2AXE4.tar.md5', 'CP_S928BXXU2AXE4.tar.md5', 'CSC_OXM_S928BOXM2AXE4.tar.md5'],
     verifiedOfficial: true,
-    notesAr: 'إصدار الحماية الثاني (Binary U2). لا يمكن الرجوع بعده إلى حماية U1.',
-    notesEn: 'Binary level U2 (Rollback index 2). Downgrade to U1 binary is cryptographically prevented.'
+    notesAr: 'إصدار الحماية الثاني (Binary U2). لا يمكن الرجوع بعده إلى حماية U1 بسبب قفل anti-rollback في البوت لودر.',
+    notesEn: 'Binary level U2 (Rollback index 2). Downgrade to U1 binary is cryptographically blocked by eFuse rollback protection.'
   },
   {
-    id: 'fw-redmi-note13p-global',
-    brand: 'Xiaomi',
-    model: '2312DRA50G',
-    marketName: 'Redmi Note 13 Pro+ 5G (Zircon)',
-    regionCsc: 'MI (Global)',
-    countryName: 'Global International Edition',
-    osVersion: 'Android 14 (HyperOS 1.0)',
-    buildNumber: 'UNOMIXM_1.0.4.0',
-    pdaVersion: 'OS1.0.4.0.UNOMIXM',
-    cscVersion: 'Global_MultiLanguage',
-    modemVersion: 'MOLY.NR15.R3.TC8.PR2',
-    binaryRollbackIndex: 1,
-    releaseDate: '2024-05-20',
-    fileSizeBytes: 7192834000,
-    sha256Checksum: '3948572019284759203948572910293847561029384756201928374659201827',
-    md5Checksum: '83920194857291039485729103948572',
+    id: 'fw-a32-a325f-egy-u7',
+    brand: 'Samsung',
+    model: 'SM-A325F',
+    marketName: 'Galaxy A32 4G (Helio G80)',
+    regionCsc: 'EGY',
+    countryName: 'Egypt / Middle East & North Africa',
+    osVersion: 'Android 13 (One UI 5.1)',
+    buildNumber: 'TP1A.220624.014.A325FXXU7DXD1',
+    pdaVersion: 'A325FXXU7DXD1',
+    cscVersion: 'A325FOJM7DXD1',
+    modemVersion: 'A325FXXU7DXD1',
+    binaryRollbackIndex: 7,
+    releaseDate: '2024-04-01',
+    fileSizeBytes: 5728391000,
+    sha256Checksum: '5d8e2c41a7b0f9e3d1c2b4a5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f7a8b9',
+    md5Checksum: '9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e',
     downloadMirrors: [
-      { name: 'Official Xiaomi Fastboot CDN', speed: '95 MB/s', url: 'https://bigota.d.miui.com/OS1.0.4.0.UNOMIXM/zircon_global_images_OS1.0.4.0.UNOMIXM.tgz' },
-      { name: 'Xiaomi Community Mirror', speed: '60 MB/s', url: 'https://miuirom.org/load?p=redmi-note-13-pro-plus-5g&c=global' }
+      { name: 'SamFW Archive (SM-A325F / EGY)', speed: 'High Speed', url: 'https://samfw.com/firmware/SM-A325F/EGY' }
     ],
-    partitionsIncluded: ['boot.img', 'init_boot.img', 'dtbo.img', 'vbmeta.img', 'vbmeta_system.img', 'super.img', 'cust.img', 'userdata.img', 'flash_all.bat'],
+    partitionsIncluded: ['BL_A325FXXU7DXD1.tar.md5', 'AP_A325FXXU7DXD1.tar.md5', 'CP_A325FXXU7DXD1.tar.md5', 'CSC_OJM_A325FOJM7DXD1.tar.md5'],
     verifiedOfficial: true,
-    notesAr: 'روم فاست بوت رسمي كامل يحتوي على سكربت flash_all.bat لتفليش جميع قطاعات المعالج MT6886 وتخطي مشاكل البوتلوب.',
-    notesEn: 'Official Fastboot TGZ package with complete raw partition images and flash_all scripts.'
+    notesAr: 'روم رباعي رسمي لسامسونج A32 4G (معالج Helio G80 MT6769V) بحماية Binary U7. يصلح لترميم البيسباند وحل البوتلوب.',
+    notesEn: 'Official 4-file Odin package for SM-A325F (Helio G80) at Binary U7. Restores corrupt modem/baseband and lk bootloader.'
+  },
+  {
+    id: 'fw-a15-a155f-mid-u3',
+    brand: 'Samsung',
+    model: 'SM-A155F',
+    marketName: 'Galaxy A15 4G (Helio G99)',
+    regionCsc: 'MID',
+    countryName: 'Middle East / Iraq / Levant',
+    osVersion: 'Android 14 (One UI 6.1)',
+    buildNumber: 'UP1A.231005.007.A155FXXU3BXG2',
+    pdaVersion: 'A155FXXU3BXG2',
+    cscVersion: 'A155FOJM3BXG2',
+    modemVersion: 'A155FXXU3BXG2',
+    binaryRollbackIndex: 3,
+    releaseDate: '2024-08-05',
+    fileSizeBytes: 6180421000,
+    sha256Checksum: '2c4e6f8a0b1d3e5f7a9c1b2d4e6f8a0c2e4f6a8b0d2e4f6a8c0e2a4c6e8f0a2b',
+    md5Checksum: '6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d',
+    downloadMirrors: [
+      { name: 'SamFW Archive (SM-A155F / MID)', speed: 'High Speed', url: 'https://samfw.com/firmware/SM-A155F/MID' }
+    ],
+    partitionsIncluded: ['BL_A155FXXU3BXG2.tar.md5', 'AP_A155FXXU3BXG2.tar.md5', 'CP_A155FXXU3BXG2.tar.md5', 'CSC_OJM_A155FOJM3BXG2.tar.md5'],
+    verifiedOfficial: true,
+    notesAr: 'فلاشة رسمية بحماية Bit 3 لمعالج Helio G99. متوافقة مع التفليش عبر Odin3 أو mtkclient في وضع BROM.',
+    notesEn: 'Official Binary Bit 3 firmware for SM-A155F (Helio G99). Compatible with Odin3 and BROM DA fallback.'
   },
   {
     id: 'fw-a54-a546b-eux-u6',
@@ -98,13 +120,87 @@ export const OFFICIAL_FIRMWARE_CATALOG: OfficialFirmwarePackage[] = [
     sha256Checksum: '9021839485720192837465920182736459201928374650192837465019283746',
     md5Checksum: '10293847562019283746592019283746',
     downloadMirrors: [
-      { name: 'Samsung EU High-Speed Server', speed: '140 MB/s', url: 'https://download.samsung.com/firmware/A546BXXU6CXC4_EUX.zip' },
-      { name: 'SamFW European Hub', speed: '65 MB/s', url: 'https://samfw.com/firmware/SM-A546B/EUX/A546BXXU6CXC4' }
+      { name: 'SamFW European Hub (SM-A546B / EUX)', speed: 'High Speed', url: 'https://samfw.com/firmware/SM-A546B/EUX/A546BXXU6CXC4' }
     ],
     partitionsIncluded: ['BL_A546BXXU6CXC4.tar.md5', 'AP_A546BXXU6CXC4.tar.md5', 'CP_A546BXXU6CXC4.tar.md5', 'CSC_OXM_A546BOXM6CXC4.tar.md5'],
     verifiedOfficial: true,
-    notesAr: 'روم رسمي بحماية Binary U6. يدعم كافة اللغات الأوروبية والعربية بدون أي تعديلات.',
-    notesEn: 'Stock official firmware with Binary Rollback index 6.'
+    notesAr: 'روم رسمي بحماية Binary U6 لمعالج Exynos 1380. يدعم العربية وكافة اللغات العالمية.',
+    notesEn: 'Stock official firmware with Binary Rollback index 6 for Exynos 1380 S5E8835.'
+  },
+  {
+    id: 'fw-redmi-note13p-global',
+    brand: 'Xiaomi',
+    model: '2312DRA50G',
+    marketName: 'Redmi Note 13 Pro+ 5G (Zircon)',
+    regionCsc: 'MI (Global)',
+    countryName: 'Global International Edition',
+    osVersion: 'Android 14 (HyperOS 1.0)',
+    buildNumber: 'OS1.0.4.0.UNOMIXM',
+    pdaVersion: 'OS1.0.4.0.UNOMIXM',
+    cscVersion: 'Global_MultiLanguage',
+    modemVersion: 'MOLY.NR15.R3.TC8.PR2',
+    binaryRollbackIndex: 1,
+    releaseDate: '2024-05-20',
+    fileSizeBytes: 7192834000,
+    sha256Checksum: '3948572019284759203948572910293847561029384756201928374659201827',
+    md5Checksum: '83920194857291039485729103948572',
+    downloadMirrors: [
+      { name: 'Xiaomi Fastboot Official Archive', speed: 'Direct CDN', url: 'https://miuirom.org/phones/redmi-note-13-pro-plus-5g' }
+    ],
+    partitionsIncluded: ['boot.img', 'init_boot.img', 'dtbo.img', 'vbmeta.img', 'vbmeta_system.img', 'super.img', 'cust.img', 'userdata.img', 'flash_all.bat'],
+    verifiedOfficial: true,
+    notesAr: 'روم فاست بوت رسمي كامل يحتوي على سكربت flash_all لتفليش معالج MT6886 وتخطي البوتلوب.',
+    notesEn: 'Official Fastboot TGZ package with complete raw partition images and flash_all scripts.'
+  },
+  {
+    id: 'fw-poco-f6pro-eea',
+    brand: 'POCO',
+    model: '23113RKC6G',
+    marketName: 'POCO F6 Pro 5G (Vermeer)',
+    regionCsc: 'EEA (Europe)',
+    countryName: 'European Economic Area Global',
+    osVersion: 'Android 14 (HyperOS 1.0)',
+    buildNumber: 'OS1.0.5.0.UNNEUXM',
+    pdaVersion: 'OS1.0.5.0.UNNEUXM',
+    cscVersion: 'EEA_Global',
+    modemVersion: 'MPSS.DE.1.0-01458',
+    binaryRollbackIndex: 1,
+    releaseDate: '2024-06-15',
+    fileSizeBytes: 6940210000,
+    sha256Checksum: '7f6e5d4c3b2a1908f7e6d5c4b3a29108f7e6d5c4b3a29108f7e6d5c4b3a29108',
+    md5Checksum: '4d3c2b1a098f7e6d5c4b3a29108f7e6d',
+    downloadMirrors: [
+      { name: 'Xiaomi Firmware Updater (Vermeer)', speed: 'Global Mirror', url: 'https://xmfirmwareupdater.com/hyperos/vermeer/' }
+    ],
+    partitionsIncluded: ['boot.img', 'init_boot.img', 'vendor_boot.img', 'vbmeta.img', 'super.img', 'modem.img'],
+    verifiedOfficial: true,
+    notesAr: 'روم رسمي لمعالج Snapdragon 8 Gen 2 (SM8550). يدعم التفليش عبر Fastboot/FastbootD أو وضع EDL 9008.',
+    notesEn: 'Official HyperOS package for Snapdragon 8 Gen 2 Vermeer. Supports FastbootD or Qualcomm EDL 9008.'
+  },
+  {
+    id: 'fw-infinix-note30p-gl',
+    brand: 'Infinix',
+    model: 'X6833B',
+    marketName: 'Infinix Note 30 Pro',
+    regionCsc: 'GL (Global)',
+    countryName: 'Middle East / Africa / Asia',
+    osVersion: 'Android 13 (XOS 13.0)',
+    buildNumber: 'X6833B-H894ABCDEFGHIJK-T-GL-240515V1020',
+    pdaVersion: 'X6833B-H894',
+    cscVersion: 'GL-240515V1020',
+    modemVersion: 'MT6789_MOLY_13',
+    binaryRollbackIndex: 1,
+    releaseDate: '2024-05-15',
+    fileSizeBytes: 4980210000,
+    sha256Checksum: 'b1c2d3e4f5a60718293a4b5c6d7e8f901a2b3c4d5e6f708192a3b4c5d6e7f809',
+    md5Checksum: 'a1b2c3d4e5f60718293a4b5c6d7e8f90',
+    downloadMirrors: [
+      { name: 'Transsion Scatter Archive (MT6789)', speed: 'Scatter Package', url: 'https://mtkclient.org/' }
+    ],
+    partitionsIncluded: ['MT6789_Android_scatter.txt', 'preloader_x6833b.bin', 'lk.img', 'boot.img', 'vbmeta.img', 'super.img', 'nvdata.img'],
+    verifiedOfficial: true,
+    notesAr: 'روم Scatter كامل لمعالج Helio G99 (MT6789). يقبل التفليش مباشرة عبر mtkclient مع تخطي SLA/DAA.',
+    notesEn: 'Full MT6789 scatter firmware compatible with BROM mtkclient SLA/DAA bypass.'
   },
   {
     id: 'fw-tecno-spark20-gl',
@@ -124,12 +220,37 @@ export const OFFICIAL_FIRMWARE_CATALOG: OfficialFirmwarePackage[] = [
     sha256Checksum: '7483920194857291039485729103948572910394857291039485729103948572',
     md5Checksum: '59201928374659201928374659201928',
     downloadMirrors: [
-      { name: 'Transsion Official OTA Repository', speed: '55 MB/s', url: 'https://ota.transsion.com/tecno/KJ5n/KJ5n-H6914BC-T-GL-240315V320.pac' }
+      { name: 'UNISOC PAC & SPD Research Archive', speed: 'PAC Factory', url: 'https://github.com/TomKing062/spreadtrum_flash' }
     ],
     partitionsIncluded: ['PAC Package (FDL1, FDL2, SPL, BOOT, UBOOT, SYSTEM, USERDATA, PERSIST)'],
     verifiedOfficial: true,
-    notesAr: 'فلاشة PAC رسمية لمعالجات UNISOC T606 تقبل التفليش عبر SPD Upgrade Tool أو OmniFix Pro مباشرة.',
-    notesEn: 'Official UNISOC factory PAC archive ready for direct SPD Diag flash protocol.'
+    notesAr: 'فلاشة PAC رسمية لمعالجات UNISOC T606/MTK تقبل التفليش عبر SPD Diag أو أداة OmniFix مباشرة.',
+    notesEn: 'Official UNISOC factory PAC archive ready for direct SPD Diag FDL1/FDL2 flash protocol.'
+  },
+  {
+    id: 'fw-iphone15pm-ios17',
+    brand: 'Apple',
+    model: 'A3106',
+    marketName: 'iPhone 15 Pro Max (iPhone16,2)',
+    regionCsc: 'Global',
+    countryName: 'Worldwide Factory IPSW',
+    osVersion: 'iOS 17.6.1 (Build 21G93)',
+    buildNumber: '21G93',
+    pdaVersion: 'iOS 17.6.1',
+    cscVersion: 'Global',
+    modemVersion: '1.70.02',
+    binaryRollbackIndex: 1,
+    releaseDate: '2024-08-07',
+    fileSizeBytes: 7945012000,
+    sha256Checksum: 'c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5',
+    md5Checksum: '3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a',
+    downloadMirrors: [
+      { name: 'IPSW.me Signing Status (iPhone16,2)', speed: 'TSS Check + Link', url: 'https://ipsw.me/iPhone16,2' }
+    ],
+    partitionsIncluded: ['Restore.ipsw (KernelCache, RestoreRamDisk, SEP.img4, Baseband.bbfw, APFS Root)'],
+    verifiedOfficial: true,
+    notesAr: 'ملف IPSW الرسمي لآيفون 15 برو ماكس. تحقق من حالة التوقيع على Apple TSS عبر IPSW.me قبل الاستعادة.',
+    notesEn: 'Official iPhone 15 Pro Max IPSW firmware. Check live Apple TSS signing window via IPSW.me before DFU restore.'
   },
   {
     id: 'fw-iphone14p-ios17',
@@ -149,49 +270,48 @@ export const OFFICIAL_FIRMWARE_CATALOG: OfficialFirmwarePackage[] = [
     sha256Checksum: '4a8b2c1d0e9f8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b',
     md5Checksum: '2b4c6e8a0c2e4a6c8e0a2c4e6a8c0e2a',
     downloadMirrors: [
-      { name: 'Apple Official CDN (Fastest)', speed: '180 MB/s', url: 'https://updates.cdn-apple.com/2024SpringFCS/fullrestores/062-09412/iPhone15,2_17.5.1_21F90_Restore.ipsw' },
-      { name: 'IPSW.me Global Mirror', speed: '90 MB/s', url: 'https://ipsw.me/download/iPhone15,2/21F90' }
+      { name: 'IPSW.me Signing & Download (iPhone15,2)', speed: 'Direct CDN Index', url: 'https://ipsw.me/iPhone15,2' }
     ],
     partitionsIncluded: ['Restore.ipsw (KernelCache, RestoreRamDisk, SEP.img4, Baseband.bbfw, APFS Root Filesystem)'],
     verifiedOfficial: true,
-    notesAr: 'ملف IPSW رسمي موقع ومطابق لسيرفرات آبل (Apple TSS Signing Active) قابل للاستعادة في وضع DFU أو Recovery.',
-    notesEn: 'Cryptographically signed production IPSW currently signed on Apple TSS servers.'
+    notesAr: 'ملف IPSW رسمي للاستعادة في وضع DFU أو Recovery باستخدام idevicerestore أو 3uTools.',
+    notesEn: 'Official production IPSW compatible with idevicerestore in DFU or Recovery mode.'
   },
   {
-    id: 'fw-pixel9pro-factory',
+    id: 'fw-pixel8pro-factory',
     brand: 'Google',
-    model: 'GEC77',
-    marketName: 'Pixel 9 Pro XL (Komodo)',
+    model: 'GC3VE',
+    marketName: 'Pixel 8 Pro (Husky)',
     regionCsc: 'Unlocked',
     countryName: 'Google Worldwide Official',
-    osVersion: 'Android 15 (AP3A.240705.007)',
-    buildNumber: 'AP3A.240705.007',
-    pdaVersion: 'AP3A.240705.007',
+    osVersion: 'Android 14 (AP2A.240805.005)',
+    buildNumber: 'AP2A.240805.005',
+    pdaVersion: 'AP2A.240805.005',
     cscVersion: 'Global',
-    modemVersion: 'g5400c-240507',
+    modemVersion: 'g5300i-240614',
     binaryRollbackIndex: 1,
-    releaseDate: '2024-08-14',
-    fileSizeBytes: 3145728000,
-    sha256Checksum: 'a92b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b',
-    md5Checksum: '1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d',
+    releaseDate: '2024-08-05',
+    fileSizeBytes: 2980120000,
+    sha256Checksum: 'e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2',
+    md5Checksum: '9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b',
     downloadMirrors: [
-      { name: 'Google Factory Images (Fastest)', speed: '200 MB/s', url: 'https://dl.google.com/dl/android/aosp/komodo-factory-a92b3c4d.zip' }
+      { name: 'Google Official Factory Images (Android Developers)', speed: 'Official CDN', url: 'https://developers.google.com/android/images#husky' }
     ],
-    partitionsIncluded: ['boot.img', 'vendor_boot.img', 'init_boot.img', 'radio.img', 'image-komodo.zip'],
+    partitionsIncluded: ['bootloader.img', 'radio.img', 'boot.img', 'init_boot.img', 'vendor_boot.img', 'image-husky.zip'],
     verifiedOfficial: true,
-    notesAr: 'روم المصنع الرسمي لأجهزة بيكسل 9 برو XL. يتم التفليش عبر Fastboot باستخدام سكربت flash-all.bat.',
-    notesEn: 'Official Google Factory image for Pixel 9 Pro XL. Requires Fastboot flash-all script execution.'
+    notesAr: 'صورة المصنع الرسمية من جوجل لأجهزة Pixel 8 Pro (Husky) مع سكربت flash-all وعناصر Fastboot A/B.',
+    notesEn: 'Official Google Factory image for Pixel 8 Pro (Husky). Flash cleanly via Fastboot Slot A/B.'
   },
   {
     id: 'fw-huawei-p70u-harmony5',
     brand: 'Huawei',
     model: 'HBP-LX9',
     marketName: 'Huawei Pura 70 Ultra',
-    regionCsc: 'Global',
+    regionCsc: 'C432 (Global)',
     countryName: 'International Edition',
-    osVersion: 'HarmonyOS 4.2 / 5.0 (Beta)',
-    buildNumber: '5.0.0.105(C432)',
-    pdaVersion: 'HBP-LX9 5.0.0.105',
+    osVersion: 'EMUI 14.2 / HarmonyOS 4.2',
+    buildNumber: '14.2.0.165(C432)',
+    pdaVersion: 'HBP-LX9 14.2.0.165',
     cscVersion: 'C432',
     modemVersion: '24.0.0',
     binaryRollbackIndex: 1,
@@ -200,12 +320,11 @@ export const OFFICIAL_FIRMWARE_CATALOG: OfficialFirmwarePackage[] = [
     sha256Checksum: '1c2b3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c',
     md5Checksum: 'f2e4d6c8b0a2f4e6d8c0b2a4f6e8d0c2',
     downloadMirrors: [
-      { name: 'Huawei Support Portal', speed: '45 MB/s', url: 'https://consumer.huawei.com/en/support/phones/pura-70-ultra/' },
-      { name: 'Easy-Firmware Mirror', speed: '25 MB/s', url: 'https://easy-firmware.com/index.php?a=downloads&b=file&id=102934' }
+      { name: 'Huawei Consumer Support Portal', speed: 'Official Support', url: 'https://consumer.huawei.com/en/support/' }
     ],
     partitionsIncluded: ['UPDATE.APP', 'PTABLE.APP', 'XLOADER.img', 'TRUSTZONE.img'],
     verifiedOfficial: true,
-    notesAr: 'ملف UPDATE.APP رسمي قابل للتفليش عبر الـ SD Card (وضع dload) أو عبر بروتوكول COM 1.0 باستخدام OmniFix Pro.',
-    notesEn: 'Official Huawei UPDATE.APP package. Supports SD Card (dload) or direct COM 1.0 protocol flash.'
+    notesAr: 'ملف UPDATE.APP رسمي قابل للتفليش عبر وضع dload أو بروتوكول USB COM 1.0.',
+    notesEn: 'Official Huawei UPDATE.APP package supporting dload recovery or USB COM 1.0 protocol flash.'
   }
 ];

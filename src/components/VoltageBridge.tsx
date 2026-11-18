@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Zap, 
   Cpu, 
@@ -355,6 +355,138 @@ export const SOC_DATABASE: SocSeriesProfile[] = [
         collapsedSymptomEn: 'Black screen with haptics active, video decoding crash'
       }
     ]
+  },
+  {
+    id: 'apple-a17-a19',
+    name: 'Apple A16 / A17 / A19 Pro (iPhone Logic)',
+    brand: 'Apple Silicon',
+    architecture: '3nm N3B / N3E Performance + Efficiency + Secure Enclave',
+    primaryPmic: '338S00946 / SN2611 (Tigris / Hydra)',
+    secondaryPmic: '338S00843 Display / Audio & MagSafe PMU',
+    rails: [
+      {
+        id: 'app-vdd-main',
+        code: 'PP_VDD_MAIN (3.8V)',
+        category: 'MAIN_SYSTEM',
+        nominalVoltage: 3.80,
+        tolerancePercent: 10,
+        diodeModeDrop: 410,
+        regulatorSourceAr: 'منظم الشحن الرئيسي Hydra / Tigris MOSFET إلى البوردة المزدوجة',
+        regulatorSourceEn: 'Main Charger MOSFET & Interposer Dual-Layer Power Bus',
+        descriptionAr: 'خط الطاقة الرئيسي الواصل لمعظم آيسيات الآيفون قبل الضغط على زر الباور',
+        descriptionEn: 'Primary always-on system bus across iPhone upper & lower stacked boards',
+        collapsedSymptomAr: 'شورت صريح قبل الباور (Dead Short)؛ غالباً بسبب مكثف SMD حول الشبكة أو الإضاءة',
+        collapsedSymptomEn: 'Immediate full short before power press; typically RF/Backlight bypass MLCC'
+      },
+      {
+        id: 'app-vdd-boost',
+        code: 'PP_VDD_BOOST (3.85V)',
+        category: 'MAIN_SYSTEM',
+        nominalVoltage: 3.85,
+        tolerancePercent: 8,
+        diodeModeDrop: 445,
+        regulatorSourceAr: 'مضاعف الجهد Buck/Boost المدمج داخل الـ PMU الرئيسي',
+        regulatorSourceEn: 'Integrated Buck-Boost Converter inside Apple Main PMU',
+        descriptionAr: 'خط التغذية الثانوي لآيسي الصوت والـ NAND والواي فاي',
+        descriptionEn: 'Boosted secondary main bus powering NAND NVMe, Audio & Wi-Fi',
+        collapsedSymptomAr: 'سحب تيار يتخطى 200mA عند ضغط الباور وانهيار الإقلاع (Error 4013)',
+        collapsedSymptomEn: 'High draw >200mA upon boot trigger or iTunes Error 4013'
+      },
+      {
+        id: 'app-pp-cpu-pcore',
+        code: 'PP_CPU_PCORE (Buck 0)',
+        category: 'CPU',
+        nominalVoltage: 0.78,
+        tolerancePercent: 4,
+        diodeModeDrop: 120,
+        regulatorSourceAr: '338S00946 Multi-Phase High-Current Buck 0/1/2',
+        regulatorSourceEn: '338S00946 Multi-Phase High-Current Buck 0/1/2',
+        descriptionAr: 'جهد تشغيل أنوية الأداء لمعالج Apple A-Series (ممانعة منخفضة طبيعية ~110mV)',
+        descriptionEn: 'Performance core supply rail for Apple Silicon (normally low ~110mV diode drop)',
+        collapsedSymptomAr: 'توقف السحب عند 70mA وثبات على DFU Mode بسبب تلف الباك أو فك لحام الطبقات',
+        collapsedSymptomEn: 'Stuck at 70mA in permanent DFU Mode due to interposer crack or shorted buck'
+      },
+      {
+        id: 'app-pp-1v8-io',
+        code: 'PP1V8_S2 / IO_ALWAYS',
+        category: 'MAIN_SYSTEM',
+        nominalVoltage: 1.80,
+        tolerancePercent: 2,
+        diodeModeDrop: 465,
+        regulatorSourceAr: 'Main PMU LDO S2 (1.80V Logic)',
+        regulatorSourceEn: 'Main PMU LDO S2 (1.80V Logic)',
+        descriptionAr: 'خط التغذية المنطقية 1.8V للمستشعرات و Face ID و I2C',
+        descriptionEn: 'Universal 1.8V logic rail for Face ID, TrueDepth, and I2C buses',
+        collapsedSymptomAr: 'فصل 3 دقائق (Panic-Full i2c missing) أو توقف Face ID',
+        collapsedSymptomEn: '3-minute Panic-Full restart loop or TrueDepth Face ID offline'
+      },
+      {
+        id: 'app-pp-nand-2v6',
+        code: 'PP2V62_NAND_VCC',
+        category: 'RAM_STORAGE',
+        nominalVoltage: 2.62,
+        tolerancePercent: 3,
+        diodeModeDrop: 415,
+        regulatorSourceAr: '338S00946 Dedicated NVMe NAND LDO',
+        regulatorSourceEn: '338S00946 Dedicated NVMe NAND LDO',
+        descriptionAr: 'تغذية الذاكرة الداخلية NVMe NAND في الآيفون',
+        descriptionEn: 'Core flash memory power supply for iPhone NVMe NAND',
+        collapsedSymptomAr: 'خطأ استعادة 9 / 4013 / 4014 أو إعادة تشغيل على شعار أبل',
+        collapsedSymptomEn: 'Restore Error 9 / 4013 / 4014 or endless Apple logo bootloop'
+      }
+    ]
+  },
+  {
+    id: 'unisoc-t612',
+    name: 'Unisoc Tiger T612 / T606 (SPD)',
+    brand: 'Unisoc / Spreadtrum',
+    architecture: '12nm Octa-Core Cortex-A75 + A55',
+    primaryPmic: 'SC2730G / UMP9620',
+    secondaryPmic: 'SGM41513 / ETA6963 Charger IC',
+    rails: [
+      {
+        id: 'spd-vsys-3v8',
+        code: 'VSYS_VBAT_3V8',
+        category: 'MAIN_SYSTEM',
+        nominalVoltage: 3.80,
+        tolerancePercent: 10,
+        diodeModeDrop: 470,
+        regulatorSourceAr: 'منظم الشحن SGM41513 / SC2730G VBAT',
+        regulatorSourceEn: 'SGM41513 / SC2730G System Voltage Distribution',
+        descriptionAr: 'خط الفولت الرئيسي لأجهزة Realme C53 / Tecno / Infinix Unisoc',
+        descriptionEn: 'Primary power bus for Unisoc Tiger devices (Realme C-series, Tecno, Itel)',
+        collapsedSymptomAr: 'فصل كامل أو سخونة آيسي الشحن SGM41513 عند توصيل الشاحن',
+        collapsedSymptomEn: 'Dead boot or overheating SGM41513 charger IC on USB insertion'
+      },
+      {
+        id: 'spd-vdd-cpu-big',
+        code: 'VDD_CPU_BIG_0V85',
+        category: 'CPU',
+        nominalVoltage: 0.85,
+        tolerancePercent: 4,
+        diodeModeDrop: 205,
+        regulatorSourceAr: 'SC2730G Buck 1 (Dual Phase)',
+        regulatorSourceEn: 'SC2730G Buck 1 (Dual Phase)',
+        descriptionAr: 'جهد نواة Cortex-A75 في معالجات Unisoc Tiger',
+        descriptionEn: 'Core voltage for Cortex-A75 performance cluster on Unisoc Tiger',
+        collapsedSymptomAr: 'بقاء الجهاز في وضع SPRD U2S Diag Port ورفض الإقلاع',
+        collapsedSymptomEn: 'Device remains stuck in SPRD U2S Diag Port during boot attempt'
+      },
+      {
+        id: 'spd-vio-1v8',
+        code: 'VDD_1V8_GEN',
+        category: 'MAIN_SYSTEM',
+        nominalVoltage: 1.80,
+        tolerancePercent: 3,
+        diodeModeDrop: 455,
+        regulatorSourceAr: 'SC2730G LDO VIO18',
+        regulatorSourceEn: 'SC2730G LDO VIO18',
+        descriptionAr: 'خط 1.8V العام المغذي لذاكرة eMMC/UFS ومستشعر اللمس',
+        descriptionEn: 'General 1.8V rail supplying eMMC/UFS storage and touch controller',
+        collapsedSymptomAr: 'فشل كتابة ملفات PAC عند مرحلة FDL2',
+        collapsedSymptomEn: 'PAC firmware flashing aborts at FDL2 storage stage'
+      }
+    ]
   }
 ];
 
@@ -364,14 +496,37 @@ export const VoltageBridge: React.FC<VoltageBridgeProps> = ({
 }) => {
   const isAr = lang === 'ar';
   
-  // Try matching device chipset or default to Snapdragon 8 Gen 3
-  const [selectedSocId, setSelectedSocId] = useState<string>('snapdragon-8gen3');
+  const resolveSocForChipset = (chipset: ConnectedDevice['chipset']) => {
+    switch (chipset) {
+      case 'apple_ios':
+        return 'apple-a17-a19';
+      case 'hisilicon_kirin':
+        return 'kirin-9000';
+      case 'mediatek':
+        return 'dimensity-9300';
+      case 'samsung_exynos':
+      case 'google_tensor':
+        return 'exynos-2400';
+      case 'unisoc_spd':
+        return 'unisoc-t612';
+      default:
+        return 'snapdragon-8gen3';
+    }
+  };
+
+  const [selectedSocId, setSelectedSocId] = useState<string>(() => resolveSocForChipset(device.chipset));
   const [activeCategory, setActiveCategory] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
   
   // Tested / Simulated probes state map: { railId: measuredVoltage }
   const [testedVoltages, setTestedVoltages] = useState<Record<string, number>>({});
   const [activeProbeRailId, setActiveProbeRailId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setSelectedSocId(resolveSocForChipset(device.chipset));
+    setTestedVoltages({});
+    setActiveProbeRailId(null);
+  }, [device.id, device.chipset]);
 
   const selectedSoc = SOC_DATABASE.find(s => s.id === selectedSocId) || SOC_DATABASE[0];
 
@@ -491,7 +646,7 @@ export const VoltageBridge: React.FC<VoltageBridgeProps> = ({
               >
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                    <span className={`w-2 h-2 rounded-full ${isSelected ? 'bg-amber-400 animate-ping' : 'bg-slate-600'}`} />
+                    <span className={`w-2 h-2 rounded-full ${isSelected ? 'bg-amber-400' : 'bg-slate-600'}`} />
                     {soc.name}
                   </span>
                 </div>
@@ -606,13 +761,13 @@ export const VoltageBridge: React.FC<VoltageBridgeProps> = ({
                       </td>
 
                       {/* Nominal Voltage */}
-                      <td className="p-3 font-mono font-bold text-cyan-300 text-sm whitespace-nowrap">
+                      <td className="p-3 font-mono tabular-nums font-bold text-cyan-300 text-sm whitespace-nowrap">
                         {rail.nominalVoltage.toFixed(2)}V DC
                         <span className="text-[10px] text-slate-500 block">±{rail.tolerancePercent}%</span>
                       </td>
 
                       {/* Diode Drop */}
-                      <td className="p-3 font-mono text-emerald-400 whitespace-nowrap">
+                      <td className="p-3 font-mono tabular-nums text-emerald-400 whitespace-nowrap">
                         {rail.diodeModeDrop} mV
                         <span className="text-[10px] text-slate-500 block">{isAr ? 'وضع الدايود' : 'Diode Drop'}</span>
                       </td>

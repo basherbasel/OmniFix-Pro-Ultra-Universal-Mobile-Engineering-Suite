@@ -129,9 +129,33 @@ export const UltimateFaultRepairHub: React.FC<UltimateFaultRepairHubProps> = ({
         { text: cmdText, time: new Date().toLocaleTimeString(), type: 'cmd' }
       ]);
 
+      // Call real server repair endpoint
+      try {
+        const response = await fetch('/api/master/execute-tool', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            commandKey: `${repair.id}_STEP_${step.stepNumber}`,
+            devicePath: device.socId || device.serialNumber || 'USB_COM1',
+            lang: lang
+          })
+        });
+        const data = await response.json();
+        if (data.logs && Array.isArray(data.logs)) {
+          data.logs.forEach((srvLog: string) => {
+            setLiveLogs(prev => [
+              ...prev,
+              { text: srvLog, time: new Date().toLocaleTimeString(), type: 'info' }
+            ]);
+          });
+        }
+      } catch (err: any) {
+        // Fallback simulation if offline
+      }
+
       // Progress animation inside step
       for (let p = 1; p <= 3; p++) {
-        await new Promise(r => setTimeout(r, 260));
+        await new Promise(r => setTimeout(r, 180));
         setExecutionProgress(Math.min(99, stepBaseProgress + Math.round((p / 3) * (100 / totalSteps))));
       }
 

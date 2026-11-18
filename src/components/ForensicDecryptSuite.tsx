@@ -354,7 +354,7 @@ export const ForensicDecryptSuite: React.FC<ForensicDecryptSuiteProps> = ({
               {/* Source Target */}
               <div className="space-y-1.5">
                 <label className="text-[11px] text-slate-400">{isAr ? 'مصدر الملفات والبيانات' : 'Forensic Data Source'}</label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <button
                     onClick={() => setRecoveryTarget('deleted')}
                     className={`py-2 px-3 text-xs font-semibold rounded-lg border text-center transition-colors ${
@@ -700,7 +700,7 @@ export const ForensicDecryptSuite: React.FC<ForensicDecryptSuiteProps> = ({
                   {isAr ? 'محاكي فك وكسر رموز كلمات المرور' : 'Secure Enclave Pin Bruteforcer Console'}
                 </h4>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Digital Display 1 */}
                   <div className="p-4 rounded-lg bg-black/80 border border-slate-850 flex flex-col items-center justify-center text-center">
                     <span className="text-[10px] text-slate-500 font-mono font-bold uppercase tracking-wider">{isAr ? 'الرمز الذي يتم اختباره حالياً' : 'TESTING PASSCODE'}</span>

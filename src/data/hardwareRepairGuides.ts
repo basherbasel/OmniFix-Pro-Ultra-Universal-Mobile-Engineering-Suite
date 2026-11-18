@@ -609,6 +609,333 @@ export const HARDWARE_REPAIR_GUIDES: HardwareRepairGuide[] = [
       thermalCameraCluesAr: 'الكاميرا الحرارية ستكشف نقطة التبخر السريعة فور انبعاث الحرارة من المكثف التالف.',
       thermalCameraCluesEn: 'Thermal imaging camera immediately highlights microscopic shorted MLCC capacitors.'
     }
+  },
+  {
+    id: 'audio-codec-smart-pa-guide',
+    titleAr: 'إصلاح أعطال الصوت والمايك وآيسي المضخم الذكي (Audio Codec WCD9380 / Smart PA AW88264)',
+    titleEn: 'Audio Codec, I2S Bus & Dual Smart PA Speaker Amplifier Repair Guide',
+    category: 'AUDIO_CODEC',
+    symptomEn: 'No ringtone or earpiece sound, disabled speaker toggle during calls, or microphone failure on recordings.',
+    symptomAr: 'انعدام صوت الجرس أو السماعة الداخلية، تجمد أيقونة السبيكر أثناء المكالمات، أو توقف المايك عن التسجيل.',
+    affectedComponents: ['WCD9380 / 338S00537 Codec', 'AW88264 / TAS2563 Smart PA', 'I2S_BCK / LRCK Lines', 'SPK_OUT_P / N'],
+    boardModel: 'Universal Audio Codec & Boost Smart PA Sub-Circuit',
+    testPoints: [
+      {
+        id: 'tp-i2s-bck-audio',
+        name: 'TP_I2S_BCK_CLK',
+        railName: 'I2S_AUDIO_CODEC',
+        location: 'Series Resistor R3201 between SoC and Audio Codec',
+        diodeModeHealthy: '0.430V ~ 0.560V',
+        diodeModeToleranceMin: 0.390,
+        diodeModeToleranceMax: 0.600,
+        voltageWorking: '1.80V Digital Audio Clock (1.53MHz - 3.07MHz)',
+        voltageStandby: '0.00V',
+        resistanceToGnd: '> 120 kΩ',
+        faultSymptomIfShort: 'System freezes on ringtone playback, disabled call speaker icon.',
+        faultSymptomIfOpen: 'No speaker or earpiece audio despite valid speaker coil resistance (6-8Ω).',
+        diagramCoord: { x: 38, y: 42 }
+      },
+      {
+        id: 'tp-spk-boost-8v5',
+        name: 'TP_SMART_PA_PVDD_8V5',
+        railName: 'VDD_SMART_PA_BOOST',
+        location: 'Boost Output Capacitor C3218 beside Smart PA IC',
+        diodeModeHealthy: '0.410V ~ 0.520V',
+        diodeModeToleranceMin: 0.360,
+        diodeModeToleranceMax: 0.580,
+        voltageWorking: '8.50V Class-D Boosted Supply (during media)',
+        voltageStandby: '3.80V (VPH_PWR pass-through)',
+        resistanceToGnd: '> 95 kΩ',
+        faultSymptomIfShort: 'Full VDD_MAIN short circuit; Smart PA overheats immediately on boot.',
+        faultSymptomIfOpen: 'Distorted/quiet speaker crackling at >40% volume.',
+        diagramCoord: { x: 64, y: 58 }
+      }
+    ],
+    boardChips: [
+      {
+        id: 'chip-audio-codec-wcd',
+        designator: 'U3200',
+        partNumber: 'WCD9380 / 338S00537',
+        roleAr: 'آيسي الصوت الرئيسي ومعالج الإشارات الرقمية I2S / PDM',
+        roleEn: 'Main Audio Codec & I2S / PDM Digital Transceiver',
+        category: 'AUDIO_CODEC',
+        x: 34,
+        y: 28,
+        width: 17,
+        height: 17,
+        color: '#06b6d4',
+        pinCount: 72,
+        packageType: 'WLBGA-72',
+        commonDefects: ['Broken I2S pads under Codec (iPhone 7/12/13 disease)', 'Missing 1.8V VREG_IO pull-up', 'Dead MICBIAS 2.8V supply']
+      },
+      {
+        id: 'chip-smart-pa-aw',
+        designator: 'U3210',
+        partNumber: 'AW88264CSR / TAS2563',
+        roleAr: 'مضخم السبيكر الذكي مع رافع جهد داخلي Class-D 8.5V',
+        roleEn: 'Smart Class-D Speaker Amplifier with Integrated Boost',
+        category: 'AUDIO_CODEC',
+        x: 60,
+        y: 44,
+        width: 15,
+        height: 15,
+        color: '#f59e0b',
+        pinCount: 36,
+        packageType: 'WLCSP-36',
+        commonDefects: ['Shorted internal Class-D boost capacitor on PVDD', 'Cracked solder balls from drop impact']
+      }
+    ],
+    microSolderingSteps: [
+      {
+        stepNumber: 1,
+        titleAr: 'فحص ممانعة خطوط I2S وسحبة السبيكر قبل الفك (No-Load Impedance Test)',
+        titleEn: 'Verify Speaker Coil (6–8Ω) and Codec I2S Diode Drops Prior to Desoldering',
+        hotAirTemp: 'N/A (Cold Check)',
+        airFlow: '0%',
+        solderingIronTemp: '350°C',
+        solderPasteAlloy: 'Sn63/Pb37 (183°C) or SAC305',
+        stencilType: 'Universal 0.35mm / Model WLBGA Stencil',
+        procedureAr: 'افصل السماعة وتأكد أن مقاومتها 6-8 أوم، ثم افحص ملفات الخرج SPK_P/SPK_N بوضع الدايود للتأكد من عدم انقطاع الخط إلى المعالج.',
+        procedureEn: 'Measure speaker coil impedance (6–8Ω), then diode-test SPK_P/SPK_N and I2S_BCK/LRCK lines before applying heat.',
+        safetyWarningAr: 'تحقق من وجود خطوط المايك القريبة قبل استخدام التسخين العالي لأن المايك يتلف بسرعة بالحرارة والغسيل.',
+        safetyWarningEn: 'Shield nearby MEMS microphones with Kapton tape + metal shield; flux or hot air permanently ruins MEMS membranes.'
+      },
+      {
+        stepNumber: 2,
+        titleAr: 'رفع وإعادة شبلنة آيسي الصوت وتقوية الأرجل المعزولة (Pad Micro-Jumper)',
+        titleEn: 'Desolder Audio Codec, Restore Lifted I2S Pads, and Reball WLCSP',
+        hotAirTemp: '340°C - 355°C',
+        airFlow: '35%',
+        solderingIronTemp: '350°C',
+        solderPasteAlloy: 'Sn63/Pb37 Eutectic (183°C)',
+        stencilType: '0.12mm Precision BGA Audio Stencil',
+        procedureAr: 'أزل الآيسي بحرارة 350°C وتأكد من ثبات باد خطوط I2S تحت الميكروسكوب؛ قم بعمل بريدج بسلك 0.01mm وطلائه بالـ UV ثم ثبت الآيسي المشبلن.',
+        procedureEn: 'Remove Codec at 350°C, inspect outer-row I2S pads for micro-cracks, reinforce lifted pads with 0.01mm wire + UV mask, and reflow reballed IC.',
+        safetyWarningAr: 'لا تسخن فوق 360°C قرب معالج الصوت أو المودم المحمي بالإيبوكسي لتجنب انتفاخ الكرات المجاورة.',
+        safetyWarningEn: 'Keep hot air below 360°C near underfilled SoC/Baseband packages to prevent solder ball extrusion.'
+      }
+    ],
+    shortIsolationGuide: {
+      safeCurrentInjectionVoltage: '1.80V on I2S/Codec IO / 3.80V on VPH_PWR Smart PA',
+      maxCurrentLimit: '2.00 Amperes',
+      rosinFluxMethodAr: 'إذا كان السحب يظهر فقط عند تشغيل صوت الرنين، بخر الراتنج على مكثفات PVDD حول مضخم الصوت AW88264.',
+      rosinFluxMethodEn: 'If current spikes only during ringtone playback, coat PVDD boost capacitors around Smart PA IC with rosin.',
+      thermalCameraCluesAr: 'يظهر مضخم الصوت Smart PA بنقطة حمراء فورية خلال ثانية واحدة من تفعيل الصوت.',
+      thermalCameraCluesEn: 'Thermal camera pinpoints shorted Smart PA boost cap within 1 second of audio activation.'
+    }
+  },
+  {
+    id: 'ufs-cpu-pop-reballing-guide',
+    titleAr: 'شبلنة المعالج والرام PoP وفحص ذاكرة UFS 3.1 / 4.0 (CPU / RAM / NAND)',
+    titleEn: 'Dual-Layer CPU/LPDDR5X PoP Reballing & UFS Storage Rail Repair',
+    category: 'UFS_RAM_CPU',
+    symptomEn: 'Device stuck in Qualcomm 9008 / MTK BROM with low current draw (50-90mA), or instant bootloop due to cracked PoP RAM solder joints.',
+    symptomAr: 'الجهاز يدخل وضع 9008 / BROM بسحب تيار منخفض (50-90mA) أو يعيد التشغيل بسبب كسر لحامات الرام PoP أو انقطاع خط تغذية UFS.',
+    affectedComponents: ['Snapdragon / Dimensity SoC', 'LPDDR5X PoP Upper RAM', 'UFS 4.0 / NVMe NAND', 'VCC_UFS 2.5V / VCCQ 1.2V'],
+    boardModel: 'Flagship Double-Stack PoP CPU + UFS 4.0 Architecture',
+    testPoints: [
+      {
+        id: 'tp-ufs-vcc-2v5',
+        name: 'TP_UFS_VCC_2V5',
+        railName: 'NAND_VCC_2V6',
+        location: 'Decoupling Capacitor C4502 next to UFS IC',
+        diodeModeHealthy: '0.390V ~ 0.490V',
+        diodeModeToleranceMin: 0.350,
+        diodeModeToleranceMax: 0.540,
+        voltageWorking: '2.50V - 2.95V Flash Array Supply',
+        voltageStandby: '0.00V',
+        resistanceToGnd: '> 85 kΩ',
+        faultSymptomIfShort: 'Immediate PMIC shutdown; stuck in EDL 9008 / BROM 65mA.',
+        faultSymptomIfOpen: 'Storage read error / Hang on OEM logo / UFS Init Failed.',
+        diagramCoord: { x: 30, y: 55 }
+      },
+      {
+        id: 'tp-ram-vddq-1v1',
+        name: 'TP_LPDDR5X_VDD2_1V1',
+        railName: 'VDD_LPDDR5X_1V1',
+        location: 'Coil L2204 feeding Upper PoP RAM Layer',
+        diodeModeHealthy: '0.320V ~ 0.430V',
+        diodeModeToleranceMin: 0.280,
+        diodeModeToleranceMax: 0.480,
+        voltageWorking: '1.05V - 1.12V',
+        voltageStandby: '0.00V',
+        resistanceToGnd: '> 45 kΩ',
+        faultSymptomIfShort: 'DRAM init panic; high current spike (400mA -> 0mA).',
+        faultSymptomIfOpen: 'Stuck in 9008 port without Sahara/Firehose memory table response.',
+        diagramCoord: { x: 65, y: 38 }
+      }
+    ],
+    boardChips: [
+      {
+        id: 'chip-cpu-pop-main',
+        designator: 'U2000',
+        partNumber: 'SM8650 / MT6989 / A17 Pro',
+        roleAr: 'المعالج الرئيسي والرام المدمجة PoP مع حماية إيبوكسي أسود',
+        roleEn: 'Main Application Processor & Stacked PoP LPDDR5X RAM',
+        category: 'UFS_RAM_CPU',
+        x: 52,
+        y: 26,
+        width: 24,
+        height: 24,
+        color: '#8b5cf6',
+        pinCount: 1180,
+        packageType: 'PoP-FCBGA',
+        commonDefects: ['Cracked corner RAM balls from drop shock', 'Thermal stress lifting TX/RX UFS differential lanes']
+      },
+      {
+        id: 'chip-ufs-nand-40',
+        designator: 'U4500',
+        partNumber: 'KLUDG4UHDC / NVMe NAND',
+        roleAr: 'شريحة التخزين الداخلية UFS 4.0 المشفرة بمفاتيح المعالج RPMB',
+        roleEn: 'UFS 4.0 / NVMe Storage IC Cryptographically Paired via RPMB',
+        category: 'UFS_RAM_CPU',
+        x: 20,
+        y: 45,
+        width: 18,
+        height: 18,
+        color: '#10b981',
+        pinCount: 153,
+        packageType: 'FBGA-153',
+        commonDefects: ['Wear-out EOL block lock (>90% lifetime)', 'Shorted VCC 2.5V internal NAND die']
+      }
+    ],
+    microSolderingSteps: [
+      {
+        stepNumber: 1,
+        titleAr: 'إزالة الإيبوكسي الأسود المحيط بحواف المعالج والرام (Underfill Edge Scraping)',
+        titleEn: 'Safe Black Underfill Edge Removal Around PoP CPU Perimeter',
+        hotAirTemp: '240°C - 260°C',
+        airFlow: '35%',
+        solderingIronTemp: '320°C',
+        solderPasteAlloy: 'N/A (Underfill Prep)',
+        stencilType: 'Blade #11 / Titanium Hook Scraper',
+        procedureAr: 'سخن حواف الإيبوكسي على 250°C ومرر شفرة ناعمة بزاوية موازية للبوردة دون خدش الطبقة الخضراء حول U2000 و U4500.',
+        procedureEn: 'Soften perimeter black epoxy at 250°C and carefully clear edge resin without scratching solder mask traces.',
+        safetyWarningAr: 'إياك سحب الإيبوكسي بالقوة أو استخدام حرارة تتجاوز 270°C في مرحلة التنظيف حتى لا تنخلع المكثفات 01005 المحيطة.',
+        safetyWarningEn: 'Never pry underfill cold or exceed 270°C during edge cleanup to avoid shearing 01005 bypass capacitors.'
+      },
+      {
+        stepNumber: 2,
+        titleAr: 'فك الرام العلوية ثم المعالج، التنظيف بالجديلة، والشبلنة المزدوجة 3D BGA',
+        titleEn: 'Desolder Upper PoP RAM & SoC, Wick Pads Flat, and Reball with 3D Stencil',
+        hotAirTemp: '360°C - 375°C (861DW)',
+        airFlow: '45%',
+        solderingIronTemp: '355°C',
+        solderPasteAlloy: 'Sn63/Pb37 Leaded 183°C (or 158°C Medium-Temp for Upper RAM)',
+        stencilType: 'Model-Specific 3D Stepped PoP + CPU Stencil',
+        procedureAr: 'ارفع الرام العلوية أولاً بـ 355°C ثم المعالج بـ 370°C، نظف البوردة بجديلة نحاس (Wick) وخليط فلوكس، شبلن المعالج أولاً وثبته ثم ثبت الرام العلوية بسولدر 158°C.',
+        procedureEn: 'Lift upper RAM at 355°C then CPU at 370°C; flatten pads using solder wick, reball & seat CPU at 183°C alloy, then mount upper RAM with 158°C paste.',
+        safetyWarningAr: 'لا تستبدل ذاكرة UFS أو المعالج بشكل منفصل لأن مفاتيح التشفير RPMB/FBE مقترنة ببعضها ولا يمكن الإقلاع بدون نسختها الأصلية.',
+        safetyWarningEn: 'CPU and UFS/NAND are hardware-paired via RPMB keys; always migrate both together if swapping motherboards.'
+      }
+    ],
+    shortIsolationGuide: {
+      safeCurrentInjectionVoltage: '0.80V MAX on CPU/RAM Rails / 1.80V MAX on VCCQ',
+      maxCurrentLimit: '2.50 Amperes',
+      rosinFluxMethodAr: 'مسارات الرام والـ UFS بالغة الحساسية (أقل من 1.2V): احذر تماماً حقن 3.8V أو 4.2V على هذه الخطوط وإلا ستحرق المعالج فوراً!',
+      rosinFluxMethodEn: 'CRITICAL: Never inject >1.1V on LPDDR5X or CPU buck lines! Set PSU strictly to 0.80V / 2.5A with rosin.',
+      thermalCameraCluesAr: 'عند حقن 0.80V، يسخن المكثف التالف أو زاوية المعالج المصابة بنقطة ضيقة واضحة بدون إتلاف الأنوية.',
+      thermalCameraCluesEn: 'At safe 0.80V injection, shorted bypass cap or fractured corner ball glows distinctly without harming CPU silicon.'
+    }
+  },
+  {
+    id: 'water-damage-rosin-short-guide',
+    titleAr: 'عزل الشورت الصريح والتسريب بالراتنج والكاميرا الحرارية (Full & Partial Short Isolation)',
+    titleEn: 'Full & Partial Short-Circuit Isolation via Voltage Injection & Rosin Smoke',
+    category: 'SHORT_CIRCUIT',
+    symptomEn: 'Dead motherboard drawing 50mA–400mA standby leakage before power press, or instant 3.0A OCP trip on PSU.',
+    symptomAr: 'بوردة فاصلة باور وتسحب تسريب 50mA–400mA قبل الضغط على الباور، أو شورت صريح يفصل الباور سبلاي فور التوصيل.',
+    affectedComponents: ['MLCC Bypass Capacitors', 'VDD_MAIN / VPH_PWR Line', 'Buck Coils L1..L8', 'TVS / Zener Diodes'],
+    boardModel: 'Universal Primary & Secondary Rail Short Diagnosis',
+    testPoints: [
+      {
+        id: 'tp-short-vdd-main',
+        name: 'TP_VDD_MAIN_PRIMARY',
+        railName: 'VPH_PWR / VDD_MAIN',
+        location: 'Main Power Rail Feeding PMIC & RF Amplifiers',
+        diodeModeHealthy: '0.350V ~ 0.500V',
+        diodeModeToleranceMin: 0.320,
+        diodeModeToleranceMax: 0.560,
+        voltageWorking: '3.80V - 4.20V',
+        voltageStandby: '3.80V (Always Live with Battery)',
+        resistanceToGnd: '> 10 kΩ (Faulty if < 50 Ω)',
+        faultSymptomIfShort: 'Full short before power press; PSU enters Constant Current OCP.',
+        faultSymptomIfOpen: 'PMIC receives no battery power; 0.00A draw.',
+        diagramCoord: { x: 48, y: 45 }
+      },
+      {
+        id: 'tp-short-secondary-buck',
+        name: 'TP_BUCK_SECONDARY_1V8',
+        railName: 'VREG_VIO_1V8',
+        location: 'Secondary LDO / Buck Output Inductor',
+        diodeModeHealthy: '0.380V ~ 0.520V',
+        diodeModeToleranceMin: 0.340,
+        diodeModeToleranceMax: 0.580,
+        voltageWorking: '1.80V',
+        voltageStandby: '0.00V until Power Key pressed',
+        resistanceToGnd: '> 5 kΩ (Short if < 15 Ω)',
+        faultSymptomIfShort: '0mA standby until power button press, then spikes 150mA–350mA and collapses.',
+        faultSymptomIfOpen: 'Missing sensor / display / touch initialization.',
+        diagramCoord: { x: 68, y: 62 }
+      }
+    ],
+    boardChips: [
+      {
+        id: 'chip-short-mlcc-bank',
+        designator: 'C_BANK_MAIN',
+        partNumber: 'MLCC 10uF 0402 Array',
+        roleAr: 'مصفوفة مكثفات التنعيم على المسار الرئيسي (أكثر مسبب للشورت)',
+        roleEn: 'Primary Rail MLCC Decoupling Bank (Most Common Culprit)',
+        category: 'SHORT_CIRCUIT',
+        x: 42,
+        y: 35,
+        width: 16,
+        height: 16,
+        color: '#ef4444',
+        pinCount: 2,
+        packageType: 'SMD-0402/0201',
+        commonDefects: ['Flexural micro-crack causing internal dielectric short', 'Carbon bridge from water electrolysis']
+      }
+    ],
+    microSolderingSteps: [
+      {
+        stepNumber: 1,
+        titleAr: 'رفع ملف الحث (Inductor Split Method) لعزل جهة المرسل عن جهة المستقبل',
+        titleEn: 'Split-Rail Isolation via Inductor Lift (Source PMIC vs Load Side)',
+        hotAirTemp: '330°C - 345°C',
+        airFlow: '30%',
+        solderingIronTemp: '350°C',
+        solderPasteAlloy: 'Sn63/Pb37',
+        stencilType: 'Precision Tweezers',
+        procedureAr: 'إذا كان الشورت في مسار ثانوي بعد ملف، ارفع الملف واقس الممانعة على جانبيه لتحديد هل المشكلة داخل آيسي الباور أم في الدائرة المغذاة.',
+        procedureEn: 'For post-coil shorts, lift the series inductor and diode-check both pads to determine whether the PMIC or downstream load is shorted.',
+        safetyWarningAr: 'لا تقم بحقن الفولت على جهة المعالج قبل رفع الملف أو التأكد من المقاومة لتفادي تلف البوابة المنطقية.',
+        safetyWarningEn: 'Never inject voltage blindly into an unisolated secondary buck line above its rated nominal Vmax.'
+      },
+      {
+        stepNumber: 2,
+        titleAr: 'استخدام الراتنج وحقن الفولت المحدود وتغيير المكثف التالف بمكثف مطابق السعة',
+        titleEn: 'Rosin Vapor Short Pinpointing & Matching MLCC Capacitor Replacement',
+        hotAirTemp: '320°C',
+        airFlow: '25%',
+        solderingIronTemp: '345°C',
+        solderPasteAlloy: 'Sn63/Pb37',
+        stencilType: 'SMD Ceramic Tweezer',
+        procedureAr: 'بخر الراتنج حتى تتغطى المنطقة بطبقة بيضاء متجانسة، احقن الجهد الآمن (3.8V للخط الرئيسي أو 1.5V لخط 1.8V)، راقب أول نقطة يتبخر عنها الراتنج وانزع المكثف وعوضه فوراً.',
+        procedureEn: 'Coat area evenly with rosin vapor, inject safe rail voltage (3.8V main / 1.5V logic), remove the first capacitor to melt frost, and install replacement MLCC.',
+        safetyWarningAr: 'استعمل سلك حقن سميك (18AWG) وتأكد من ملامسة الأرضي GND جيداً لتفادي حرارة الأسلاك نفسها.',
+        safetyWarningEn: 'Use thick 18AWG Kelvin probe leads for >2A injection so test leads do not overheat instead of the shorted SMD part.'
+      }
+    ],
+    shortIsolationGuide: {
+      safeCurrentInjectionVoltage: '1.0V (CPU/LPDDR) | 1.5V (VIO 1.8V) | 3.8V (VDD_MAIN)',
+      maxCurrentLimit: '2.50A (Start at 1.5A, step to 2.5A if thermal spot faint)',
+      rosinFluxMethodAr: 'في التسريب الضعيف (< 100mA)، قد لا يتبخر الراتنج؛ استخدم الكاميرا الحرارية أو الكحول البارد IPA لملاحظة جفاف البقعة الساخنة.',
+      rosinFluxMethodEn: 'For faint <100mA leakage, rosin may not melt—use a thermal camera or 99% IPA evaporation trace.',
+      thermalCameraCluesAr: 'اضبط عدسة الكاميرا الحرارية على الماكرو (Macro Lens) وحدد وضع High-Contrast Ironbow لالتقاط فرق 0.5°C.',
+      thermalCameraCluesEn: 'Attach a Macro thermal lens in Ironbow palette to detect subtle 0.5°C leakage hotspots.'
+    }
   }
 ];
+
 

@@ -28,7 +28,7 @@ import {
   Download,
   FolderOpen
 } from 'lucide-react';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 import { ConnectedDevice, FrpMethod, DeviceMode } from '../types';
 import { FRP_METHODS } from '../data/frpMethods';
 import { CLOUD_SECURITY_BULLETINS } from '../data/cloudSecurityFeed';

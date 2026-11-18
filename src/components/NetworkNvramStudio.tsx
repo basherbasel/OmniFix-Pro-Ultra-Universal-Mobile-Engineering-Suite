@@ -38,6 +38,7 @@ import {
 import { ConnectedDevice } from '../types';
 import { realUsbService } from '../services/realUsbService';
 import { samsungNetworkEngine, SamsungDiagnosisReport } from '../services/samsungNetworkEngine';
+import { NvramRepairDashboard } from './NvramRepairDashboard';
 
 interface NetworkNvramStudioProps {
   device: ConnectedDevice;
@@ -1860,6 +1861,17 @@ export const NetworkNvramStudio: React.FC<NetworkNvramStudioProps> = ({
           </div>
         )}
       </div>
+
+      {/* --- Unified GSM NVRAM & Baseband Calibration Suite --- */}
+      <NvramRepairDashboard 
+        deviceInfo={device ? {
+          devicePath: device.socId || "PORT_COM3",
+          chipset: device.chipset || "Universal",
+          mode: device.mode || "Normal",
+          friendlyName: `${device.brand} ${device.model}`
+        } : null}
+        lang={lang}
+      />
     </div>
   );
 };

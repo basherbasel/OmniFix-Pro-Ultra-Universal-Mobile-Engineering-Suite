@@ -19,7 +19,7 @@ import {
   Terminal,
   Trophy
 } from 'lucide-react';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 import { ConnectedDevice } from '../types';
 import { audioSynth } from '../utils/audioSynth';
 

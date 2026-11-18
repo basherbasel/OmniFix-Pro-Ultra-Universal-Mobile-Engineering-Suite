@@ -29,6 +29,7 @@ import { HARDWARE_REPAIR_GUIDES } from '../data/hardwareRepairGuides';
 import { InteractivePcbBitmapExplorer } from './InteractivePcbBitmapExplorer';
 import { VoltageBridge } from './VoltageBridge';
 import { audioSynth } from '../utils/audioSynth';
+import { useWorkstation } from '../context/WorkstationContext';
 
 interface HardwareMicroSolderingEngineProps {
   device: ConnectedDevice;
@@ -44,7 +45,9 @@ export const HardwareMicroSolderingEngine: React.FC<HardwareMicroSolderingEngine
   lang
 }) => {
   const isAr = lang === 'ar';
+  const { recordDiodeMeasurement, addLog } = useWorkstation();
   const [subTab, setSubTab] = useState<'bitmap' | 'voltage-bridge' | 'schematics'>('bitmap');
+  const [lastSyncNote, setLastSyncNote] = useState<string | null>(null);
   const [selectedGuideId, setSelectedGuideId] = useState<string>(
     initialGuideId || HARDWARE_REPAIR_GUIDES[0].id
   );
@@ -214,6 +217,9 @@ export const HardwareMicroSolderingEngine: React.FC<HardwareMicroSolderingEngine
                 { id: 'CHARGING_VBUS', labelAr: 'الشحن VBUS', labelEn: 'Charging' },
                 { id: 'DISPLAY_BACKLIGHT', labelAr: 'الإضاءة', labelEn: 'Display' },
                 { id: 'BASEBAND_RF', labelAr: 'الشبكة RF', labelEn: 'Baseband' },
+                { id: 'AUDIO_CODEC', labelAr: 'الصوت Codec', labelEn: 'Audio' },
+                { id: 'UFS_RAM_CPU', labelAr: 'المعالج والذاكرة', labelEn: 'UFS/CPU' },
+                { id: 'SHORT_CIRCUIT', labelAr: 'عزل الشورت', labelEn: 'Short Circuit' },
               ].map(cat => (
                 <button
                   key={cat.id}
@@ -393,9 +399,9 @@ export const HardwareMicroSolderingEngine: React.FC<HardwareMicroSolderingEngine
                 </div>
 
                 <div className="flex items-baseline justify-between">
-                  <span className={`text-2xl font-mono font-black tracking-wider ${
+                  <span className={`text-2xl font-mono tabular-nums font-black tracking-wider ${
                     reading.status === 'HEALTHY' ? 'text-emerald-400' :
-                    reading.status === 'WARNING' ? 'text-amber-400' : 'text-rose-500 animate-pulse'
+                    reading.status === 'WARNING' ? 'text-amber-400' : 'text-rose-500'
                   }`}>
                     {reading.text}
                   </span>
@@ -403,26 +409,51 @@ export const HardwareMicroSolderingEngine: React.FC<HardwareMicroSolderingEngine
                 </div>
 
                 {/* Probe Simulation Switcher */}
-                <div className="grid grid-cols-3 gap-1 mt-2 pt-2 border-t border-slate-800 text-[9px] font-mono">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 mt-2 pt-2 border-t border-slate-800 text-[9px] font-mono">
                   <button
                     onClick={() => setSimulatedProbeState('NORMAL')}
-                    className={`py-0.5 rounded ${simulatedProbeState === 'NORMAL' ? 'bg-emerald-600 text-white font-bold' : 'bg-slate-900 text-slate-400'}`}
+                    className={`py-0.5 rounded cursor-pointer ${simulatedProbeState === 'NORMAL' ? 'bg-emerald-600 text-white font-bold' : 'bg-slate-900 text-slate-400'}`}
                   >
                     Pass
                   </button>
                   <button
                     onClick={() => setSimulatedProbeState('SHORT')}
-                    className={`py-0.5 rounded ${simulatedProbeState === 'SHORT' ? 'bg-rose-600 text-white font-bold' : 'bg-slate-900 text-slate-400'}`}
+                    className={`py-0.5 rounded cursor-pointer ${simulatedProbeState === 'SHORT' ? 'bg-rose-600 text-white font-bold' : 'bg-slate-900 text-slate-400'}`}
                   >
                     Short
                   </button>
                   <button
                     onClick={() => setSimulatedProbeState('OPEN')}
-                    className={`py-0.5 rounded ${simulatedProbeState === 'OPEN' ? 'bg-amber-600 text-white font-bold' : 'bg-slate-900 text-slate-400'}`}
+                    className={`py-0.5 rounded cursor-pointer ${simulatedProbeState === 'OPEN' ? 'bg-amber-600 text-white font-bold' : 'bg-slate-900 text-slate-400'}`}
                   >
                     O.L
                   </button>
                 </div>
+
+                {selectedTestPoint && (
+                  <button
+                    onClick={async () => {
+                      const val = simulatedProbeState === 'SHORT'
+                        ? 0.002
+                        : simulatedProbeState === 'OPEN'
+                        ? 2.4
+                        : Number(((selectedTestPoint.diodeModeToleranceMin + selectedTestPoint.diodeModeToleranceMax) / 2).toFixed(3));
+                      const res = await recordDiodeMeasurement(selectedTestPoint.railName, val);
+                      if (res) {
+                        setLastSyncNote(`${selectedTestPoint.railName}: ${val.toFixed(3)}V (${res.status})`);
+                        addLog(`[Micro-Soldering DMM] ${selectedTestPoint.railName} = ${val.toFixed(3)}V -> ${res.status}`);
+                      }
+                    }}
+                    className="mt-2 w-full py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold transition-colors cursor-pointer"
+                  >
+                    {isAr ? 'تسجيل القياس في ملف الجهاز' : 'Log Measurement to Case'}
+                  </button>
+                )}
+                {lastSyncNote && (
+                  <div className="mt-1 text-[9px] font-mono text-emerald-300 truncate">
+                    ✓ {lastSyncNote}
+                  </div>
+                )}
               </div>
             </div>
 

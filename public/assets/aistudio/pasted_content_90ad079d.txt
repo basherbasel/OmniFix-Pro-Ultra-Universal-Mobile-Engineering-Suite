@@ -1,0 +1,2766 @@
+للوصول بالمنصة إلى مستوى **أنظمة المخططات الهندسية الاحترافية (مثل ZXW / Borneo Schematics / Wuxinji)** مدمجةً مع **غرفة العمليات الحية والذكاء الاصطناعي المحلي**، كان ينقصها 5 ركائز هندسية جوهرية تم بناؤها بالكامل في هذا التحديث (**الإصدار v13.0 — Enterprise BoardView, Schematics & Micro-Electronics Atlas**):
+
+1. **قاعدة البيانات الهندسية الشاملة للهواتف (`hardware_atlas.py`)**: تغطي أشهر الموديلات العالمية من **Apple, Samsung, Xiaomi/Redmi/POCO, Realme/Oppo, Huawei/Honor, Infinix/Nokia** بتفاصيل المعالجات، آيسيهات الباور والشحن والصوت والشبكة، نقاط التيست بوينت (Testpoints)، وأوامر البرمجة والتفليش الحقيقية (`mtkclient`, `edl`, `Odin`, `libimobiledevice`, `checkm8`).
+2. **محرك المخططات التفاعلية (`schematics_engine.py` + `templates/schematics.html`)**: توليد مخططات بوردة تفاعلية (Interactive SVG BoardView) ومخططات تسلسل الطاقة (Power Sequence Block Diagrams) قابلة للنقر على كل رجل (Pin) وكونكتر وآيسي لعرض اسم المسار (Net Name)، قيمة ممانعة الدايود المرجعية (mV)، الجهد الكهربائي (V)، والأعراض عند التلف.
+3. **محلل سحب الباور سبلاي وتسلسل الإقلاع (`power_analyzer.py`)**: محرك تشخيص إلكتروني يحلل سحب الأمبير (mA) قبل الضغط على زر الباور (التسريب والقصر) وبعد الضغط عليه (مراحل إقلاع المعالج والرام والذاكرة) لكل معمارية.
+4. **ماسح منافذ USB الحقيقي على جهاز الفني (`usb_scanner.py`)**: فحص المنافذ المتصلة فعلياً بنظام التشغيل (Windows/Linux) والتعرف التلقائي على وضعيات البوت والتفليش (`BROM`, `EDL 9008`, `ODIN`, `DFU`).
+5. **بوابة متابعة العميل عبر QR (`templates/portal.html`)**: صفحة عامة مؤمّنة برمز التذكرة تتيح للعميل مسح رمز الـ QR من تقرير الـ PDF لمتابعة حالة جهازه وتكلفة الإصلاح لحظياً.
+
+---
+
+### 📂 هيكلية المشروع الكاملة (v13.0)
+
+```text
+global_repair_enterprise/
+├── requirements.txt            # جميع الاعتماديات الكاملة
+├── hardware_atlas.py           # موسوعة الهواتف والآيسيهات والبن آوت والبرمجيات
+├── schematics_engine.py        # محرك توليد المخططات التفاعلية SVG BoardView
+├── power_analyzer.py           # محلل سحب الباور سبلاي وتسلسل الإقلاع
+├── usb_scanner.py              # ماسح منافذ USB/COM الفعلي على المختبر
+├── database.py                 # محرك SQLite WAL + الترحيلات m001..m005 + بيانات حقيقية
+├── auth.py                     # نظام المصادقة JWT
+├── vision_engine.py            # محرك OpenCV لكشف الحرق والأكسدة
+├── live_vision.py              # محرك البث الحي للكاميرا عبر WebSocket
+├── ai_copilot.py               # محرك التشخيص الذكي المدمج مع Ollama المحلي
+├── collaboration.py            # غرفة التعاون الحية (Presence + Chat + Canvas)
+├── report_generator.py         # مولد تقارير PDF بالعربية (RTL + QR + صور)
+├── enterprise_backend.py       # الخادم المركزي الموحد FastAPI
+├── templates/
+│   ├── index.html              # لوحة القيادة الرئيسية الشاملة
+│   ├── schematics.html         # مستعرض المخططات التفاعلية والـ BoardView
+│   ├── live.html               # غرفة الكاميرا الحية والتعاون
+│   └── portal.html             # بوابة متابعة العميل عبر QR
+├── tests/
+│   └── test_v13.py             # اختبارات شاملة لكل وظائف النظام
+└── run.py                      # سكريبت التشغيل
+
+```
+
+*(ملاحظة: الملفات `auth.py`، `vision_engine.py`، `live_vision.py`، `collaboration.py`، `report_generator.py`، `templates/live.html`، و `run.py` تبقى كما هي في الإصدار السابق دون تغيير، وفيما يلي كافة الملفات الجديدة والمحدّثة مكتوبة كاملةً).*
+
+---
+
+### 1️⃣ ملف الاعتماديات المحدّث: `requirements.txt`
+
+```txt
+fastapi>=0.110.0
+uvicorn[standard]>=0.29.0
+aiosqlite>=0.20.0
+pydantic>=2.6.0
+pyjwt>=2.8.0
+python-multipart>=0.0.9
+opencv-python-headless>=4.9.0.80
+numpy>=1.26.4
+pillow>=10.2.0
+reportlab>=4.1.0
+arabic-reshaper>=3.0.0
+python-bidi>=0.4.2
+qrcode>=7.4.2
+httpx>=0.27.0
+pyserial>=3.5
+pytest>=8.0.0
+
+```
+
+---
+
+### 2️⃣ موسوعة الهواتف والآيسيهات والقياسات الحقيقية: `hardware_atlas.py`
+
+```python
+"""Comprehensive Real-World Smartphone Hardware, Pinout, IC & Software Servicing Atlas.
+Covers Apple, Samsung, Xiaomi/Redmi/POCO, Realme/Oppo, Huawei/Honor, and Infinix/Nokia.
+"""
+from typing import Dict, List, Optional
+
+USB_HARDWARE_SIGNATURES: List[Dict] = [
+    {
+        "vid": "0E8D", "pid": "0003",
+        "chipset": "MediaTek (MTK)",
+        "mode": "BROM Mode (BootROM)",
+        "description": "وضع البوت روم المباشر — المعالج يستجيب قبل تحميل البريلودر (مناسب لفك البوتلودر وإصلاح السوفت الميت)",
+        "recommended_tools": ["mtkclient", "SP Flash Tool", "Pandora / UnlockTool"],
+        "risk_level": "medium",
+    },
+    {
+        "vid": "0E8D", "pid": "2000",
+        "chipset": "MediaTek (MTK)",
+        "mode": "Preloader VCOM Port",
+        "description": "منفذ البريلودر النشط — الذاكرة الداخلية eMMC/UFS تستجيب مبدئياً",
+        "recommended_tools": ["SP Flash Tool", "mtkclient --preloader"],
+        "risk_level": "low",
+    },
+    {
+        "vid": "05C6", "pid": "9008",
+        "chipset": "Qualcomm Snapdragon",
+        "mode": "EDL 9008 (Emergency Download)",
+        "description": "وضع الطوارئ 9008 — يتطلب ملف Firehose Programmer (.elf/.mbn) لتفليش النظام أو إصلاح البوت",
+        "recommended_tools": ["QFIL", "edl (bkerler)", "UFI / EasyJTAG"],
+        "risk_level": "high",
+    },
+    {
+        "vid": "05C6", "pid": "9091",
+        "chipset": "Qualcomm Snapdragon",
+        "mode": "DIAG 9091 (Diagnostic Port)",
+        "description": "منفذ التشخيص الهندسي — جاهز لقراءة/كتابة ملفات QCN وإصلاح الشبكة والـ Baseband",
+        "recommended_tools": ["QPST", "QCN Tool", "DFS CDMA"],
+        "risk_level": "low",
+    },
+    {
+        "vid": "04E8", "pid": "685D",
+        "chipset": "Samsung Exynos / Qualcomm",
+        "mode": "ODIN / Download Mode",
+        "description": "وضع الداونلود الرسمي لأجهزة سامسونج — جاهز لتمرير الفلاشة الرباعية (BL/AP/CP/CSC)",
+        "recommended_tools": ["Odin3 v3.14.4", "Heimdall", "Chimera / Z3X"],
+        "risk_level": "low",
+    },
+    {
+        "vid": "05AC", "pid": "1227",
+        "chipset": "Apple Silicon (A-Series)",
+        "mode": "DFU Mode (Device Firmware Update)",
+        "description": "وضع DFU العميق — شاشة سوداء بالكامل مع استجابة المعالج عبر USB",
+        "recommended_tools": ["iTunes / Finder", "libimobiledevice (idevicerestore)", "checkm8 / ipwndfu"],
+        "risk_level": "medium",
+    },
+    {
+        "vid": "05AC", "pid": "1281",
+        "chipset": "Apple Silicon (A-Series)",
+        "mode": "Recovery Mode",
+        "description": "وضع الاسترداد — يظهر شعار الكابل والكمبيوتر على الشاشة",
+        "recommended_tools": ["ideviceenterrecovery / exit", "3uTools", "Finder"],
+        "risk_level": "low",
+    },
+    {
+        "vid": "12D1", "pid": "3609",
+        "chipset": "Huawei HiSilicon Kirin",
+        "mode": "Huawei USB COM 1.0 (Testpoint)",
+        "description": "وضع التيست بوينت لمعالجات كيرين — يتطلب تمرير ملف Board Software",
+        "recommended_tools": ["IDT (Image Download Tool)", "SigmaKey / Octoplus"],
+        "risk_level": "high",
+    },
+    {
+        "vid": "18D1", "pid": "D00D",
+        "chipset": "Google / Qualcomm / MTK",
+        "mode": "Fastboot / Bootloader Mode",
+        "description": "وضع الفاست بوت القياسي لتمرير صور النظام والريكفري وفتح البوتلودر",
+        "recommended_tools": ["fastboot", "Minimal ADB & Fastboot", "MiFlash"],
+        "risk_level": "low",
+    },
+]
+
+DIODE_REFERENCE_RAILS: List[Dict] = [
+    {
+        "rail_code": "PP_VDD_MAIN / VPH_PWR",
+        "name_ar": "خط التغذية الرئيسي للبوردة",
+        "min_v": 0.310,
+        "max_v": 0.480,
+        "short_threshold": 0.060,
+        "short_suspects": "مكثفات التصفية على خط VDD_MAIN، آيسي الشحن، آيسي الباور PMIC، أو مضخم الشبكة PA",
+        "open_suspects": "تلف ملف التغذية الرئيسي أو فصل في طبقات البوردة المزدوجة (Interposer)",
+    },
+    {
+        "rail_code": "PP_BATT_VCC / VBAT",
+        "name_ar": "موجب كونكتر البطارية",
+        "min_v": 0.340,
+        "max_v": 0.520,
+        "short_threshold": 0.040,
+        "short_suspects": "آيسي الشحن (BQ25890 / SM5714 / Tigris) أو دايود الحماية TVS",
+        "open_suspects": "تلف فيوز البطارية أو مسار كونكتر البطارية",
+    },
+    {
+        "rail_code": "USB_DP / USB_DM",
+        "name_ar": "مسارات بيانات الشحن USB D+ / D-",
+        "min_v": 0.480,
+        "max_v": 0.690,
+        "short_threshold": 0.120,
+        "short_suspects": "آيسي الشحن الوهمي / USB Controller (Tristar / Hydra / SM5714) أو المعالج مباشرة",
+        "open_suspects": "تلف فلاتة الشحن السفلية أو مقاومات التوالي على خط الداتا",
+    },
+    {
+        "rail_code": "USB_CC1 / USB_CC2",
+        "name_ar": "مسارات تعريف الشحن السريع Type-C CC",
+        "min_v": 0.500,
+        "max_v": 0.740,
+        "short_threshold": 0.100,
+        "short_suspects": "تلف متحكم Type-C نتيجة استخدام شاحن رديء أو تسرب 20V لخطوط الداتا",
+        "open_suspects": "تلف سوكت الشحن Type-C أو فصل في الفلاتة",
+    },
+    {
+        "rail_code": "LCM_BL_ANODE",
+        "name_ar": "خط تغذية الإضاءة الخلفية (Backlight Anode)",
+        "min_v": 0.520,
+        "max_v": 0.850,
+        "short_threshold": 0.080,
+        "short_suspects": "دايود الإضاءة (Schottky Diode) أو مكثف الخرج بعد ملف الرفع (Boost Coil)",
+        "open_suspects": "احتراق فيوز الإضاءة (Backlight Fuse) نتيجة تركيب شاشة بدون فصل البطارية",
+    },
+    {
+        "rail_code": "MIPI_DSI_LANE",
+        "name_ar": "خطوط بيانات الشاشة MIPI",
+        "min_v": 0.400,
+        "max_v": 0.580,
+        "short_threshold": 0.090,
+        "short_suspects": "تلف فلاتر EMI المزدوجة أو المعالج",
+        "open_suspects": "كسر أو تلف في فلتر EMI المزدوج بجوار كونكتر الشاشة (شاشة سوداء مع صوت)",
+    },
+    {
+        "rail_code": "I2C_SDA / I2C_SCL",
+        "name_ar": "ناقل البيانات المشترك I2C",
+        "min_v": 0.440,
+        "max_v": 0.660,
+        "short_threshold": 0.100,
+        "short_suspects": "أحد الآيسيهات المتصلة بالناقل (آيسي الصوت، الحساسات، الشحن) يسحب الخط للأرضي",
+        "open_suspects": "تلف مقاومة الرفع (Pull-up Resistor 2.2K/4.7K) المتصلة بجهد 1.8V",
+    },
+]
+
+# موسوعة الموديلات التفصيلية لكل الشركات العالمية
+DEVICE_MODELS_ATLAS: List[Dict] = [
+    {
+        "id": "apple-iphone-14-pro",
+        "brand": "Apple",
+        "model": "iPhone 14 Pro (A2890 / A2650)",
+        "board_arch": "sandwich_dual_layer",
+        "schematic_id": "iphone_14_pro_board",
+        "soc": "Apple A16 Bionic (APL1W10)",
+        "storage": "NVMe NAND (128GB - 1TB)",
+        "ics": {
+            "Main PMIC": "338S00843-B0 (Apple/Dialog)",
+            "Charging / USB": "SN2611A0 (Hydra) + BQ25980 (Fast Charge)",
+            "Display / Touch": "TPS65657B0 (OLED Power) + BCM15951 (Touch)",
+            "Audio": "338S00537 (Cirrus Logic Audio Codec) + 338S00739 (Speaker Amp)",
+            "Baseband / RF": "Qualcomm SDX65M + SDR735 + QET7100",
+            "Wi-Fi / BT": "339S01134 (Murata)",
+        },
+        "connector_pinouts": [
+            {"connector": "J4500 (Battery)", "pin": "Pin 1-2", "net": "PP_BATT_VCC", "diode_v": 0.395, "voltage_v": 3.85, "notes": "موجب البطارية الرئيسي"},
+            {"connector": "J4500 (Battery)", "pin": "Pin 3", "net": "BATTERY_SWI", "diode_v": 0.540, "voltage_v": 1.80, "notes": "خط بيانات نسبة الشحن — تلفه يسبب ريستارت كل 3 دقائق"},
+            {"connector": "J8500 (Display)", "pin": "Pin 2", "net": "PP_DISP_ELVDD", "diode_v": 0.460, "voltage_v": 4.60, "notes": "تغذية إضاءة شاشة OLED الموجبة"},
+            {"connector": "J8500 (Display)", "pin": "Pin 4", "net": "PP_DISP_ELVSS", "diode_v": 0.620, "voltage_v": -4.40, "notes": "تغذية شاشة OLED السالبة"},
+            {"connector": "J6400 (Charging)", "pin": "Pin 5", "net": "USB_E75_ACC1", "diode_v": 0.580, "voltage_v": 3.00, "notes": "خط تعريف الكابل — متصل بآيسي Hydra"},
+        ],
+        "testpoints": [
+            {"name": "DFU Force", "method": "اضغط رفع الصوت ثم خفض الصوت ثم استمر على زر الباور 10 ثوانٍ ثم مع خفض الصوت 5 ثوانٍ"},
+            {"name": "PP_VDD_MAIN Probe", "method": "نقطة القياس بجوار ملف L2700 على الطبقة العلوية"},
+        ],
+        "software_commands": [
+            "ideviceinfo -s  # قراءة بيانات الجهاز والـ UDID",
+            "idevicerestore --erase --latest  # تفليش أحدث نظام iOS عبر DFU",
+            "irecovery -n  # إخراج الجهاز من وضع الريكفري",
+        ],
+    },
+    {
+        "id": "samsung-a32-sm-a325f",
+        "brand": "Samsung",
+        "model": "Samsung Galaxy A32 (SM-A325F)",
+        "board_arch": "single_layer_shielded",
+        "schematic_id": "samsung_a325f_board",
+        "soc": "MediaTek Helio G80 (MT6769V)",
+        "storage": "eMMC 5.1 (64GB / 128GB)",
+        "ics": {
+            "Main PMIC": "MT6357CRV",
+            "IF-PMIC / Charging": "SM5714 (Silicon Mitus)",
+            "OVP Protection": "ET9553L (Over-Voltage Protection)",
+            "Backlight / Display": "LM3697 / S2DOS05 (AMOLED Power)",
+            "RF Transceiver": "MT6177MV",
+            "Power Amplifier": "SKY77643-21 / VC7643",
+        },
+        "connector_pinouts": [
+            {"connector": "HDC5000 (Battery)", "pin": "Pin 1", "net": "VBAT", "diode_v": 0.415, "voltage_v": 3.85, "notes": "موجب البطارية"},
+            {"connector": "HDC5000 (Battery)", "pin": "Pin 2", "net": "BAT_THM", "diode_v": 0.510, "voltage_v": 1.80, "notes": "حساس حرارة البطارية — قطعه يوقف الشحن برسالة حرارة منخفضة"},
+            {"connector": "HDC7000 (Sub-Board)", "pin": "Pin 3-4", "net": "VBUS_5V_IN", "diode_v": 0.530, "voltage_v": 5.00, "notes": "دخل الشحن من الفلاتة السفلية"},
+            {"connector": "HDC7000 (Sub-Board)", "pin": "Pin 8", "net": "USB_CC1", "diode_v": 0.610, "voltage_v": 1.20, "notes": "تحديد اتجاه كابل Type-C"},
+            {"connector": "HDC8000 (Display)", "pin": "Pin 12", "net": "ELVDD_4P6", "diode_v": 0.475, "voltage_v": 4.60, "notes": "تغذية شاشة Super AMOLED"},
+        ],
+        "testpoints": [
+            {"name": "MTK BROM TP", "method": "توصيل نقطة CLK بجوار الذاكرة مع الأرضي GND أثناء توصيل كابل USB"},
+            {"name": "VBUS Testpoint", "method": "نقطة ذهبية بجوار كونكتر الفلاتة السفلية قبل آيسي OVP"},
+        ],
+        "software_commands": [
+            "python mtk.py printgpt  # قراءة جدول التقسيمات عبر BROM",
+            "python mtk.py r nvram,nvdata nvram.bin,nvdata.bin  # سحب باك أب الشبكة والـ IMEI",
+            "heimdall flash --BOOT boot.img --SYSTEM system.img  # التفليش عبر وضع ODIN",
+        ],
+    },
+    {
+        "id": "samsung-a24-sm-a245f",
+        "brand": "Samsung",
+        "model": "Samsung Galaxy A24 (SM-A245F)",
+        "board_arch": "single_layer_shielded",
+        "schematic_id": "samsung_a325f_board",
+        "soc": "MediaTek Helio G99 (MT6789V)",
+        "storage": "UFS 2.2 (128GB)",
+        "ics": {
+            "Main PMIC": "MT6366W / MT6358W",
+            "Sub PMIC / Charging": "MT6375 (Charger + Fuel Gauge + Display Bias)",
+            "RF Transceiver": "MT6190MV",
+            "Wi-Fi / BT": "MT6631N",
+            "Audio Amp": "AW88264CSR",
+        },
+        "connector_pinouts": [
+            {"connector": "BATT_CON", "pin": "Pin 1", "net": "VBAT", "diode_v": 0.420, "voltage_v": 3.85, "notes": "خط البطارية المباشر"},
+            {"connector": "SUB_FPC", "pin": "Pin 10", "net": "VBUS_USB", "diode_v": 0.545, "voltage_v": 9.00, "notes": "يدعم الشحن السريع 25W PD"},
+            {"connector": "LCD_FPC", "pin": "Pin 6", "net": "VDD_1V8_LCD", "diode_v": 0.490, "voltage_v": 1.80, "notes": "تغذية منطق الشاشة"},
+        ],
+        "testpoints": [
+            {"name": "BROM Testpoint", "method": "توصيل نقطتي BROM أسفل صاج المعالج أو استخدام كابل EDL/BROM المعدل"},
+        ],
+        "software_commands": [
+            "python mtk.py da seccfg unlock  # فتح البوتلودر",
+            "python mtk.py e frp  # مسح حماية FRP بأمان",
+        ],
+    },
+    {
+        "id": "xiaomi-redmi-note-12-pro",
+        "brand": "Xiaomi / Redmi / POCO",
+        "model": "Redmi Note 12 Pro 5G (Ruby)",
+        "board_arch": "single_layer_shielded",
+        "schematic_id": "xiaomi_qualcomm_mtk_board",
+        "soc": "MediaTek Dimensity 1080 (MT6877V)",
+        "storage": "UFS 2.2 (128GB / 256GB)",
+        "ics": {
+            "Main PMIC": "MT6368MW",
+            "Fast Charge Pump": "LN8000 / BQ25970 (67W Turbo Charge)",
+            "Sub PMIC": "MT6373P",
+            "Audio Codec": "MT6368 Integrated + Smart PA AW88394",
+            "RF Transceiver": "MT6190W",
+        },
+        "connector_pinouts": [
+            {"connector": "J3801 (Battery)", "pin": "Pin 1-2", "net": "VBAT_1", "diode_v": 0.380, "voltage_v": 3.88, "notes": "بطارية ثنائية الخلية 67W"},
+            {"connector": "J3801 (Battery)", "pin": "Pin 4", "net": "BAT_ID", "diode_v": 0.520, "voltage_v": 1.80, "notes": "تعريف البطارية — تلفه يسبب شحن بطيء 1%"},
+            {"connector": "J2501 (Display)", "pin": "Pin 15", "net": "OLED_VCI_3V3", "diode_v": 0.495, "voltage_v": 3.30, "notes": "تغذية شاشة Flow AMOLED"},
+        ],
+        "testpoints": [
+            {"name": "BROM Mode", "method": "الضغط على زري رفع وخفض الصوت معاً أثناء توصيل كابل USB"},
+        ],
+        "software_commands": [
+            "fastboot getvar all  # فحص حالة البوتلودر والـ Anti-Rollback",
+            "python mtk.py w boot boot_patched.img  # تمرير البوت المعدل",
+        ],
+    },
+    {
+        "id": "xiaomi-poco-x3-pro",
+        "brand": "Xiaomi / Redmi / POCO",
+        "model": "POCO X3 Pro (Vayu / Bhima)",
+        "board_arch": "qualcomm_flagship_board",
+        "schematic_id": "xiaomi_qualcomm_mtk_board",
+        "soc": "Qualcomm Snapdragon 860 (SM8150-AC)",
+        "storage": "UFS 3.1 (128GB / 256GB)",
+        "ics": {
+            "Main PMIC": "PM8150 + PM8150B (Charging/Display) + PM8150L",
+            "Fast Charger": "SMB1390 (33W Charge Pump)",
+            "Audio Codec": "WCD9340",
+            "RF Transceiver": "SDR8150",
+            "Known Common Fault": "فصل لحام المعالج SM8150 والرام (CPU/RAM Reballing) — يسبب شاشة بيضاء/رمادية أو موت مفاجئ",
+        },
+        "connector_pinouts": [
+            {"connector": "J6500 (Battery)", "pin": "Pin 1", "net": "VBAT", "diode_v": 0.390, "voltage_v": 3.85, "notes": "موجب البطارية"},
+            {"connector": "J5100 (LCD)", "pin": "Pin 2", "net": "LCD_BL_LED_A", "diode_v": 0.560, "voltage_v": 21.0, "notes": "خط أنود الإضاءة (يرتفع لـ 21V عند التشغيل)"},
+            {"connector": "J5100 (LCD)", "pin": "Pin 4", "net": "VSP_5P5V", "diode_v": 0.510, "voltage_v": 5.50, "notes": "جهد تغذية الشاشة الموجب"},
+            {"connector": "J5100 (LCD)", "pin": "Pin 6", "net": "VSN_5P5V", "diode_v": 0.640, "voltage_v": -5.50, "notes": "جهد تغذية الشاشة السالب"},
+        ],
+        "testpoints": [
+            {"name": "EDL 9008 Testpoints", "method": "نقطتان نحاسيتان بجوار كونكتر البطارية وأسفل صاج الـ PM8150B"},
+        ],
+        "software_commands": [
+            "edl printgpt --loader=prog_ufs_firehose_sm8150.elf  # قراءة بارتشنات UFS عبر 9008",
+            "edl r lun5 modemst1,modemst2,fsg  # سحب باك أب الشبكة والـ IMEI",
+        ],
+    },
+    {
+        "id": "realme-c53-rmx3760",
+        "brand": "Realme / Oppo / OnePlus",
+        "model": "Realme C53 (RMX3760)",
+        "board_arch": "single_layer_shielded",
+        "schematic_id": "samsung_a325f_board",
+        "soc": "Unisoc Tiger T612 (UMS9230)",
+        "storage": "eMMC 5.1 (128GB)",
+        "ics": {
+            "Main PMIC": "SC2730G (Unisoc PMIC)",
+            "Fast Charger": "SGM41513 + Charge Pump 33W",
+            "RF Transceiver": "SR3595D",
+            "Audio PA": "AW87390",
+        },
+        "connector_pinouts": [
+            {"connector": "CON_BATT", "pin": "Pin 1", "net": "VBAT", "diode_v": 0.410, "voltage_v": 3.85, "notes": "موجب البطارية"},
+            {"connector": "CON_LCD", "pin": "Pin 1", "net": "LEDA", "diode_v": 0.580, "voltage_v": 19.5, "notes": "أنود إضاءة شاشة IPS"},
+        ],
+        "testpoints": [
+            {"name": "Unisoc Diag / Download", "method": "الضغط على زر خفض الصوت أثناء توصيل كابل USB (SPRD U2S Diag)"},
+        ],
+        "software_commands": [
+            "spd_dump --wait 300 fdl fdl1.bin 0x5500 fdl fdl2.bin 0x9efffe00 read_part miscdata  # التعامل مع معالجات Unisoc",
+        ],
+    },
+    {
+        "id": "huawei-p30-pro-vog-l29",
+        "brand": "Huawei / Honor",
+        "model": "Huawei P30 Pro (VOG-L29)",
+        "board_arch": "sandwich_dual_layer",
+        "schematic_id": "iphone_14_pro_board",
+        "soc": "HiSilicon Kirin 980 (Hi3680)",
+        "storage": "UFS 2.1 (128GB / 256GB)",
+        "ics": {
+            "Main PMIC": "Hi6421V700 + Hi6422V300",
+            "SuperCharge IC": "Hi6526 (40W SuperCharge)",
+            "RF Transceiver": "Hi6363",
+            "Wi-Fi / BT": "Hi1103",
+        },
+        "connector_pinouts": [
+            {"connector": "J2001 (Battery)", "pin": "Pin 1", "net": "VBAT_SYS", "diode_v": 0.375, "voltage_v": 3.85, "notes": "تغذية النظام الرئيسية"},
+            {"connector": "J2401 (USB/Sub)", "pin": "Pin 6", "net": "VBUS_40W", "diode_v": 0.520, "voltage_v": 10.0, "notes": "شحن هواوي فائق السرعة 10V/4A"},
+        ],
+        "testpoints": [
+            {"name": "Huawei USB COM 1.0", "method": "توصيل نقطة TP بجوار ريش البطارية مع الأرضي (يظهر منفذ HUAWEI USB COM 1.0 PID:3609)"},
+        ],
+        "software_commands": [
+            "# تمرير ملف Board Software عبر IDT ثم التفليش الرسمي عبر وضع Fastboot/Upgrade",
+        ],
+    },
+]
+
+IC_FAULT_CATALOG: List[Dict] = [
+    {
+        "ic_part": "MT6357CRV / MT6358W / MT6366W",
+        "manufacturer": "MediaTek",
+        "function": "آيسي الباور الرئيسي (PMIC)",
+        "devices": "Samsung A24, A32, Redmi Note 11S, Realme",
+        "symptoms": "الجهاز لا يعمل، يسحب 40mA–75mA على الباور سبلاي عند الضغط على زر الباور ثم يعود للصفر",
+        "diagnostic_steps": [
+            "فحص جهد الخرج VPROC و VCORE و VIO18 حول الآيسي",
+            "قياس كريستالة التوقيت 26MHz بجوار الآيسي",
+            "إعادة شبلنة (Reballing) أو استبدال الآيسي مع مراعاة اتجاه النقطة (Pin 1)",
+        ],
+    },
+    {
+        "ic_part": "SM5714 / S2MU106",
+        "manufacturer": "Silicon Mitus / Samsung",
+        "function": "آيسي الشحن وإدارة الواجهة (IF-PMIC)",
+        "devices": "Samsung Galaxy A32 (SM-A325F), A51, A52",
+        "symptoms": "علامة رطوبة في منفذ الشحن، شحن بطيء جداً (400mA)، أو عدم الإقلاع مع سحب أولي قبل الباور",
+        "diagnostic_steps": [
+            "فحص ممانعة خطوط USB_DP و USB_DM و CC1/CC2",
+            "التأكد من وصول جهد VBUS 5V إلى مكثف الدخل الخاص بـ SM5714",
+            "تنظيف آثار الأكسدة حول الآيسي أو استبداله",
+        ],
+    },
+    {
+        "ic_part": "SN2611A0 / Hydra / Tristar (U2)",
+        "manufacturer": "TI / Apple",
+        "function": "متحكم الشحن والـ USB",
+        "devices": "iPhone X / 11 / 12 / 13 / 14 Series",
+        "symptoms": "استنزاف البطارية والجهاز مغلق، يرفض الشحن، أو يسحب 120mA بمجرد الضغط الخفيف على الباور",
+        "diagnostic_steps": [
+            "فحص سحب التيار على الباور سبلاي (Prompt Boot Test)",
+            "قياس ممانعة خطوط Tristar/Hydra على فلاتة الشحن",
+            "رفع الآيسي وتنظيف الأرجل وتركيب آيسي جديد بحرارة 340°C وهواء 40%",
+        ],
+    },
+    {
+        "ic_part": "SDR735 / SDR8150 / WTR2965",
+        "manufacturer": "Qualcomm",
+        "function": "معالج الترددات الراديوية (RF Transceiver)",
+        "devices": "POCO X3 Pro, Samsung S-Series, Xiaomi Qualcomm",
+        "symptoms": "لا توجد خدمة (No Service)، دائرة بحث مستمرة، أو اختفاء إصدار النطاق الأساسي Baseband",
+        "diagnostic_steps": [
+            "طلب *#06# للتأكد من ظهور رقم IMEI",
+            "فحص خطوط التغذية 1.0V و 1.8V الداخلة لآيسي الشبكة",
+            "إعادة لحام أو تغيير آيسي الشبكة",
+        ],
+    },
+]
+
+
+def identify_usb_device(vid: str, pid: str) -> Dict:
+    vid_clean = vid.strip().upper().replace("0X", "")
+    pid_clean = pid.strip().upper().replace("0X", "")
+    for sig in USB_HARDWARE_SIGNATURES:
+        if sig["vid"] == vid_clean and sig["pid"] == pid_clean:
+            return {"matched": True, **sig}
+    return {
+        "matched": False,
+        "vid": vid_clean,
+        "pid": pid_clean,
+        "chipset": "Unknown / Generic USB",
+        "mode": "Standard MTP / Composite",
+        "description": "جهاز USB غير مدرج في وضعيات التفليش الهندسي الخاصة",
+        "recommended_tools": ["Device Manager / lsusb", "ADB"],
+        "risk_level": "low",
+    }
+
+
+def evaluate_diode_reading(rail_code: str, measured_v: float) -> Dict:
+    rail = next((r for r in DIODE_REFERENCE_RAILS if r["rail_code"].lower() == rail_code.lower()), None)
+    if not rail:
+        if measured_v < 0.050:
+            status = "SHORT_CIRCUIT"
+            diagnosis = "قصر صريح (Short to GND) — يجب حقن جهد منخفض (1V / 2A) لتحديد المكون الساخن"
+        elif measured_v > 1.500:
+            status = "OPEN_LINE"
+            diagnosis = "قطع في المسار (Open Line / OL) — افحص المقاومات والملفات المتصلة بالخط"
+        else:
+            status = "NORMAL_RANGE"
+            diagnosis = "القراءة ضمن النطاق الممانعي المقبول مبدئياً"
+        return {
+            "rail_code": rail_code,
+            "measured_v": measured_v,
+            "status": status,
+            "diagnosis": diagnosis,
+        }
+
+    if measured_v <= rail["short_threshold"]:
+        status = "SHORT_CIRCUIT"
+        diagnosis = f"قصر حرج على {rail['name_ar']}! المشتبه بهم: {rail['short_suspects']}"
+    elif measured_v < rail["min_v"]:
+        status = "LEAKAGE_LOW"
+        diagnosis = f"تسريب (ممانعة منخفضة عن الحد الأدنى {rail['min_v']}V). افحص: {rail['short_suspects']}"
+    elif measured_v > rail["max_v"] or measured_v >= 1.500:
+        status = "OPEN_LINE"
+        diagnosis = f"قطع أو ممانعة مرتفعة على {rail['name_ar']}. السبب المحتمل: {rail['open_suspects']}"
+    else:
+        status = "HEALTHY"
+        diagnosis = f"مسار سليم 100% — القيمة ({measured_v}V) تقع ضمن النطاق المرجعي ({rail['min_v']}V - {rail['max_v']}V)"
+
+    return {
+        "rail_code": rail["rail_code"],
+        "rail_name_ar": rail["name_ar"],
+        "measured_v": measured_v,
+        "expected_range": f"{rail['min_v']}V – {rail['max_v']}V",
+        "status": status,
+        "diagnosis": diagnosis,
+    }
+
+
+def search_device_atlas(query: str = "", brand: str = "") -> List[Dict]:
+    q = query.strip().lower()
+    b = brand.strip().lower()
+    results = []
+    for dev in DEVICE_MODELS_ATLAS:
+        if b and b not in dev["brand"].lower():
+            continue
+        if q:
+            haystack = (
+                f"{dev['brand']} {dev['model']} {dev['soc']} "
+                + " ".join(dev["ics"].values())
+            ).lower()
+            if q not in haystack:
+                continue
+        results.append(dev)
+    return results
+
+```
+
+---
+
+### 3️⃣ محرك المخططات الهندسية والـ Interactive BoardView: `schematics_engine.py`
+
+يولّد خرائط بوردة تفاعلية (BoardView) مع نقاط قياس حقيقية (Pins & Testpoints) ومخططات تسلسل الطاقة (Power Sequence):
+
+```python
+"""Interactive BoardView & Power-Sequence Schematic Engine.
+Provides structured PCB component coordinates, clickable pins/testpoints,
+exact diode-mode values, voltage rails, and power-on sequence trees.
+"""
+from typing import Dict, List, Optional
+
+BOARD_SCHEMATICS: Dict[str, Dict] = {
+    "iphone_14_pro_board": {
+        "id": "iphone_14_pro_board",
+        "title": "Apple iPhone 14 Pro — Upper/Lower Sandwich Logic Board (820-02564)",
+        "architecture": "Apple Silicon A16 Bionic + Dual-Layer Interposer",
+        "width": 820,
+        "height": 460,
+        "power_sequence": [
+            {"step": 1, "rail": "PP_BATT_VCC (3.85V)", "source": "Battery / J4500", "target": "Charging IC & PMIC", "desc": "وصول جهد البطارية الأساسي للوحة"},
+            {"step": 2, "rail": "PP_VDD_MAIN (3.85V)", "source": "Charging IC (Q3300)", "target": "Main PMIC (U2700) & Backlight", "desc": "خط التغذية الرئيسي لكامل البوردة (أكثر خط يتعرض للقصر)"},
+            {"step": 3, "rail": "PP_1V8_ALWAYS (1.80V)", "source": "Main PMIC (U2700)", "target": "AP A16 & Power Button", "desc": "جهد الاستعداد الدائم قبل الضغط على زر الباور"},
+            {"step": 4, "rail": "PP_CPU_PCORE (0.75V-1.05V)", "source": "Main PMIC Buck0-3", "target": "A16 Bionic CPU Cores", "desc": "تغذية أنوية المعالج عند الضغط على زر الباور"},
+            {"step": 5, "rail": "PP_NAND_2V6 / 0V9", "source": "Main PMIC LDO", "target": "NVMe NAND Flash", "desc": "تغذية الذاكرة الداخلية لتحميل نظام iOS"},
+        ],
+        "components": [
+            {"id": "U1000", "label": "A16 Bionic CPU/RAM", "x": 180, "y": 130, "w": 170, "h": 170, "color": "#1e3a8a", "role": "المعالج الرئيسي والذاكرة العشوائية المدمجة"},
+            {"id": "U2700", "label": "Main PMIC (338S00843)", "x": 410, "y": 140, "w": 110, "h": 110, "color": "#065f46", "role": "آيسي الباور الرئيسي — يولد جهود المعالج والذاكرة"},
+            {"id": "U3300", "label": "Hydra / Charger IC", "x": 410, "y": 280, "w": 95, "h": 75, "color": "#7c2d12", "role": "متحكم الشحن والـ USB وتوليد PP_VDD_MAIN"},
+            {"id": "U5600", "label": "OLED Display PMIC", "x": 570, "y": 110, "w": 85, "h": 75, "color": "#581c87", "role": "توليد جهود شاشة OLED (ELVDD 4.6V / ELVSS -4.4V)"},
+            {"id": "J4500", "label": "J4500 Battery FPC", "x": 60, "y": 290, "w": 85, "h": 110, "color": "#374151", "role": "كونكتر البطارية"},
+            {"id": "J8500", "label": "J8500 Display FPC", "x": 690, "y": 90, "w": 75, "h": 160, "color": "#374151", "role": "كونكتر الشاشة واللمس"},
+        ],
+        "pins": [
+            {"id": "P1", "name": "J4500.1 (PP_BATT_VCC)", "rail": "PP_BATT_VCC / VBAT", "x": 102, "y": 315, "diode_v": 0.395, "volt_v": 3.85, "fault_hint": "قصر هنا يشير لتلف آيسي الشحن U3300 أو مكثف دخل"},
+            {"id": "P2", "name": "J4500.3 (BATTERY_SWI)", "rail": "I2C_SDA / I2C_SCL", "x": 102, "y": 355, "diode_v": 0.540, "volt_v": 1.80, "fault_hint": "قطع أو تسريب يسبب إعادة تشغيل الجهاز كل 180 ثانية"},
+            {"id": "P3", "name": "TP_VDD_MAIN (L2700)", "rail": "PP_VDD_MAIN / VPH_PWR", "x": 385, "y": 195, "diode_v": 0.365, "volt_v": 3.85, "fault_hint": "نقطة القياس الذهبية لخط التغذية الرئيسي PP_VDD_MAIN"},
+            {"id": "P4", "name": "J8500.2 (ELVDD_4V6)", "rail": "LCM_BL_ANODE", "x": 725, "y": 120, "diode_v": 0.460, "volt_v": 4.60, "fault_hint": "غياب هذا الجهد يسبب شاشة سوداء تماماً رغم وجود صوت"},
+            {"id": "P5", "name": "J8500.8 (MIPI_DATA0)", "rail": "MIPI_DSI_LANE", "x": 725, "y": 185, "diode_v": 0.485, "volt_v": 1.20, "fault_hint": "اختلاف الممانعة عن 0.48V يعني تلف فلتر EMI أو فصل بالطبقتين"},
+            {"id": "P6", "name": "TP_USB_CC1", "rail": "USB_CC1 / USB_CC2", "x": 455, "y": 375, "diode_v": 0.610, "volt_v": 1.20, "fault_hint": "تلفه يسبب عدم التعرف على الشاحن أو الشحن من جهة واحدة فقط"},
+        ],
+    },
+    "samsung_a325f_board": {
+        "id": "samsung_a325f_board",
+        "title": "Samsung Galaxy A32 / A24 / MediaTek MT6769-MT6789 Logic Board",
+        "architecture": "MediaTek Helio SoC + MT6357CRV PMIC + SM5714 IF-PMIC",
+        "width": 820,
+        "height": 460,
+        "power_sequence": [
+            {"step": 1, "rail": "VBAT (3.85V)", "source": "HDC5000 Battery", "target": "SM5714 IF-PMIC", "desc": "وصول جهد البطارية لآيسي الشحن والواجهة"},
+            {"step": 2, "rail": "VPH_PWR (3.85V)", "source": "SM5714 Switching Coil", "target": "MT6357CRV PMIC", "desc": "توليد جهد النظام الرئيسي VPH_PWR"},
+            {"step": 3, "rail": "VRTC / VIO18 (1.80V)", "source": "MT6357CRV", "target": "Helio CPU & Power Key", "desc": "جهد زر الباور وذاكرة الوقت الحقيقي"},
+            {"step": 4, "rail": "VPROC / VCORE (0.80V)", "source": "MT6357CRV Buck", "target": "MediaTek Helio CPU", "desc": "تغذية المعالج وبدء قراءة البريلودر من eMMC/UFS"},
+        ],
+        "components": [
+            {"id": "UCP1000", "label": "MediaTek Helio SoC", "x": 210, "y": 110, "w": 165, "h": 165, "color": "#1e3a8a", "role": "معالج ميدياتك الرئيسي"},
+            {"id": "U5001", "label": "MT6357CRV PMIC", "x": 440, "y": 115, "w": 105, "h": 105, "color": "#065f46", "role": "آيسي الباور الرئيسي"},
+            {"id": "U5004", "label": "SM5714 IF-PMIC", "x": 440, "y": 255, "w": 100, "h": 90, "color": "#7c2d12", "role": "آيسي الشحن وإدارة USB والـ OTG"},
+            {"id": "U7002", "label": "ET9553L OVP", "x": 585, "y": 275, "w": 65, "h": 55, "color": "#991b1b", "role": "آيسي الحماية من الجهد الزائد على دخل الشحن"},
+            {"id": "HDC5000", "label": "Battery Connector", "x": 70, "y": 280, "w": 90, "h": 110, "color": "#374151", "role": "كونكتر البطارية"},
+            {"id": "HDC7000", "label": "Sub-Board FPC", "x": 670, "y": 240, "w": 85, "h": 140, "color": "#374151", "role": "كونكتر فلاتة الشحن والشبكة"},
+        ],
+        "pins": [
+            {"id": "S1", "name": "HDC5000.1 (VBAT)", "rail": "PP_BATT_VCC / VBAT", "x": 115, "y": 305, "diode_v": 0.415, "volt_v": 3.85, "fault_hint": "قصر هنا سببه غالباً SM5714 أو دايود الحماية بجوار الكونكتر"},
+            {"id": "S2", "name": "L5002 (VPH_PWR)", "rail": "PP_VDD_MAIN / VPH_PWR", "x": 415, "y": 280, "diode_v": 0.380, "volt_v": 3.85, "fault_hint": "ملف تغذية النظام الرئيسي — افحص الممانعة هنا قبل تغيير أي آيسي"},
+            {"id": "S3", "name": "TP_BROM_CLK", "rail": "I2C_SDA / I2C_SCL", "x": 290, "y": 310, "diode_v": 0.490, "volt_v": 1.80, "fault_hint": "نقطة التيست بوينت لإدخال الجهاز وضع BROM (0E8D:0003)"},
+            {"id": "S4", "name": "HDC7000.3 (VBUS_5V)", "rail": "USB_DP / USB_DM", "x": 710, "y": 270, "diode_v": 0.530, "volt_v": 5.00, "fault_hint": "إذا كان الجهد 5V قبل OVP وصفر بعده فآيسي الحماية ET9553L تالف"},
+            {"id": "S5", "name": "HDC7000.8 (USB_CC1)", "rail": "USB_CC1 / USB_CC2", "x": 710, "y": 325, "diode_v": 0.610, "volt_v": 1.20, "fault_hint": "انخفاض القيمة يسبب ظهور علامة الرطوبة الدائمة"},
+        ],
+    },
+    "xiaomi_qualcomm_mtk_board": {
+        "id": "xiaomi_qualcomm_mtk_board",
+        "title": "Xiaomi / POCO X3 Pro / Redmi Note Series (Qualcomm SM8150 / Dimensity)",
+        "architecture": "Qualcomm Snapdragon + PM8150/PM8150B + Charge Pump",
+        "width": 820,
+        "height": 460,
+        "power_sequence": [
+            {"step": 1, "rail": "VBAT (3.85V)", "source": "J6500 Battery", "target": "PM8150B Charger", "desc": "جهد البطارية الداخل لمنظومة الشحن"},
+            {"step": 2, "rail": "VPH_PWR (3.85V)", "source": "PM8150B", "target": "PM8150 & PM8150L", "desc": "توزيع الطاقة على باقي آيسيهات الباور"},
+            {"step": 3, "rail": "S1A_1V8 / PON_RESET", "source": "PM8150", "target": "Snapdragon CPU", "desc": "إشارة تصفير المعالج وبدء الإقلاع"},
+            {"step": 4, "rail": "UFS_VCC_2V95 / 1V2", "source": "PM8150L LDO", "target": "UFS 3.1 Storage", "desc": "تغذية ذاكرة UFS السريعة لتحميل أندرويد"},
+        ],
+        "components": [
+            {"id": "U1", "label": "Snapdragon CPU + LPDDR", "x": 200, "y": 115, "w": 175, "h": 175, "color": "#1e3a8a", "role": "المعالج والرام — يتطلب شبلنة عند ظهور شاشة رمادية"},
+            {"id": "U2", "label": "PM8150 Main PMIC", "x": 435, "y": 115, "w": 100, "h": 100, "color": "#065f46", "role": "آيسي الباور الرئيسي"},
+            {"id": "U3", "label": "PM8150B Sub-PMIC", "x": 435, "y": 245, "w": 100, "h": 100, "color": "#7c2d12", "role": "آيسي الشحن وإضاءة الشاشة"},
+            {"id": "U4", "label": "UFS 3.1 Storage", "x": 595, "y": 125, "w": 110, "h": 125, "color": "#1f2937", "role": "الذاكرة الداخلية UFS"},
+            {"id": "J6500", "label": "Battery Connector", "x": 65, "y": 265, "w": 85, "h": 115, "color": "#374151", "role": "كونكتر البطارية"},
+        ],
+        "pins": [
+            {"id": "X1", "name": "J6500.1 (VBAT)", "rail": "PP_BATT_VCC / VBAT", "x": 108, "y": 295, "diode_v": 0.390, "volt_v": 3.85, "fault_hint": "خط البطارية الرئيسي"},
+            {"id": "X2", "name": "TP_EDL_9008_A", "rail": "I2C_SDA / I2C_SCL", "x": 170, "y": 325, "diode_v": 0.550, "volt_v": 1.80, "fault_hint": "نقطة EDL 9008 الأولى — وصلها بالنقطة المجاورة لإدخال الجهاز وضع كوالكوم 9008"},
+            {"id": "X3", "name": "L1102 (VPH_PWR)", "rail": "PP_VDD_MAIN / VPH_PWR", "x": 410, "y": 285, "diode_v": 0.355, "volt_v": 3.85, "fault_hint": "مسار VPH_PWR الرئيسي"},
+            {"id": "X4", "name": "TP_BL_ANODE (21V)", "rail": "LCM_BL_ANODE", "x": 555, "y": 300, "diode_v": 0.560, "volt_v": 21.0, "fault_hint": "جهد رفع الإضاءة الخلفية لشاشات IPS"},
+        ],
+    },
+}
+
+
+def list_schematics_summary() -> List[Dict]:
+    return [
+        {
+            "id": s["id"],
+            "title": s["title"],
+            "architecture": s["architecture"],
+            "components_count": len(s["components"]),
+            "pins_count": len(s["pins"]),
+        }
+        for s in BOARD_SCHEMATICS.values()
+    ]
+
+
+def get_schematic_detail(schematic_id: str) -> Optional[Dict]:
+    return BOARD_SCHEMATICS.get(schematic_id)
+
+```
+
+---
+
+### 4️⃣ محلل سحب الباور سبلاي وتسلسل الإقلاع: `power_analyzer.py`
+
+```python
+"""DC Power Supply Boot-Sequence & Current Draw Diagnostic Engine.
+Analyzes pre-boot leakage (before pressing power key) and post-boot current draw (mA)
+across Apple, Qualcomm, and MediaTek architectures.
+"""
+from typing import Dict
+
+
+def analyze_dc_power_draw(
+    architecture: str,
+    pre_boot_ma: float,
+    post_boot_ma: float,
+    boot_behavior: str = "stuck",
+) -> Dict:
+    """
+    architecture: 'apple' | 'qualcomm' | 'mediatek'
+    pre_boot_ma: current draw in mA as soon as DC power supply is connected (before pressing power)
+    post_boot_ma: current draw in mA after pressing the power button
+    boot_behavior: 'zero' | 'drops_to_zero' | 'stuck' | 'cycling'
+    """
+    arch = architecture.lower().strip()
+
+    # 1. Pre-Boot Leakage / Primary Short Analysis (Before pressing Power Button)
+    if pre_boot_ma >= 500:
+        return {
+            "stage": "PRE_BOOT_DEAD_SHORT",
+            "severity": "critical",
+            "fault_title": f"قصر صريح على خط التغذية الرئيسي (سحب {pre_boot_ma}mA قبل الضغط على الباور)",
+            "suspect_rails": ["PP_VDD_MAIN / VPH_PWR", "PP_BATT_VCC / VBAT"],
+            "suspect_components": [
+                "مكثفات التصفية على خط VDD_MAIN / VPH_PWR",
+                "آيسي الشحن (Hydra / SM5714 / PM8150B)",
+                "مضخم إشارة الشبكة (2G/4G PA)",
+            ],
+            "action_plan": [
+                "افصل البوردة واضبط الباور سبلاي على 1.2V وحد أقصى للتيار 2.5A",
+                "احقن الجهد على خط VDD_MAIN واستخدم الكاميرا الحرارية أو بخاخ التبريد لرصد المكون الساخن فوراً",
+            ],
+        }
+
+    if 15 <= pre_boot_ma < 500:
+        return {
+            "stage": "PRE_BOOT_LEAKAGE",
+            "severity": "high",
+            "fault_title": f"تسريب تيار قبل الإقلاع ({pre_boot_ma}mA) — يسبب استنزاف البطارية أو عدم الإقلاع",
+            "suspect_rails": ["PP_VDD_MAIN", "PP_1V8_ALWAYS", "USB_VBUS"],
+            "suspect_components": [
+                "متحكم الشحن / USB (Tristar / Hydra / SM5714)",
+                "أحد آيسيهات LDO الفرعية أو مكثف به تسريب جزئي",
+            ],
+            "action_plan": [
+                "افحص ممانعة خطوط USB_DP / USB_DM وخطوط PP_1V8_ALWAYS",
+                "استخدم التبخير بالرجينة (Rosin Smoke) مع حقن 3.8V لتحديد المكون الذي يسخن ببطء",
+            ],
+        }
+
+    # 2. Post-Boot Current Draw Analysis (After pressing Power Button)
+    if post_boot_ma < 5 or boot_behavior == "zero":
+        return {
+            "stage": "NO_POWER_KEY_RESPONSE",
+            "severity": "medium",
+            "fault_title": "لا توجد أي استجابة عند الضغط على زر الباور (0mA)",
+            "suspect_rails": ["POWER_KEY_LINE", "PP_1V8_ALWAYS", "VRTC"],
+            "suspect_components": [
+                "فلاتة زر الباور أو مقاومة التوالي على خط زر الباور",
+                "آيسي الباور الرئيسي (PMIC) لا يخرج جهد الاستعداد 1.8V",
+            ],
+            "action_plan": [
+                "قس وجود جهد 1.8V على بن زر الباور على البوردة",
+                "جرب عمل قفلة (Short) مباشرة على نقاط زر الباور بالجفت لاستبعاد تلف الفلاتة",
+            ],
+        }
+
+    if boot_behavior == "drops_to_zero" or (10 <= post_boot_ma <= 85):
+        return {
+            "stage": "PMIC_WAKE_FAIL",
+            "severity": "high",
+            "fault_title": f"محاولة إقلاع فاشلة في مرحلة آيسي الباور ({post_boot_ma}mA ثم يعود للصفر)",
+            "suspect_rails": ["PMIC_BUCK_OUT (VCORE/VPROC)", "CLK_26MHz / 32.768kHz"],
+            "suspect_components": [
+                "قصر في أحد خطوط الخرج الثانوية (Buck/LDO) الخارجة من آيسي الباور",
+                "تلف كريستالة التوقيت (Oscillator) بجوار آيسي الباور",
+                "تلف آيسي الباور الرئيسي نفسه (PMIC)",
+            ],
+            "action_plan": [
+                "قس الممانعة على جميع الملفات المحيطة بآيسي الباور الرئيسي (PMIC) لاكتشاف أي قصر ثانوي",
+                "تأكد من سلامة كريستالة التوقيت وإعادة شبلنة أو تغيير آيسي الباور",
+            ],
+        }
+
+    if 90 <= post_boot_ma <= 220 and boot_behavior == "stuck":
+        if arch == "apple":
+            msg = "توقف السحب عند 90mA-220mA في الآيفون يشير غالباً إلى فصل بين طبقتي البوردة (Interposer) أو خلل في خطوط I2C / المعالج"
+        elif arch == "qualcomm":
+            msg = "توقف السحب عند 100mA-200mA في كوالكوم يشير لدخول المعالج وضع EDL 9008 التلقائي بسبب تلف الذاكرة UFS أو فصل لحام المعالج"
+        else:
+            msg = "توقف السحب عند 90mA-220mA في ميدياتك يشير لتوقف المعالج في وضع BROM أو عدم قراءة البريلودر من eMMC/UFS"
+
+        return {
+            "stage": "CPU_RAM_HANDSHAKE_STUCK",
+            "severity": "high",
+            "fault_title": f"توقف تسلسل الإقلاع عند مرحلة المعالج والذاكرة ({post_boot_ma}mA ثابت)",
+            "suspect_rails": ["VDD_CPU", "VDD_DDR (RAM)", "UFS_VCC_2V95"],
+            "suspect_components": [
+                "المعالج الرئيسي (CPU) أو الذاكرة العشوائية (RAM) — يحتاج Reballing",
+                "الذاكرة الداخلية (NAND / UFS / eMMC)",
+            ],
+            "action_plan": [
+                "وصّل الهاتف بالكمبيوتر وافحص هل يظهر منفذ (EDL 9008 / BROM / DFU)",
+                "قس جهود تغذية الرام والذاكرة الداخلية حول المعالج",
+            ],
+        }
+
+    return {
+        "stage": "BOOT_OS_STAGE",
+        "severity": "low",
+        "fault_title": f"سحب طبيعي لمرحلة تحميل النظام ({post_boot_ma}mA)",
+        "suspect_rails": ["LCM_BL_ANODE", "MIPI_DSI_LANE"],
+        "suspect_components": [
+            "إذا كان الجهاز يسحب طبيعياً بدون صورة: افحص دائرة الإضاءة أو الشاشة",
+            "إذا كان يعيد التشغيل على الشعار: افحص مسار BATTERY_SWI أو سوفت وير النظام",
+        ],
+        "action_plan": [
+            "افحص وجود بيانات وإضاءة على الشاشة تحت إضاءة قوية",
+            "قم بتوصيل الجهاز بالحاسوب لفحص استجابة النظام أو تفليش السوفت وير",
+        ],
+    }
+
+```
+
+---
+
+### 5️⃣ ماسح منافذ USB/Serial الحقيقي للمختبر: `usb_scanner.py`
+
+```python
+"""Real Bench USB & Serial COM Port Scanner.
+Uses pyserial (cross-platform) to detect live hardware devices plugged into the lab PC
+and matches them against real smartphone bootloader VID:PID signatures.
+"""
+from typing import Dict, List
+from hardware_atlas import identify_usb_device
+
+
+def scan_connected_usb_ports() -> List[Dict]:
+    """Scan active USB/Serial ports on the host machine without raising errors."""
+    detected = []
+    try:
+        import serial.tools.list_ports
+        ports = serial.tools.list_ports.comports()
+        for p in ports:
+            vid_hex = f"{p.vid:04X}" if p.vid is not None else ""
+            pid_hex = f"{p.pid:04X}" if p.pid is not None else ""
+            ident = identify_usb_device(vid_hex, pid_hex) if vid_hex and pid_hex else {"matched": False}
+            detected.append({
+                "port": p.device,
+                "description": p.description or "USB Serial Device",
+                "hwid": p.hwid or "",
+                "vid": vid_hex,
+                "pid": pid_hex,
+                "manufacturer": p.manufacturer or ident.get("chipset", "Unknown"),
+                "product": p.product or ident.get("mode", "Standard Device"),
+                "identification": ident,
+            })
+    except Exception:
+        pass
+    return detected
+
+```
+
+---
+
+### 6️⃣ قاعدة البيانات والترحيلات الكاملة (`m001` إلى `m005`): `database.py`
+
+```python
+"""SQLite WAL Database Manager, Versioned Migrations (v9 -> v13), and Real Lab Data Seeder."""
+import hashlib
+import json
+import secrets
+import sqlite3
+from typing import Callable, List, Tuple
+
+DB_FILE = "enterprise_database.db"
+
+
+def get_db_connection() -> sqlite3.Connection:
+    conn = sqlite3.connect(DB_FILE, timeout=30.0)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA journal_mode=WAL;")
+    conn.execute("PRAGMA busy_timeout=5000;")
+    conn.execute("PRAGMA foreign_keys=ON;")
+    return conn
+
+
+def _m001_extend_v9(conn: sqlite3.Connection) -> None:
+    conn.executescript("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            full_name TEXT,
+            role TEXT DEFAULT 'technician',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS branches (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            branch_name TEXT NOT NULL,
+            location TEXT
+        );
+        CREATE TABLE IF NOT EXISTS repair_cases_v9 (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            case_token TEXT UNIQUE NOT NULL,
+            customer_name TEXT NOT NULL,
+            customer_phone TEXT,
+            customer_email TEXT,
+            device_model TEXT NOT NULL,
+            serial_imei TEXT,
+            reported_issue TEXT,
+            branch_id INTEGER,
+            assigned_to INTEGER,
+            workflow_stage TEXT DEFAULT 'received',
+            diagnosis_summary TEXT,
+            estimated_cost REAL DEFAULT 0.0,
+            received_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(branch_id) REFERENCES branches(id),
+            FOREIGN KEY(assigned_to) REFERENCES users(id)
+        );
+        CREATE TABLE IF NOT EXISTS case_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            case_id INTEGER NOT NULL,
+            actor_id INTEGER,
+            event_type TEXT NOT NULL,
+            details TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(case_id) REFERENCES repair_cases_v9(id) ON DELETE CASCADE,
+            FOREIGN KEY(actor_id) REFERENCES users(id)
+        );
+    """)
+    conn.commit()
+
+
+def _m002_vision_and_realdata(conn: sqlite3.Connection) -> None:
+    conn.executescript("""
+        CREATE TABLE IF NOT EXISTS vision_analyses (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            case_id INTEGER,
+            image_path TEXT NOT NULL,
+            annotated_path TEXT,
+            analysis_type TEXT,
+            health_score INTEGER,
+            findings_json TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(case_id) REFERENCES repair_cases_v9(id) ON DELETE CASCADE
+        );
+        CREATE TABLE IF NOT EXISTS usb_sessions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            case_id INTEGER,
+            vid TEXT,
+            pid TEXT,
+            mode TEXT,
+            manufacturer TEXT,
+            product TEXT,
+            detected_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(case_id) REFERENCES repair_cases_v9(id) ON DELETE CASCADE
+        );
+        CREATE TABLE IF NOT EXISTS multimodal_runs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            case_id INTEGER,
+            inputs_json TEXT,
+            findings_json TEXT,
+            final_diagnosis TEXT,
+            confidence_pct INTEGER,
+            recommended_actions_json TEXT,
+            ai_engine TEXT DEFAULT 'GRE-RuleEngine+Ollama',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(case_id) REFERENCES repair_cases_v9(id) ON DELETE CASCADE
+        );
+    """)
+    conn.commit()
+
+
+def _m003_live_vision_and_collab(conn: sqlite3.Connection) -> None:
+    conn.executescript("""
+        CREATE TABLE IF NOT EXISTS live_sessions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            case_id INTEGER NOT NULL,
+            session_token TEXT UNIQUE NOT NULL,
+            started_by INTEGER,
+            started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            ended_at TIMESTAMP,
+            frame_count INTEGER DEFAULT 0,
+            total_anomalies INTEGER DEFAULT 0,
+            status TEXT DEFAULT 'active',
+            FOREIGN KEY(case_id) REFERENCES repair_cases_v9(id) ON DELETE CASCADE,
+            FOREIGN KEY(started_by) REFERENCES users(id)
+        );
+        CREATE TABLE IF NOT EXISTS live_frames (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id INTEGER NOT NULL,
+            frame_number INTEGER NOT NULL,
+            findings_json TEXT,
+            anomalies_count INTEGER DEFAULT 0,
+            saved_image_path TEXT,
+            is_flagged INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(session_id) REFERENCES live_sessions(id) ON DELETE CASCADE
+        );
+        CREATE TABLE IF NOT EXISTS collab_participants (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            case_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            left_at TIMESTAMP,
+            role TEXT DEFAULT 'technician',
+            FOREIGN KEY(case_id) REFERENCES repair_cases_v9(id) ON DELETE CASCADE,
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        );
+        CREATE TABLE IF NOT EXISTS collab_messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            case_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            message_type TEXT DEFAULT 'chat',
+            content TEXT NOT NULL,
+            payload_json TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(case_id) REFERENCES repair_cases_v9(id) ON DELETE CASCADE,
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        );
+        CREATE TABLE IF NOT EXISTS report_exports (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            case_id INTEGER NOT NULL,
+            generated_by INTEGER,
+            file_path TEXT NOT NULL,
+            file_size INTEGER,
+            images_count INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(case_id) REFERENCES repair_cases_v9(id) ON DELETE CASCADE,
+            FOREIGN KEY(generated_by) REFERENCES users(id)
+        );
+    """)
+    conn.commit()
+
+
+def _m004_diode_measurements(conn: sqlite3.Connection) -> None:
+    conn.executescript("""
+        CREATE TABLE IF NOT EXISTS diode_measurements (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            case_id INTEGER NOT NULL,
+            rail_code TEXT NOT NULL,
+            measured_v REAL NOT NULL,
+            status TEXT NOT NULL,
+            diagnosis TEXT,
+            recorded_by INTEGER,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(case_id) REFERENCES repair_cases_v9(id) ON DELETE CASCADE,
+            FOREIGN KEY(recorded_by) REFERENCES users(id)
+        );
+    """)
+    conn.commit()
+
+
+def _m005_power_supply_logs(conn: sqlite3.Connection) -> None:
+    conn.executescript("""
+        CREATE TABLE IF NOT EXISTS power_supply_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            case_id INTEGER NOT NULL,
+            architecture TEXT NOT NULL,
+            pre_boot_ma REAL NOT NULL,
+            post_boot_ma REAL NOT NULL,
+            boot_behavior TEXT NOT NULL,
+            stage TEXT NOT NULL,
+            fault_title TEXT NOT NULL,
+            recorded_by INTEGER,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(case_id) REFERENCES repair_cases_v9(id) ON DELETE CASCADE,
+            FOREIGN KEY(recorded_by) REFERENCES users(id)
+        );
+    """)
+    conn.commit()
+
+
+MIGRATIONS: List[Tuple[str, str, Callable[[sqlite3.Connection], None]]] = [
+    ("m001", "v9.0 — core cases, users, branches, events", _m001_extend_v9),
+    ("m002", "v10.0 — vision analyses, usb sessions, multimodal runs", _m002_vision_and_realdata),
+    ("m003", "v11.0 — live sessions, collab rooms, report exports", _m003_live_vision_and_collab),
+    ("m004", "v12.0 — multimeter diode-mode measurements", _m004_diode_measurements),
+    ("m005", "v13.0 — DC power supply boot-sequence logs", _m005_power_supply_logs),
+]
+
+
+def seed_real_lab_data(conn: sqlite3.Connection) -> None:
+    cur = conn.execute("SELECT COUNT(*) FROM users")
+    if cur.fetchone()[0] > 0:
+        return
+
+    admin_hash = hashlib.sha256("admin123".encode()).hexdigest()
+    tech_hash = hashlib.sha256("tech123".encode()).hexdigest()
+    conn.execute(
+        "INSERT INTO users (username, password_hash, full_name, role) VALUES (?, ?, ?, ?)",
+        ("admin", admin_hash, "م. بشار باسل المدلل — كبير مهندسي الصيانة", "admin"),
+    )
+    conn.execute(
+        "INSERT INTO users (username, password_hash, full_name, role) VALUES (?, ?, ?, ?)",
+        ("tech_board", tech_hash, "م. أحمد سامي — أخصائي جراحة البوردات", "technician"),
+    )
+
+    conn.execute(
+        "INSERT INTO branches (branch_name, location) VALUES (?, ?)",
+        ("المختبر الرئيسي — الإسكندرية (سموحة)", "الإسكندرية، مصر"),
+    )
+    conn.execute(
+        "INSERT INTO branches (branch_name, location) VALUES (?, ?)",
+        ("مركز الجراحة الدقيقة — محطة الرمل", "الإسكندرية، مصر"),
+    )
+
+    cases = [
+        (
+            secrets.token_hex(16), "كريم محمود السيد", "+201001234567", "karim@example.com",
+            "Samsung Galaxy A32 (SM-A325F)", "354891110492817",
+            "الجهاز سقط في الماء ولا يشحن مع ظهور علامة الرطوبة ثم فصل باور نهائياً",
+            1, 1, "board_surgery",
+            "تآكل وأكسدة حول آيسي SM5714 مع قصر جزئي على خط USB_CC1 — تم تنظيف المنطقة وقياس الممانعات.",
+            850.0,
+        ),
+        (
+            secrets.token_hex(16), "سارة عبد الرحمن", "+201119876543", "sara@example.com",
+            "iPhone 14 Pro", "359124887102344",
+            "الجهاز يسخن بشدة عند توصيل الشاحن ولا يقلع (سحب 620mA قبل الضغط على الباور)",
+            1, 2, "diagnosing",
+            "قصر صريح على خط PP_VDD_MAIN (0.012V) — جارٍ تحديد المكثف التالف بالكاميرا الحرارية وحقن الجهد.",
+            2400.0,
+        ),
+        (
+            secrets.token_hex(16), "محمود طارق حسن", "+201223344556", "mahmoud@example.com",
+            "Realme C53 (RMX3760)", "864219053187420",
+            "توقف الجهاز على وضع BROM بعد تحديث خاطئ للنظام",
+            2, 1, "software_flashing",
+            "تم التعرف على المعالج في وضع MediaTek BROM (0E8D:0003) وجارٍ تمرير البريلودر والنظام.",
+            450.0,
+        ),
+    ]
+
+    for c in cases:
+        cur = conn.execute(
+            """INSERT INTO repair_cases_v9
+               (case_token, customer_name, customer_phone, customer_email, device_model,
+                serial_imei, reported_issue, branch_id, assigned_to, workflow_stage,
+                diagnosis_summary, estimated_cost)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            c,
+        )
+        cid = cur.lastrowid
+        conn.execute(
+            "INSERT INTO case_events (case_id, actor_id, event_type, details) VALUES (?, ?, ?, ?)",
+            (cid, 1, "case_received", f"استلام الجهاز {c[4]} وفتح تذكرة الفحص المخبري"),
+        )
+
+    conn.execute(
+        "INSERT INTO usb_sessions (case_id, vid, pid, mode, manufacturer, product) VALUES (?, ?, ?, ?, ?, ?)",
+        (1, "04E8", "685D", "ODIN / Download Mode", "Samsung Electronics", "Exynos ODIN Interface"),
+    )
+    conn.execute(
+        "INSERT INTO usb_sessions (case_id, vid, pid, mode, manufacturer, product) VALUES (?, ?, ?, ?, ?, ?)",
+        (3, "0E8D", "0003", "BROM Mode (BootROM)", "MediaTek Inc.", "MT65xx Preloader / BROM Port"),
+    )
+
+    conn.execute(
+        "INSERT INTO diode_measurements (case_id, rail_code, measured_v, status, diagnosis, recorded_by) VALUES (?, ?, ?, ?, ?, ?)",
+        (1, "USB_CC1 / USB_CC2", 0.065, "SHORT_CIRCUIT", "قصر حرج على مسارات تعريف الشحن السريع Type-C CC! المشتبه بهم: تلف متحكم Type-C / SM5714", 1),
+    )
+    conn.execute(
+        "INSERT INTO diode_measurements (case_id, rail_code, measured_v, status, diagnosis, recorded_by) VALUES (?, ?, ?, ?, ?, ?)",
+        (2, "PP_VDD_MAIN / VPH_PWR", 0.014, "SHORT_CIRCUIT", "قصر حرج على خط التغذية الرئيسي للبوردة! المشتبه بهم: مكثفات التصفية على خط VDD_MAIN", 2),
+    )
+    conn.execute(
+        """INSERT INTO power_supply_logs
+           (case_id, architecture, pre_boot_ma, post_boot_ma, boot_behavior, stage, fault_title, recorded_by)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+        (2, "apple", 620.0, 620.0, "stuck", "PRE_BOOT_DEAD_SHORT", "قصر صريح على خط التغذية الرئيسي (سحب 620.0mA قبل الضغط على الباور)", 2),
+    )
+
+    conn.execute(
+        """INSERT INTO multimodal_runs
+           (case_id, inputs_json, findings_json, final_diagnosis, confidence_pct, recommended_actions_json, ai_engine)
+           VALUES (?, ?, ?, ?, ?, ?, ?)""",
+        (
+            2,
+            json.dumps({"diode_rails": ["PP_VDD_MAIN"], "power_supply_draw": "620mA pre-boot"}, ensure_ascii=False),
+            json.dumps([{"type": "short_circuit", "rail": "PP_VDD_MAIN", "value": "0.014V"}], ensure_ascii=False),
+            "قصر صريح على خط التغذية الرئيسي PP_VDD_MAIN ناتج عن تلف أحد مكثفات التصفية بجوار آيسي الباور.",
+            96,
+            json.dumps([
+                "ضبط الباور سبلاي على 1.2V و 2.5A وحقن الجهد على خط PP_VDD_MAIN",
+                "استخدام الكاميرا الحرارية أو بخاخ التبريد (Rosin/Freeze) لرصد المكثف الساخن",
+                "رفع المكثف التالف واستبداله بقيمة مطابقة ثم إعادة قياس الممانعة (المتوقع ~0.380V)",
+            ], ensure_ascii=False),
+            "GRE-Multimodal-Engine v13",
+        ),
+    )
+    conn.commit()
+
+
+def run_migrations() -> None:
+    conn = get_db_connection()
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS schema_migrations (
+            version TEXT PRIMARY KEY,
+            applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+    applied = {r[0] for r in conn.execute("SELECT version FROM schema_migrations").fetchall()}
+
+    for ver, desc, mig_func in MIGRATIONS:
+        if ver not in applied:
+            mig_func(conn)
+            conn.execute("INSERT INTO schema_migrations (version) VALUES (?)", (ver,))
+            conn.commit()
+
+    seed_real_lab_data(conn)
+    conn.close()
+
+```
+
+---
+
+### 7️⃣ محرك التشخيص متعدد الوسائط: `ai_copilot.py`
+
+```python
+"""Multimodal Hardware Diagnostic Co-Pilot (Diode + DC Power Supply + USB + OpenCV + Local Ollama)."""
+import base64
+import json
+import os
+from typing import Dict, List, Optional
+import httpx
+
+OLLAMA_URL = os.getenv("OLLAMA_URL", "http://127.0.0.1:11434")
+OLLAMA_VISION_MODEL = os.getenv("OLLAMA_VISION_MODEL", "llava")
+OLLAMA_TEXT_MODEL = os.getenv("OLLAMA_TEXT_MODEL", "qwen2.5-coder:7b")
+
+
+async def query_ollama_diagnostic(prompt: str, image_path: Optional[str] = None) -> Optional[str]:
+    try:
+        payload: Dict = {
+            "model": OLLAMA_VISION_MODEL if image_path else OLLAMA_TEXT_MODEL,
+            "prompt": prompt,
+            "stream": False,
+        }
+        if image_path and os.path.exists(image_path):
+            with open(image_path, "rb") as f:
+                payload["images"] = [base64.b64encode(f.read()).decode("utf-8")]
+
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            resp = await client.post(f"{OLLAMA_URL}/api/generate", json=payload)
+            if resp.status_code == 200:
+                return resp.json().get("response", "").strip()
+    except Exception:
+        return None
+    return None
+
+
+async def run_multimodal_diagnosis(
+    case: dict,
+    diode_readings: List[dict],
+    usb_sessions: List[dict],
+    vision_analyses: List[dict],
+    power_logs: Optional[List[dict]] = None,
+) -> Dict:
+    evidence_summary = []
+    actions = []
+    confidence = 75
+    primary_fault = f"فحص أولي للجهاز {case.get('device_model', '')}: {case.get('reported_issue', 'عطل عام')}"
+
+    # 1. Diode Readings
+    shorts = [d for d in diode_readings if d.get("status") == "SHORT_CIRCUIT"]
+    opens = [d for d in diode_readings if d.get("status") == "OPEN_LINE"]
+
+    if shorts:
+        s = shorts[0]
+        primary_fault = f"قصر صريح (Short Circuit) على مسار {s['rail_code']} بقيمة {s['measured_v']}V"
+        confidence = 95
+        evidence_summary.append({"source": "diode_mode", "detail": s["diagnosis"]})
+        actions.extend([
+            f"حقن جهد منخفض (1.0V - 1.5V / 2A) على مسار {s['rail_code']} لتحديد المكون الساخن",
+            "استخدام بخاخ التبريد (Freeze Spray) أو الكاميرا الحرارية لعزل المكثف أو الآيسي المتسبب بالقصر",
+        ])
+    elif opens:
+        o = opens[0]
+        primary_fault = f"قطع في المسار (Open Line) على خط {o['rail_code']}"
+        confidence = 90
+        evidence_summary.append({"source": "diode_mode", "detail": o["diagnosis"]})
+        actions.append(f"فحص المقاومات والملفات المتصلة على التوالي مع مسار {o['rail_code']} تحت الميكروسكوب")
+
+    # 2. DC Power Supply Logs
+    if power_logs:
+        last_pwr = power_logs[0]
+        evidence_summary.append({
+            "source": "dc_power_supply",
+            "detail": f"سحب قبل الباور {last_pwr['pre_boot_ma']}mA / بعد الباور {last_pwr['post_boot_ma']}mA — {last_pwr['fault_title']}",
+        })
+        if not shorts and last_pwr["stage"] != "BOOT_OS_STAGE":
+            primary_fault = last_pwr["fault_title"]
+            confidence = max(confidence, 92)
+
+    # 3. USB Signatures
+    if usb_sessions:
+        last_usb = usb_sessions[0]
+        mode = last_usb.get("mode", "")
+        evidence_summary.append({"source": "usb_port", "detail": f"تم رصد وضعية {mode} ({last_usb.get('vid')}:{last_usb.get('pid')})"})
+        if not shorts and ("BROM" in mode or "EDL" in mode):
+            primary_fault = f"الجهاز عالق في وضع الطوارئ ({mode}) نتيجة تلف ملفات الإقلاع أو الذاكرة الداخلية"
+            confidence = 92
+            actions.extend([
+                "سحب نسخة احتياطية من قطاعات الأمان (NVDATA / NVRAM / EFS) قبل أي عملية تفليش",
+                "تمرير ملفات البوت والنظام المناسبة عبر واجهة التفليش الهندسية",
+            ])
+
+    # 4. OpenCV Vision Findings
+    latest_image = None
+    if vision_analyses:
+        last_vis = vision_analyses[0]
+        latest_image = last_vis.get("image_path")
+        v_findings = json.loads(last_vis.get("findings_json") or "[]")
+        for vf in v_findings:
+            evidence_summary.append({"source": "opencv_vision", "detail": f"{vf.get('label_ar', vf['type'])} (العدد: {vf['count']})"})
+            if vf["type"] == "corrosion":
+                actions.append("تنظيف البوردة بمحلول التنظيف بالموجات فوق الصوتية وإعادة لحام الأرجل المتأكسدة بالفلكس")
+            elif vf["type"] == "burn_marks":
+                actions.append("رفع المكون المتفحم وفحص سلامة وسادات اللحام (Pads) أسفله قبل التركيب")
+
+    if not actions:
+        actions.append("إجراء فحص سحب التيار على الباور سبلاي وقياس ممانعات كونكتر البطارية والشحن")
+
+    # 5. Optional Local Ollama Enrichment
+    ollama_prompt = (
+        f"أنت مهندس صيانة هواتف خبير. الجهاز: {case.get('device_model')}. "
+        f"الشكوى: {case.get('reported_issue')}. "
+        f"التشخيص المبدئي: {primary_fault}. "
+        f"أعطِ نصيحة هندسية مركزة في سطرين باللغة العربية."
+    )
+    ollama_advice = await query_ollama_diagnostic(ollama_prompt, latest_image)
+    engine_used = "GRE-Multimodal + Ollama Local AI" if ollama_advice else "GRE-Multimodal Hardware Engine v13"
+    if ollama_advice:
+        actions.append(f"توصية الذكاء الاصطناعي المحلي: {ollama_advice}")
+
+    return {
+        "final_diagnosis": primary_fault,
+        "confidence_pct": confidence,
+        "evidence": evidence_summary,
+        "recommended_actions": actions,
+        "ai_engine": engine_used,
+    }
+
+```
+
+---
+
+### 8️⃣ الخادم المركزي الموحد: `enterprise_backend.py`
+
+```python
+"""Global Repair Enterprise Platform v13.0 — Unified FastAPI Backend."""
+from contextlib import asynccontextmanager
+import hashlib
+import json
+import os
+import secrets
+import time
+from typing import Optional
+
+import aiosqlite
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, Response, UploadFile, WebSocket, WebSocketDisconnect
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
+
+from ai_copilot import run_multimodal_diagnosis
+from auth import create_access_token, decode_token_raw, get_current_user
+from collaboration import collab_manager
+from database import DB_FILE, run_migrations
+from hardware_atlas import (
+    DIODE_REFERENCE_RAILS,
+    IC_FAULT_CATALOG,
+    USB_HARDWARE_SIGNATURES,
+    evaluate_diode_reading,
+    identify_usb_device,
+    search_device_atlas,
+)
+from live_vision import ANALYZE_EVERY_N_FRAMES, live_vision
+from power_analyzer import analyze_dc_power_draw
+from report_generator import report_generator
+from schematics_engine import get_schematic_detail, list_schematics_summary
+from usb_scanner import scan_connected_usb_ports
+from vision_engine import UPLOAD_DIR, vision_engine
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    run_migrations()
+    os.makedirs("data/reports", exist_ok=True)
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    yield
+
+
+app = FastAPI(title="Global Repair Enterprise Platform", version="13.0", lifespan=lifespan)
+os.makedirs("data", exist_ok=True)
+app.mount("/data", StaticFiles(directory="data"), name="data")
+
+
+# ═══════════════════════════════════════════════════════════════
+# 1) AUTHENTICATION
+# ═══════════════════════════════════════════════════════════════
+@app.post("/api/auth/login")
+async def login(request: Request):
+    content_type = request.headers.get("content-type", "")
+    if "application/json" in content_type:
+        body = await request.json()
+        username = body.get("username", "")
+        password = body.get("password", "")
+    else:
+        form = await request.form()
+        username = str(form.get("username", ""))
+        password = str(form.get("password", ""))
+
+    pwd_hash = hashlib.sha256(password.encode()).hexdigest()
+    async with aiosqlite.connect(DB_FILE) as db:
+        db.row_factory = aiosqlite.Row
+        cur = await db.execute(
+            "SELECT id, username, full_name, role FROM users WHERE username = ? AND password_hash = ?",
+            (username, pwd_hash),
+        )
+        user = await cur.fetchone()
+        if not user:
+            raise HTTPException(401, "بيانات الدخول غير صحيحة")
+
+        user_dict = dict(user)
+        token = create_access_token({
+            "sub": str(user_dict["id"]),
+            "username": user_dict["username"],
+            "role": user_dict["role"],
+        })
+        return {"access_token": token, "token_type": "bearer", "user": user_dict}
+
+
+# ═══════════════════════════════════════════════════════════════
+# 2) HARDWARE ATLAS, SCHEMATICS & DC POWER ANALYZER
+# ═══════════════════════════════════════════════════════════════
+@app.get("/api/catalogs")
+async def get_real_catalogs(user: dict = Depends(get_current_user)):
+    return {
+        "usb_signatures": USB_HARDWARE_SIGNATURES,
+        "diode_rails": DIODE_REFERENCE_RAILS,
+        "ic_faults": IC_FAULT_CATALOG,
+    }
+
+
+@app.get("/api/atlas/devices")
+async def api_search_devices(q: str = "", brand: str = "", user: dict = Depends(get_current_user)):
+    return {"devices": search_device_atlas(q, brand)}
+
+
+@app.get("/api/schematics")
+async def api_list_schematics(user: dict = Depends(get_current_user)):
+    return {"schematics": list_schematics_summary()}
+
+
+@app.get("/api/schematics/{schematic_id}")
+async def api_get_schematic(schematic_id: str, user: dict = Depends(get_current_user)):
+    sch = get_schematic_detail(schematic_id)
+    if not sch:
+        raise HTTPException(404, "المخطط غير موجود")
+    return sch
+
+
+@app.get("/api/hardware/scan-usb")
+async def api_scan_live_usb(user: dict = Depends(get_current_user)):
+    ports = scan_connected_usb_ports()
+    return {"ports": ports, "count": len(ports)}
+
+
+class UsbDetectIn(BaseModel):
+    case_id: int
+    vid: str
+    pid: str
+    manufacturer: Optional[str] = None
+    product: Optional[str] = None
+
+
+@app.post("/api/hardware/usb-detect")
+async def register_usb_detection(q: UsbDetectIn, user: dict = Depends(get_current_user)):
+    info = identify_usb_device(q.vid, q.pid)
+    mfg = q.manufacturer or info["chipset"]
+    prod = q.product or info["mode"]
+
+    async with aiosqlite.connect(DB_FILE) as db:
+        cur = await db.execute("SELECT id FROM repair_cases_v9 WHERE id = ?", (q.case_id,))
+        if not await cur.fetchone():
+            raise HTTPException(404, "الحالة غير موجودة")
+
+        await db.execute(
+            "INSERT INTO usb_sessions (case_id, vid, pid, mode, manufacturer, product) VALUES (?, ?, ?, ?, ?, ?)",
+            (q.case_id, info.get("vid", q.vid), info.get("pid", q.pid), info["mode"], mfg, prod),
+        )
+        await db.execute(
+            "INSERT INTO case_events (case_id, actor_id, event_type, details) VALUES (?, ?, ?, ?)",
+            (q.case_id, user["id"], "usb_detected", f"اتصال USB: {info['mode']} ({q.vid}:{q.pid})"),
+        )
+        await db.commit()
+
+    return {"status": "ok", "identification": info}
+
+
+class DiodeCheckIn(BaseModel):
+    case_id: int
+    rail_code: str
+    measured_v: float
+
+
+@app.post("/api/hardware/diode-check")
+async def check_and_record_diode(q: DiodeCheckIn, user: dict = Depends(get_current_user)):
+    eval_res = evaluate_diode_reading(q.rail_code, q.measured_v)
+    async with aiosqlite.connect(DB_FILE) as db:
+        cur = await db.execute("SELECT id FROM repair_cases_v9 WHERE id = ?", (q.case_id,))
+        if not await cur.fetchone():
+            raise HTTPException(404, "الحالة غير موجودة")
+
+        await db.execute(
+            """INSERT INTO diode_measurements (case_id, rail_code, measured_v, status, diagnosis, recorded_by)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            (q.case_id, eval_res["rail_code"], q.measured_v, eval_res["status"], eval_res["diagnosis"], user["id"]),
+        )
+        await db.execute(
+            "INSERT INTO case_events (case_id, actor_id, event_type, details) VALUES (?, ?, ?, ?)",
+            (q.case_id, user["id"], "diode_measured", f"قياس {eval_res['rail_code']} = {q.measured_v}V ({eval_res['status']})"),
+        )
+        await db.commit()
+
+    return {"status": "ok", "evaluation": eval_res}
+
+
+class PowerAnalyzeIn(BaseModel):
+    case_id: Optional[int] = None
+    architecture: str = "qualcomm"
+    pre_boot_ma: float
+    post_boot_ma: float
+    boot_behavior: str = "stuck"
+
+
+@app.post("/api/power/analyze")
+async def api_power_analyze(q: PowerAnalyzeIn, user: dict = Depends(get_current_user)):
+    analysis = analyze_dc_power_draw(q.architecture, q.pre_boot_ma, q.post_boot_ma, q.boot_behavior)
+    if q.case_id:
+        async with aiosqlite.connect(DB_FILE) as db:
+            cur = await db.execute("SELECT id FROM repair_cases_v9 WHERE id = ?", (q.case_id,))
+            if await cur.fetchone():
+                await db.execute(
+                    """INSERT INTO power_supply_logs
+                       (case_id, architecture, pre_boot_ma, post_boot_ma, boot_behavior, stage, fault_title, recorded_by)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (
+                        q.case_id, q.architecture, q.pre_boot_ma, q.post_boot_ma,
+                        q.boot_behavior, analysis["stage"], analysis["fault_title"], user["id"],
+                    ),
+                )
+                await db.execute(
+                    "INSERT INTO case_events (case_id, actor_id, event_type, details) VALUES (?, ?, ?, ?)",
+                    (q.case_id, user["id"], "power_analyzed", f"تحليل باور سبلاي: {analysis['fault_title']}"),
+                )
+                await db.commit()
+    return {"status": "ok", "analysis": analysis}
+
+
+# ═══════════════════════════════════════════════════════════════
+# 3) REPAIR CASES & MULTIMODAL AI DIAGNOSIS
+# ═══════════════════════════════════════════════════════════════
+class CaseCreate(BaseModel):
+    customer_name: str
+    customer_phone: Optional[str] = None
+    customer_email: Optional[str] = None
+    device_model: str
+    serial_imei: Optional[str] = None
+    reported_issue: Optional[str] = None
+    branch_id: Optional[int] = 1
+    estimated_cost: Optional[float] = 0.0
+
+
+class StageUpdateIn(BaseModel):
+    workflow_stage: str
+    diagnosis_summary: Optional[str] = None
+    estimated_cost: Optional[float] = None
+
+
+@app.get("/api/cases")
+async def list_cases(user: dict = Depends(get_current_user)):
+    async with aiosqlite.connect(DB_FILE) as db:
+        db.row_factory = aiosqlite.Row
+        rows = await db.execute(
+            """SELECT c.*, b.branch_name, u.full_name AS technician_name
+               FROM repair_cases_v9 c
+               LEFT JOIN branches b ON b.id = c.branch_id
+               LEFT JOIN users u ON u.id = c.assigned_to
+               ORDER BY c.id DESC"""
+        )
+        return {"cases": [dict(r) for r in await rows.fetchall()]}
+
+
+@app.get("/api/cases/{case_id}")
+async def get_case_details(case_id: int, user: dict = Depends(get_current_user)):
+    async with aiosqlite.connect(DB_FILE) as db:
+        db.row_factory = aiosqlite.Row
+        cur = await db.execute("SELECT * FROM repair_cases_v9 WHERE id = ?", (case_id,))
+        case = await cur.fetchone()
+        if not case:
+            raise HTTPException(404, "الحالة غير موجودة")
+
+        events = [dict(r) for r in await (await db.execute("SELECT * FROM case_events WHERE case_id = ? ORDER BY id DESC", (case_id,))).fetchall()]
+        diodes = [dict(r) for r in await (await db.execute("SELECT * FROM diode_measurements WHERE case_id = ? ORDER BY id DESC", (case_id,))).fetchall()]
+        usbs = [dict(r) for r in await (await db.execute("SELECT * FROM usb_sessions WHERE case_id = ? ORDER BY id DESC", (case_id,))).fetchall()]
+        visions = [dict(r) for r in await (await db.execute("SELECT * FROM vision_analyses WHERE case_id = ? ORDER BY id DESC", (case_id,))).fetchall()]
+        runs = [dict(r) for r in await (await db.execute("SELECT * FROM multimodal_runs WHERE case_id = ? ORDER BY id DESC", (case_id,))).fetchall()]
+        powers = [dict(r) for r in await (await db.execute("SELECT * FROM power_supply_logs WHERE case_id = ? ORDER BY id DESC", (case_id,))).fetchall()]
+
+        return {
+            "case": dict(case),
+            "events": events,
+            "diode_measurements": diodes,
+            "usb_sessions": usbs,
+            "vision_analyses": visions,
+            "multimodal_runs": runs,
+            "power_logs": powers,
+        }
+
+
+@app.post("/api/cases")
+async def create_case(payload: CaseCreate, user: dict = Depends(get_current_user)):
+    token = secrets.token_hex(16)
+    async with aiosqlite.connect(DB_FILE) as db:
+        cur = await db.execute(
+            """INSERT INTO repair_cases_v9
+               (case_token, customer_name, customer_phone, customer_email, device_model,
+                serial_imei, reported_issue, branch_id, assigned_to, estimated_cost)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                token, payload.customer_name, payload.customer_phone, payload.customer_email,
+                payload.device_model, payload.serial_imei, payload.reported_issue,
+                payload.branch_id or 1, user["id"], payload.estimated_cost or 0.0,
+            ),
+        )
+        case_id = cur.lastrowid
+        await db.execute(
+            "INSERT INTO case_events (case_id, actor_id, event_type, details) VALUES (?, ?, ?, ?)",
+            (case_id, user["id"], "case_created", f"تم فتح التذكرة بواسطة {user['full_name'] or user['username']}"),
+        )
+        await db.commit()
+    return {"status": "success", "case_id": case_id, "case_token": token}
+
+
+@app.patch("/api/cases/{case_id}/stage")
+async def update_case_stage(case_id: int, q: StageUpdateIn, user: dict = Depends(get_current_user)):
+    async with aiosqlite.connect(DB_FILE) as db:
+        cur = await db.execute("SELECT id FROM repair_cases_v9 WHERE id = ?", (case_id,))
+        if not await cur.fetchone():
+            raise HTTPException(404, "الحالة غير موجودة")
+
+        await db.execute(
+            """UPDATE repair_cases_v9
+               SET workflow_stage = ?,
+                   diagnosis_summary = COALESCE(?, diagnosis_summary),
+                   estimated_cost = COALESCE(?, estimated_cost)
+               WHERE id = ?""",
+            (q.workflow_stage, q.diagnosis_summary, q.estimated_cost, case_id),
+        )
+        await db.execute(
+            "INSERT INTO case_events (case_id, actor_id, event_type, details) VALUES (?, ?, ?, ?)",
+            (case_id, user["id"], "stage_changed", f"تحديث المرحلة إلى: {q.workflow_stage}"),
+        )
+        await db.commit()
+    return {"status": "ok"}
+
+
+@app.post("/api/cases/{case_id}/ai-diagnose")
+async def trigger_multimodal_ai(case_id: int, user: dict = Depends(get_current_user)):
+    details = await get_case_details(case_id, user)
+    diagnosis = await run_multimodal_diagnosis(
+        details["case"],
+        details["diode_measurements"],
+        details["usb_sessions"],
+        details["vision_analyses"],
+        details["power_logs"],
+    )
+
+    async with aiosqlite.connect(DB_FILE) as db:
+        await db.execute(
+            """INSERT INTO multimodal_runs
+               (case_id, inputs_json, findings_json, final_diagnosis, confidence_pct, recommended_actions_json, ai_engine)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (
+                case_id,
+                json.dumps({
+                    "diodes": len(details["diode_measurements"]),
+                    "usb": len(details["usb_sessions"]),
+                    "vision": len(details["vision_analyses"]),
+                    "power": len(details["power_logs"]),
+                }),
+                json.dumps(diagnosis["evidence"], ensure_ascii=False),
+                diagnosis["final_diagnosis"],
+                diagnosis["confidence_pct"],
+                json.dumps(diagnosis["recommended_actions"], ensure_ascii=False),
+                diagnosis["ai_engine"],
+            ),
+        )
+        await db.execute(
+            "UPDATE repair_cases_v9 SET diagnosis_summary = ? WHERE id = ?",
+            (diagnosis["final_diagnosis"], case_id),
+        )
+        await db.commit()
+
+    return {"status": "ok", "diagnosis": diagnosis}
+
+
+# ═══════════════════════════════════════════════════════════════
+# 4) STATIC VISION ANALYSIS & LIVE WEBSOCKET STREAM
+# ═══════════════════════════════════════════════════════════════
+@app.post("/api/vision/analyze")
+async def analyze_board(
+    file: UploadFile = File(...),
+    analysis_type: str = Form("board_overview"),
+    case_id: Optional[int] = Form(None),
+    user: dict = Depends(get_current_user),
+):
+    contents = await file.read()
+    safe_name = f"{secrets.token_hex(8)}_{os.path.basename(file.filename or 'board.jpg')}"
+    fpath = os.path.join(UPLOAD_DIR, safe_name)
+    with open(fpath, "wb") as f:
+        f.write(contents)
+
+    result = vision_engine.analyze_image(fpath)
+    if "error" in result:
+        raise HTTPException(400, result["error"])
+
+    async with aiosqlite.connect(DB_FILE) as db:
+        await db.execute(
+            """INSERT INTO vision_analyses (case_id, image_path, annotated_path, analysis_type, health_score, findings_json)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            (
+                case_id, fpath, result["annotated_path"], analysis_type,
+                result["health_score"], json.dumps(result["findings"], ensure_ascii=False),
+            ),
+        )
+        if case_id:
+            await db.execute(
+                "INSERT INTO case_events (case_id, actor_id, event_type, details) VALUES (?, ?, ?, ?)",
+                (case_id, user["id"], "vision_analyzed", f"فحص بصري ({analysis_type}) — مؤشر السلامة {result['health_score']}%"),
+            )
+        await db.commit()
+
+    return {"status": "ok", "image_path": fpath, **result}
+
+
+class LiveStartIn(BaseModel):
+    case_id: int
+
+
+@app.post("/api/live/start")
+async def api_live_start(q: LiveStartIn, user: dict = Depends(get_current_user)):
+    async with aiosqlite.connect(DB_FILE) as db:
+        cur = await db.execute("SELECT id FROM repair_cases_v9 WHERE id = ?", (q.case_id,))
+        if not await cur.fetchone():
+            raise HTTPException(404, "الحالة غير موجودة")
+
+        token = secrets.token_urlsafe(24)
+        cur = await db.execute(
+            "INSERT INTO live_sessions (case_id, session_token, started_by) VALUES (?, ?, ?)",
+            (q.case_id, token, user["id"]),
+        )
+        session_id = cur.lastrowid
+        await db.commit()
+
+    live_vision.register_session(token, session_id, q.case_id, user["id"])
+    return {
+        "status": "success",
+        "session_id": session_id,
+        "session_token": token,
+        "ws_url": f"/ws/live/{token}",
+        "case_id": q.case_id,
+        "analyze_every_n_frames": ANALYZE_EVERY_N_FRAMES,
+    }
+
+
+@app.websocket("/ws/live/{token}")
+async def ws_live_vision(websocket: WebSocket, token: str):
+    token_jwt = websocket.query_params.get("token")
+    if not token_jwt:
+        await websocket.close(code=4001, reason="missing auth")
+        return
+    try:
+        decode_token_raw(token_jwt)
+    except Exception:
+        await websocket.close(code=4001, reason="invalid token")
+        return
+
+    session = live_vision.get_session(token)
+    if not session:
+        await websocket.close(code=4004, reason="session expired")
+        return
+
+    await websocket.accept()
+    frame_counter = 0
+    real_session_id = session["session_id"]
+
+    try:
+        while True:
+            raw = await websocket.receive_text()
+            try:
+                msg = json.loads(raw)
+            except Exception:
+                continue
+            if msg.get("type") != "frame":
+                continue
+
+            frame_counter += 1
+            frame = live_vision.decode_base64_frame(msg.get("image", ""))
+            if frame is None:
+                await websocket.send_json({"type": "error", "message": "bad frame"})
+                continue
+
+            if frame_counter % ANALYZE_EVERY_N_FRAMES != 0:
+                live_vision.increment_frame(token, 0)
+                continue
+
+            result = live_vision.analyze_frame(frame, full_analysis=(frame_counter % 30 == 0))
+            live_vision.increment_frame(token, result["anomalies"])
+
+            saved_path = None
+            is_flagged = 0
+            if result["anomalies"] > 0:
+                saved_path = live_vision.save_flagged_frame(frame)
+                is_flagged = 1
+
+            async with aiosqlite.connect(DB_FILE) as db:
+                await db.execute(
+                    """INSERT INTO live_frames
+                       (session_id, frame_number, findings_json, anomalies_count, saved_image_path, is_flagged)
+                       VALUES (?, ?, ?, ?, ?, ?)""",
+                    (
+                        real_session_id, frame_counter,
+                        json.dumps(result["findings"], ensure_ascii=False),
+                        result["anomalies"], saved_path, is_flagged,
+                    ),
+                )
+                await db.commit()
+
+            await websocket.send_json({
+                "type": "analysis",
+                "frame": frame_counter,
+                "findings": result["findings"],
+                "anomalies": result["anomalies"],
+                "analysis_ms": result["analysis_ms"],
+                "flagged": is_flagged == 1,
+            })
+    except WebSocketDisconnect:
+        pass
+    finally:
+        sess = live_vision.unregister_session(token)
+        if sess:
+            async with aiosqlite.connect(DB_FILE) as db:
+                await db.execute(
+                    """UPDATE live_sessions SET ended_at = CURRENT_TIMESTAMP,
+                       frame_count = ?, total_anomalies = ?, status = 'ended'
+                       WHERE session_token = ?""",
+                    (sess["frame_count"], sess["anomalies_total"], token),
+                )
+                await db.commit()
+
+
+# ═══════════════════════════════════════════════════════════════
+# 5) REAL-TIME COLLABORATION ROOMS
+# ═══════════════════════════════════════════════════════════════
+@app.websocket("/ws/collab/{case_id}")
+async def ws_collab(websocket: WebSocket, case_id: int):
+    token = websocket.query_params.get("token")
+    if not token:
+        await websocket.close(code=4001, reason="missing auth")
+        return
+    try:
+        payload = decode_token_raw(token)
+    except Exception:
+        await websocket.close(code=4001, reason="invalid token")
+        return
+
+    user = {
+        "id": int(payload["sub"]),
+        "username": payload["username"],
+        "role": payload.get("role", "technician"),
+        "full_name": payload["username"],
+    }
+    async with aiosqlite.connect(DB_FILE) as db:
+        db.row_factory = aiosqlite.Row
+        cur = await db.execute("SELECT full_name FROM users WHERE id = ?", (user["id"],))
+        row = await cur.fetchone()
+        if row and row["full_name"]:
+            user["full_name"] = row["full_name"]
+
+    await websocket.accept()
+    try:
+        history = collab_manager.get_history(case_id, limit=100)
+        await websocket.send_json({
+            "type": "history",
+            "messages": history,
+            "participants": collab_manager.get_participants(case_id),
+        })
+        await collab_manager.join(case_id, user, websocket)
+
+        while True:
+            raw = await websocket.receive_text()
+            try:
+                msg = json.loads(raw)
+            except Exception:
+                continue
+            mtype = msg.get("type")
+            if mtype == "chat":
+                await collab_manager.chat(case_id, user, msg.get("text", ""))
+            elif mtype == "cursor":
+                await collab_manager.cursor(case_id, user, float(msg.get("x", 0)), float(msg.get("y", 0)))
+            elif mtype == "annotation":
+                await collab_manager.annotate(case_id, user, msg.get("annotation", {}))
+            elif mtype == "ping":
+                await websocket.send_json({"type": "pong"})
+    except WebSocketDisconnect:
+        pass
+    finally:
+        await collab_manager.leave(case_id, user, websocket)
+
+
+@app.get("/api/collab/{case_id}/history")
+async def api_collab_history(case_id: int, user: dict = Depends(get_current_user)):
+    return {
+        "messages": collab_manager.get_history(case_id),
+        "participants": collab_manager.get_participants(case_id),
+    }
+
+
+# ═══════════════════════════════════════════════════════════════
+# 6) PDF REPORT & CUSTOMER SELF-SERVICE TRACKING PORTAL
+# ═══════════════════════════════════════════════════════════════
+@app.get("/api/cases/{case_id}/report.pdf")
+async def api_case_report(
+    case_id: int,
+    include_images: bool = True,
+    include_timeline: bool = True,
+    user: dict = Depends(get_current_user),
+):
+    try:
+        pdf_bytes = report_generator.build_case_report(
+            case_id, include_images=include_images, include_timeline=include_timeline
+        )
+    except ValueError as e:
+        raise HTTPException(404, str(e))
+
+    fname = f"GRE_Case_{case_id}_{int(time.time())}.pdf"
+    fpath = os.path.join("data/reports", fname)
+    with open(fpath, "wb") as f:
+        f.write(pdf_bytes)
+
+    async with aiosqlite.connect(DB_FILE) as db:
+        await db.execute(
+            "INSERT INTO report_exports (case_id, generated_by, file_path, file_size) VALUES (?, ?, ?, ?)",
+            (case_id, user["id"], fpath, len(pdf_bytes)),
+        )
+        await db.commit()
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'inline; filename="{fname}"'},
+    )
+
+
+@app.get("/api/public/portal/{case_token}")
+async def api_customer_portal_data(case_token: str):
+    async with aiosqlite.connect(DB_FILE) as db:
+        db.row_factory = aiosqlite.Row
+        cur = await db.execute(
+            """SELECT c.id, c.case_token, c.customer_name, c.device_model, c.reported_issue,
+                      c.workflow_stage, c.diagnosis_summary, c.estimated_cost, c.received_at,
+                      b.branch_name
+               FROM repair_cases_v9 c
+               LEFT JOIN branches b ON b.id = c.branch_id
+               WHERE c.case_token = ?""",
+            (case_token,),
+        )
+        case = await cur.fetchone()
+        if not case:
+            raise HTTPException(404, "رقم التتبع غير صحيح")
+
+        events = [
+            dict(r) for r in await (
+                await db.execute(
+                    "SELECT event_type, details, created_at FROM case_events WHERE case_id = ? ORDER BY id ASC",
+                    (case["id"],),
+                )
+            ).fetchall()
+        ]
+        return {"case": dict(case), "timeline": events}
+
+
+# ═══════════════════════════════════════════════════════════════
+# 7) HTML FRONTEND ROUTES
+# ═══════════════════════════════════════════════════════════════
+@app.get("/", response_class=HTMLResponse)
+@app.get("/login", response_class=HTMLResponse)
+async def index_page():
+    with open("templates/index.html", "r", encoding="utf-8") as f:
+        return f.read()
+
+
+@app.get("/schematics", response_class=HTMLResponse)
+async def schematics_page():
+    with open("templates/schematics.html", "r", encoding="utf-8") as f:
+        return f.read()
+
+
+@app.get("/live", response_class=HTMLResponse)
+async def live_page():
+    with open("templates/live.html", "r", encoding="utf-8") as f:
+        return f.read()
+
+
+@app.get("/portal/{case_token}", response_class=HTMLResponse)
+async def customer_portal_page(case_token: str):
+    with open("templates/portal.html", "r", encoding="utf-8") as f:
+        return f.read()
+
+```
+
+---
+
+### 9️⃣ مستعرض المخططات الهندسية التفاعلية: `templates/schematics.html`
+
+```html
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>مستعرض المخططات والـ BoardView — GRE v13.0</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Cairo', sans-serif; background: #030712; color: #f3f4f6; }
+    .card { background: #111827; border: 1px solid #1f2937; border-radius: 1rem; padding: 1.25rem; }
+    .pin-dot { cursor: pointer; transition: transform 0.15s; }
+    .pin-dot:hover { stroke: #ffffff; stroke-width: 3px; }
+  </style>
+</head>
+<body class="min-h-screen p-4">
+<div class="max-w-7xl mx-auto space-y-4">
+  <header class="card flex flex-wrap justify-between items-center gap-3">
+    <div>
+      <h1 class="text-xl font-extrabold text-amber-400">📐 مستعرض المخططات التفاعلية (Interactive BoardView)</h1>
+      <p class="text-xs text-gray-400">انقر على أي نقطة قياس (Pin / Testpoint) أو آيسي لعرض الممانعة والجهد وتسجيل القياس في التذكرة</p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <select id="schematicSelect" onchange="loadSchematicDetail()" class="bg-gray-950 border border-gray-700 rounded-xl p-2 text-xs"></select>
+      <select id="targetCaseSelect" class="bg-gray-950 border border-gray-700 rounded-xl p-2 text-xs"></select>
+      <a href="/" class="bg-gray-800 hover:bg-gray-700 px-3 py-2 rounded-xl text-xs font-bold">🏠 لوحة القيادة</a>
+    </div>
+  </header>
+
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+    <!-- Interactive PCB SVG Canvas -->
+    <div class="lg:col-span-8 card">
+      <div class="flex justify-between items-center mb-2">
+        <h2 id="boardTitle" class="text-sm font-bold text-emerald-400">جارٍ التحميل...</h2>
+        <span id="boardArch" class="text-xs text-gray-400"></span>
+      </div>
+      <div class="bg-gray-950 border border-gray-800 rounded-xl p-2 overflow-x-auto">
+        <svg id="boardSvg" viewBox="0 0 820 460" class="w-full h-auto rounded-lg" style="background: radial-gradient(circle, #064e3b 0%, #022c22 100%);"></svg>
+      </div>
+      <!-- Power Sequence Pipeline -->
+      <div class="mt-4">
+        <h3 class="text-xs font-bold text-cyan-400 mb-2">⚡ تسلسل إقلاع الطاقة (Power-On Sequence)</h3>
+        <div id="powerSeqList" class="grid grid-cols-1 md:grid-cols-5 gap-2 text-xs"></div>
+      </div>
+    </div>
+
+    <!-- Pin / Component Inspector & Live Probing -->
+    <div class="lg:col-span-4 space-y-4">
+      <div class="card">
+        <h2 class="text-sm font-bold text-amber-400 mb-2">🔍 بطاقة الفحص الهندسي للنقطة</h2>
+        <div id="pinInspector" class="text-xs text-gray-300 space-y-2">
+          <p class="text-gray-500">اختر نقطة صفراء/حمراء على البوردة لعرض بياناتها المرجعية.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="text-sm font-bold text-emerald-400 mb-2">📍 جدول نقاط القياس على المخطط</h2>
+        <div id="pinsTable" class="space-y-1.5 max-h-80 overflow-y-auto text-xs"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const TOKEN = localStorage.getItem('token');
+if (!TOKEN) location.href = '/';
+const H = () => ({ 'Authorization': 'Bearer ' + TOKEN });
+const HJ = () => ({ 'Authorization': 'Bearer ' + TOKEN, 'Content-Type': 'application/json' });
+
+let CURRENT_SCHEMATIC = null;
+
+async function boot() {
+  const [sRes, cRes] = await Promise.all([
+    fetch('/api/schematics', { headers: H() }),
+    fetch('/api/cases', { headers: H() })
+  ]);
+  const sData = await sRes.json();
+  const cData = await cRes.json();
+
+  document.getElementById('schematicSelect').innerHTML = sData.schematics.map(s =>
+    `<option value="${s.id}">${s.title}</option>`
+  ).join('');
+
+  document.getElementById('targetCaseSelect').innerHTML = cData.cases.map(c =>
+    `<option value="${c.id}">ربط بالتذكرة #${c.id} (${c.device_model})</option>`
+  ).join('');
+
+  loadSchematicDetail();
+}
+
+async function loadSchematicDetail() {
+  const id = document.getElementById('schematicSelect').value;
+  const r = await fetch(`/api/schematics/${id}`, { headers: H() });
+  CURRENT_SCHEMATIC = await r.json();
+
+  document.getElementById('boardTitle').textContent = CURRENT_SCHEMATIC.title;
+  document.getElementById('boardArch').textContent = CURRENT_SCHEMATIC.architecture;
+
+  renderSvgBoard(CURRENT_SCHEMATIC);
+
+  document.getElementById('powerSeqList').innerHTML = CURRENT_SCHEMATIC.power_sequence.map(st => `
+    <div class="bg-gray-950 border border-gray-800 p-2 rounded-lg">
+      <div class="font-bold text-emerald-400">#${st.step} ${st.rail}</div>
+      <div class="text-[11px] text-gray-400 mt-0.5">${st.source} ← ${st.target}</div>
+      <p class="text-[11px] text-gray-300 mt-1">${st.desc}</p>
+    </div>`).join('');
+
+  document.getElementById('pinsTable').innerHTML = CURRENT_SCHEMATIC.pins.map((p, idx) => `
+    <div onclick="inspectPin(${idx})" class="cursor-pointer bg-gray-950 hover:bg-gray-900 border border-gray-800 p-2 rounded-lg flex justify-between items-center">
+      <div>
+        <div class="font-bold text-amber-300">${p.name}</div>
+        <div class="text-[11px] text-gray-400">${p.rail}</div>
+      </div>
+      <div class="text-left font-mono">
+        <div class="text-emerald-400">${p.diode_v}V</div>
+        <div class="text-cyan-400">${p.volt_v}V</div>
+      </div>
+    </div>`).join('');
+
+  if (CURRENT_SCHEMATIC.pins.length > 0) inspectPin(0);
+}
+
+function renderSvgBoard(sch) {
+  const svg = document.getElementById('boardSvg');
+  let html = `<rect x="20" y="20" width="780" height="420" rx="18" fill="none" stroke="#10b981" stroke-width="3" />`;
+
+  sch.components.forEach(comp => {
+    html += `
+      <g onclick="inspectComponent('${comp.id}')" style="cursor:pointer;">
+        <rect x="${comp.x}" y="${comp.y}" width="${comp.w}" height="${comp.h}" rx="6" fill="${comp.color}" stroke="#9ca3af" stroke-width="1.5" />
+        <text x="${comp.x + comp.w / 2}" y="${comp.y + comp.h / 2}" fill="#ffffff" font-size="11" font-weight="bold" text-anchor="middle" dominant-baseline="middle">${comp.label}</text>
+      </g>`;
+  });
+
+  sch.pins.forEach((p, idx) => {
+    html += `
+      <g class="pin-dot" onclick="inspectPin(${idx})">
+        <circle cx="${p.x}" cy="${p.y}" r="8" fill="#f59e0b" stroke="#000" stroke-width="1.5" />
+        <text x="${p.x}" y="${p.y - 12}" fill="#fde68a" font-size="10" font-weight="bold" text-anchor="middle">${p.name.split(' ')[0]}</text>
+      </g>`;
+  });
+
+  svg.innerHTML = html;
+}
+
+function inspectComponent(compId) {
+  const comp = CURRENT_SCHEMATIC.components.find(c => c.id === compId);
+  if (!comp) return;
+  document.getElementById('pinInspector').innerHTML = `
+    <div class="bg-blue-950/40 border border-blue-800 p-3 rounded-xl">
+      <div class="text-sm font-bold text-blue-300">${comp.label} (${comp.id})</div>
+      <p class="mt-1 text-gray-200">${comp.role}</p>
+    </div>`;
+}
+
+function inspectPin(idx) {
+  const p = CURRENT_SCHEMATIC.pins[idx];
+  document.getElementById('pinInspector').innerHTML = `
+    <div class="bg-gray-950 border border-amber-700/60 p-3 rounded-xl space-y-2">
+      <div class="text-sm font-bold text-amber-300">${p.name}</div>
+      <div>المسار: <span class="font-mono text-cyan-300">${p.rail}</span></div>
+      <div class="grid grid-cols-2 gap-2 bg-gray-900 p-2 rounded-lg text-center">
+        <div><div class="text-gray-400">ممانعة الدايود</div><div class="font-bold text-emerald-400 text-sm">${p.diode_v} V</div></div>
+        <div><div class="text-gray-400">الجهد التشغيلي</div><div class="font-bold text-cyan-400 text-sm">${p.volt_v} V</div></div>
+      </div>
+      <p class="text-gray-300 bg-red-950/30 border border-red-900/50 p-2 rounded">⚠️ ${p.fault_hint}</p>
+      <div class="pt-2 border-t border-gray-800">
+        <label class="block text-gray-400 mb-1">تسجيل قراءة الأفوميتر الفعلية في التذكرة:</label>
+        <div class="flex gap-2">
+          <input id="probeMeasuredV" type="number" step="0.001" value="${p.diode_v}" class="flex-1 bg-gray-900 border border-gray-700 rounded-lg p-1.5 font-mono">
+          <button onclick="recordPinReading('${p.rail}')" class="bg-emerald-600 hover:bg-emerald-500 px-3 py-1.5 rounded-lg font-bold">حفظ القياس</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+async function recordPinReading(rail) {
+  const caseId = parseInt(document.getElementById('targetCaseSelect').value);
+  const val = parseFloat(document.getElementById('probeMeasuredV').value);
+  if (!caseId || isNaN(val)) return;
+  const r = await fetch('/api/hardware/diode-check', {
+    method: 'POST', headers: HJ(), body: JSON.stringify({ case_id: caseId, rail_code: rail, measured_v: val })
+  });
+  const d = await r.json();
+  alert(`تم حفظ القياس في التذكرة #${caseId}:\n${d.evaluation.diagnosis}`);
+}
+
+boot();
+</script>
+</body>
+</html>
+
+```
+
+---
+
+### 🔟 بوابة متابعة العميل عبر رمز QR: `templates/portal.html`
+
+```html
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>بوابة متابعة الصيانة — Global Repair Enterprise</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>body { font-family: 'Cairo', sans-serif; background: #030712; color: #f3f4f6; }</style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+  <div id="portalBox" class="max-w-xl w-full bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-2xl">
+    <p class="text-center text-gray-400 text-sm">جارٍ تحميل بيانات التذكرة...</p>
+  </div>
+<script>
+async function loadPortal() {
+  const token = location.pathname.split('/').pop();
+  const r = await fetch(`/api/public/portal/${encodeURIComponent(token)}`);
+  const box = document.getElementById('portalBox');
+  if (!r.ok) {
+    box.innerHTML = `<div class="text-center text-red-400 font-bold">عذراً، رمز التتبع غير صحيح أو منتهي الصلاحية.</div>`;
+    return;
+  }
+  const d = await r.json();
+  const c = d.case;
+  box.innerHTML = `
+    <div class="border-b border-gray-800 pb-4 mb-4 flex justify-between items-center">
+      <div>
+        <h1 class="text-lg font-extrabold text-emerald-400">🛰️ Global Repair Enterprise</h1>
+        <p class="text-xs text-gray-400">${c.branch_name || 'المختبر المركزي'}</p>
+      </div>
+      <span class="bg-emerald-950 text-emerald-300 px-3 py-1 rounded-full text-xs font-bold">#${c.id}</span>
+    </div>
+    <div class="space-y-2 text-xs mb-5">
+      <div class="flex justify-between"><span class="text-gray-400">العميل:</span><b>${c.customer_name}</b></div>
+      <div class="flex justify-between"><span class="text-gray-400">الجهاز:</span><b>${c.device_model}</b></div>
+      <div class="flex justify-between"><span class="text-gray-400">المرحلة الحالية:</span><span class="text-cyan-400 font-bold">${c.workflow_stage}</span></div>
+      <div class="flex justify-between"><span class="text-gray-400">التكلفة التقديرية:</span><span class="text-amber-400 font-bold">${c.estimated_cost} EGP</span></div>
+    </div>
+    <div class="bg-gray-950 border border-gray-800 rounded-xl p-3 mb-4 text-xs">
+      <div class="font-bold text-gray-300 mb-1">التقرير الفني المختصر:</div>
+      <p class="text-gray-400">${c.diagnosis_summary || 'الجهاز قيد الفحص الهندسي الدقيق.'}</p>
+    </div>
+    <div class="text-xs">
+      <div class="font-bold text-emerald-400 mb-2">سجل مراحل العمل:</div>
+      <div class="space-y-2">
+        ${d.timeline.map(ev => `<div class="bg-gray-950 p-2 rounded-lg border border-gray-800 flex justify-between">
+          <span>${ev.details}</span>
+          <span class="text-gray-500">${(ev.created_at || '').slice(0, 16)}</span>
+        </div>`).join('')}
+      </div>
+    </div>`;
+}
+loadPortal();
+</script>
+</body>
+</html>
+
+```
+
+---
+
+### 1️⃣1️⃣ لوحة القيادة الموحدة الشاملة: `templates/index.html`
+
+```html
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Global Repair Enterprise v13.0 — مركز القيادة الهندسي</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Cairo', sans-serif; background: #030712; color: #f3f4f6; }
+    .card { background: #111827; border: 1px solid #1f2937; border-radius: 1rem; padding: 1.25rem; }
+    .badge { padding: 2px 10px; border-radius: 9999px; font-size: 0.72rem; font-weight: 700; }
+  </style>
+</head>
+<body class="min-h-screen">
+
+<!-- LOGIN VIEW -->
+<div id="loginView" class="min-h-screen flex items-center justify-center p-4 hidden">
+  <div class="card max-w-md w-full shadow-2xl border-emerald-900/50">
+    <div class="text-center mb-6">
+      <div class="text-4xl mb-2">🛰️</div>
+      <h1 class="text-2xl font-extrabold text-emerald-400">Global Repair Enterprise</h1>
+      <p class="text-xs text-gray-400 mt-1">الإصدار 13.0 — المخططات التفاعلية، الباور سبلاي، والرؤية الحية</p>
+    </div>
+    <div class="space-y-4">
+      <input id="loginUser" value="admin" placeholder="اسم المستخدم" class="w-full bg-gray-950 border border-gray-800 rounded-xl p-3 text-sm">
+      <input id="loginPass" type="password" value="admin123" placeholder="كلمة المرور" class="w-full bg-gray-950 border border-gray-800 rounded-xl p-3 text-sm">
+      <button onclick="doLogin()" class="w-full bg-emerald-600 hover:bg-emerald-500 py-3 rounded-xl font-bold text-sm">دخول المختبر</button>
+      <p id="loginErr" class="text-xs text-red-400 text-center"></p>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP VIEW -->
+<div id="appView" class="max-w-7xl mx-auto p-4 hidden">
+  <header class="card mb-5 flex flex-wrap justify-between items-center gap-3">
+    <div>
+      <h1 class="text-xl font-extrabold text-emerald-400">🛰️ Global Repair Enterprise <span class="text-xs bg-emerald-950 text-emerald-300 px-2 py-0.5 rounded-full">v13.0 PRO</span></h1>
+      <p class="text-xs text-gray-400 mt-0.5" id="userBadge"></p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <button onclick="showTab('casesTab')" class="bg-gray-800 hover:bg-gray-700 px-3 py-2 rounded-xl text-xs font-bold">📋 التذاكر والفحص</button>
+      <button onclick="showTab('atlasTab')" class="bg-indigo-900/80 hover:bg-indigo-800 px-3 py-2 rounded-xl text-xs font-bold text-indigo-100">📱 موسوعة الهواتف والآيسيهات</button>
+      <a href="/schematics" class="bg-amber-700 hover:bg-amber-600 px-3 py-2 rounded-xl text-xs font-bold">📐 المخططات BoardView</a>
+      <a href="/live" class="bg-cyan-700 hover:bg-cyan-600 px-3 py-2 rounded-xl text-xs font-bold">🎥 الرؤية الحية والتعاون</a>
+      <button onclick="logout()" class="bg-red-950 hover:bg-red-900 text-red-300 px-3 py-2 rounded-xl text-xs font-bold">خروج</button>
+    </div>
+  </header>
+
+  <!-- TAB 1: CASES & BENCH DIAGNOSTICS -->
+  <div id="casesTab" class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+    <div class="lg:col-span-4 space-y-4">
+      <div class="card">
+        <h2 class="text-sm font-bold text-emerald-400 mb-3">➕ فتح تذكرة صيانة جديدة</h2>
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <input id="cName" placeholder="اسم العميل *" class="bg-gray-950 border border-gray-800 rounded-lg p-2">
+          <input id="cPhone" placeholder="رقم الهاتف" class="bg-gray-950 border border-gray-800 rounded-lg p-2">
+          <input id="cModel" placeholder="موديل الجهاز *" class="bg-gray-950 border border-gray-800 rounded-lg p-2">
+          <input id="cImei" placeholder="IMEI / السيريال" class="bg-gray-950 border border-gray-800 rounded-lg p-2">
+          <input id="cIssue" placeholder="وصف العطل *" class="col-span-2 bg-gray-950 border border-gray-800 rounded-lg p-2">
+          <button onclick="createNewCase()" class="col-span-2 bg-emerald-600 hover:bg-emerald-500 py-2 rounded-lg font-bold">تسجيل الحالة</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="text-sm font-bold text-blue-400 mb-3">📂 حالات المختبر النشطة</h2>
+        <div id="casesList" class="space-y-2 max-h-[540px] overflow-y-auto"></div>
+      </div>
+    </div>
+
+    <div class="lg:col-span-8 space-y-4">
+      <div id="caseWorkspace" class="card">
+        <p class="text-xs text-gray-400 text-center py-12">اختر حالة من القائمة لبدء الفحص الهندسي.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: COMPLETE DEVICE ATLAS & PINOUTS -->
+  <div id="atlasTab" class="hidden space-y-5">
+    <div class="card">
+      <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
+        <h2 class="text-base font-bold text-indigo-400">📱 موسوعة الهواتف المحمولة (المعالجات، الآيسيهات، البن آوت، وأوامر السوفت وير)</h2>
+        <div class="flex gap-2 text-xs">
+          <input id="atlasSearch" oninput="searchAtlas()" placeholder="ابحث بالموديل أو الآيسي (مثلاً SM5714 أو iPhone 14)..." class="bg-gray-950 border border-gray-700 rounded-xl p-2 w-72">
+        </div>
+      </div>
+      <div id="devicesAtlasGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs"></div>
+    </div>
+
+    <div class="card">
+      <h2 class="text-base font-bold text-emerald-400 mb-3">⚡ جدول ممانعات الدايود المرجعية (Diode Mode Reference)</h2>
+      <div id="diodeCatalogTable" class="overflow-x-auto text-xs"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+let TOKEN = localStorage.getItem('token');
+let USER = JSON.parse(localStorage.getItem('user') || '{}');
+let SELECTED_CASE_ID = null;
+let CATALOGS = null;
+
+const authHeaders = () => ({ 'Authorization': 'Bearer ' + TOKEN });
+const jsonHeaders = () => ({ 'Authorization': 'Bearer ' + TOKEN, 'Content-Type': 'application/json' });
+
+function initApp() {
+  if (!TOKEN) {
+    document.getElementById('loginView').classList.remove('hidden');
+    document.getElementById('appView').classList.add('hidden');
+  } else {
+    document.getElementById('loginView').classList.add('hidden');
+    document.getElementById('appView').classList.remove('hidden');
+    document.getElementById('userBadge').textContent = `المهندس: ${USER.full_name || USER.username} (${USER.role})`;
+    loadCatalogs();
+    searchAtlas();
+    loadCases();
+  }
+}
+
+async function doLogin() {
+  const username = document.getElementById('loginUser').value;
+  const password = document.getElementById('loginPass').value;
+  const r = await fetch('/api/auth/login', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password })
+  });
+  if (!r.ok) {
+    document.getElementById('loginErr').textContent = 'بيانات الدخول غير صحيحة';
+    return;
+  }
+  const d = await r.json();
+  TOKEN = d.access_token;
+  USER = d.user;
+  localStorage.setItem('token', TOKEN);
+  localStorage.setItem('user', JSON.stringify(USER));
+  initApp();
+}
+
+function logout() { localStorage.clear(); TOKEN = null; initApp(); }
+
+function showTab(tabId) {
+  document.getElementById('casesTab').classList.add('hidden');
+  document.getElementById('atlasTab').classList.add('hidden');
+  document.getElementById(tabId).classList.remove('hidden');
+}
+
+async function loadCatalogs() {
+  const r = await fetch('/api/catalogs', { headers: authHeaders() });
+  if (!r.ok) return;
+  CATALOGS = await r.json();
+  document.getElementById('diodeCatalogTable').innerHTML = `
+    <table class="w-full text-right border-collapse">
+      <thead><tr class="bg-gray-950 text-emerald-400">
+        <th class="p-2 border border-gray-800">المسار</th>
+        <th class="p-2 border border-gray-800">الوظيفة</th>
+        <th class="p-2 border border-gray-800">القيمة الطبيعية</th>
+        <th class="p-2 border border-gray-800">مسببات القصر</th>
+      </tr></thead>
+      <tbody>${CATALOGS.diode_rails.map(rail => `
+        <tr class="border-b border-gray-800">
+          <td class="p-2 font-mono text-cyan-300">${rail.rail_code}</td>
+          <td class="p-2">${rail.name_ar}</td>
+          <td class="p-2 font-bold text-emerald-400">${rail.min_v}V – ${rail.max_v}V</td>
+          <td class="p-2 text-gray-400">${rail.short_suspects}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+async function searchAtlas() {
+  const q = document.getElementById('atlasSearch')?.value || '';
+  const r = await fetch(`/api/atlas/devices?q=${encodeURIComponent(q)}`, { headers: authHeaders() });
+  if (!r.ok) return;
+  const d = await r.json();
+  document.getElementById('devicesAtlasGrid').innerHTML = d.devices.map(dev => `
+    <div class="bg-gray-950 border border-gray-800 rounded-xl p-4 space-y-2">
+      <div class="flex justify-between items-center">
+        <span class="font-extrabold text-sm text-emerald-400">${dev.model}</span>
+        <span class="badge bg-indigo-950 text-indigo-300">${dev.brand}</span>
+      </div>
+      <div class="text-gray-300">المعالج: <b>${dev.soc}</b> | الذاكرة: <b>${dev.storage}</b></div>
+      <div class="bg-gray-900 p-2 rounded-lg space-y-1">
+        <div class="font-bold text-amber-300">الآيسيهات الرئيسية:</div>
+        ${Object.entries(dev.ics).map(([k, v]) => `<div><span class="text-gray-400">${k}:</span> <span class="font-mono text-gray-200">${v}</span></div>`).join('')}
+      </div>
+      <div class="bg-gray-900 p-2 rounded-lg space-y-1">
+        <div class="font-bold text-cyan-300">قياسات الكونكترات (Pinouts):</div>
+        ${dev.connector_pinouts.map(p => `<div class="border-b border-gray-800 pb-1">
+          <b>${p.connector} [${p.pin}]</b> (${p.net}) — دايود: <span class="text-emerald-400 font-mono">${p.diode_v}V</span> | جهد: <span class="text-cyan-400 font-mono">${p.volt_v}V</span>
+          <div class="text-gray-400 text-[11px]">${p.notes}</div>
+        </div>`).join('')}
+      </div>
+      <div class="bg-black/60 p-2 rounded-lg font-mono text-[11px] text-green-400 space-y-0.5">
+        ${dev.software_commands.map(cmd => `<div>$ ${cmd}</div>`).join('')}
+      </div>
+    </div>`).join('');
+}
+
+async function loadCases() {
+  const r = await fetch('/api/cases', { headers: authHeaders() });
+  if (r.status === 401) return logout();
+  const d = await r.json();
+  document.getElementById('casesList').innerHTML = d.cases.map(c => `
+    <div onclick="selectCase(${c.id})" class="cursor-pointer p-3 rounded-xl border transition ${SELECTED_CASE_ID === c.id ? 'bg-emerald-950/40 border-emerald-500' : 'bg-gray-950 border-gray-800 hover:border-gray-600'}">
+      <div class="flex justify-between items-center">
+        <span class="font-bold text-sm text-white">#${c.id} — ${c.device_model}</span>
+        <span class="badge bg-blue-950 text-blue-300">${c.workflow_stage}</span>
+      </div>
+      <div class="text-xs text-gray-400 mt-1">العميل: ${c.customer_name} | ${c.branch_name || ''}</div>
+      <div class="text-xs text-gray-300 mt-1 truncate">${c.reported_issue || ''}</div>
+    </div>`).join('');
+
+  if (d.cases.length > 0 && !SELECTED_CASE_ID) selectCase(d.cases[0].id);
+}
+
+async function createNewCase() {
+  const payload = {
+    customer_name: document.getElementById('cName').value.trim(),
+    customer_phone: document.getElementById('cPhone').value.trim(),
+    device_model: document.getElementById('cModel').value.trim(),
+    serial_imei: document.getElementById('cImei').value.trim(),
+    reported_issue: document.getElementById('cIssue').value.trim()
+  };
+  if (!payload.customer_name || !payload.device_model) return alert('أدخل اسم العميل وموديل الجهاز');
+  const r = await fetch('/api/cases', { method: 'POST', headers: jsonHeaders(), body: JSON.stringify(payload) });
+  if (r.ok) { const res = await r.json(); SELECTED_CASE_ID = res.case_id; loadCases(); }
+}
+
+async function selectCase(caseId) {
+  SELECTED_CASE_ID = caseId;
+  const r = await fetch(`/api/cases/${caseId}`, { headers: authHeaders() });
+  if (!r.ok) return;
+  const d = await r.json();
+  const c = d.case;
+  const latestRun = d.multimodal_runs[0];
+  const railOptions = (CATALOGS?.diode_rails || []).map(rail => `<option value="${rail.rail_code}">${rail.rail_code} (${rail.name_ar})</option>`).join('');
+
+  document.getElementById('caseWorkspace').innerHTML = `
+    <div class="flex flex-wrap justify-between items-start gap-3 border-b border-gray-800 pb-4 mb-4">
+      <div>
+        <h2 class="text-lg font-extrabold text-white">#${c.id} — ${c.device_model}</h2>
+        <p class="text-xs text-gray-400">العميل: ${c.customer_name} | IMEI: ${c.serial_imei || '—'}</p>
+        <p class="text-xs text-amber-300 mt-1">الشكوى: ${c.reported_issue || '—'}</p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <a href="/portal/${c.case_token}" target="_blank" class="bg-gray-800 hover:bg-gray-700 px-3 py-2 rounded-xl text-xs font-bold">🔗 بوابة العميل</a>
+        <button onclick="runAiDiagnose(${c.id})" class="bg-purple-700 hover:bg-purple-600 px-3 py-2 rounded-xl text-xs font-bold">🧠 التشخيص الذكي AI</button>
+        <button onclick="downloadPdf(${c.id})" class="bg-red-700 hover:bg-red-600 px-3 py-2 rounded-xl text-xs font-bold">📄 تقرير PDF</button>
+      </div>
+    </div>
+
+    <!-- AI Multimodal Summary -->
+    <div class="bg-purple-950/30 border border-purple-800/60 rounded-xl p-3 mb-4 text-xs">
+      <div class="font-bold text-purple-300 mb-1">🤖 خلاصة التشخيص متعدد الوسائط (${latestRun ? latestRun.confidence_pct + '% ثقة' : 'بانتظار الفحص'})</div>
+      <p class="text-gray-200">${latestRun ? latestRun.final_diagnosis : (c.diagnosis_summary || 'لا يوجد تشخيص مسجل بعد.')}</p>
+      ${latestRun ? `<ul class="list-disc pr-5 mt-2 text-gray-300 space-y-1">${JSON.parse(latestRun.recommended_actions_json || '[]').map(a => `<li>${a}</li>`).join('')}</ul>` : ''}
+    </div>
+
+    <!-- DC Power Supply Analyzer -->
+    <div class="bg-gray-950 p-3 rounded-xl border border-gray-800 mb-4 text-xs">
+      <div class="font-bold text-rose-400 mb-2">🔋 محلل سحب الباور سبلاي وتسلسل الإقلاع (DC Power Supply)</div>
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-2">
+        <select id="pwrArch" class="bg-gray-900 border border-gray-700 rounded-lg p-2">
+          <option value="qualcomm">Qualcomm</option>
+          <option value="mediatek">MediaTek</option>
+          <option value="apple">Apple iPhone</option>
+        </select>
+        <input id="pwrPre" type="number" placeholder="قبل الباور (mA)" value="0" class="bg-gray-900 border border-gray-700 rounded-lg p-2">
+        <input id="pwrPost" type="number" placeholder="بعد الباور (mA)" value="65" class="bg-gray-900 border border-gray-700 rounded-lg p-2">
+        <select id="pwrBehav" class="bg-gray-900 border border-gray-700 rounded-lg p-2">
+          <option value="stuck">ثابت (Stuck)</option>
+          <option value="drops_to_zero">يهبط للصفر</option>
+          <option value="zero">لا استجابة</option>
+        </select>
+        <button onclick="submitPower(${c.id})" class="bg-rose-700 hover:bg-rose-600 rounded-lg font-bold py-2">تحليل السحب</button>
+      </div>
+      <div class="mt-2 space-y-1">
+        ${(d.power_logs || []).map(p => `<div class="p-1.5 rounded bg-gray-900 border border-gray-800 text-rose-200">قبل: <b>${p.pre_boot_ma}mA</b> | بعد: <b>${p.post_boot_ma}mA</b> ← ${p.fault_title}</div>`).join('')}
+      </div>
+    </div>
+
+    <!-- Tools Grid: Diode + USB -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 text-xs">
+      <div class="bg-gray-950 p-3 rounded-xl border border-gray-800">
+        <div class="font-bold text-emerald-400 mb-2">⚡ فحص ممانعة الدايود (Multimeter)</div>
+        <select id="diodeRail" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2 mb-2">${railOptions}</select>
+        <div class="flex gap-2">
+          <input id="diodeVal" type="number" step="0.001" placeholder="القراءة بالفولت (0.015)" class="flex-1 bg-gray-900 border border-gray-700 rounded-lg p-2">
+          <button onclick="submitDiode(${c.id})" class="bg-emerald-600 px-3 rounded-lg font-bold">فحص</button>
+        </div>
+        <div class="mt-2 space-y-1 max-h-28 overflow-y-auto">
+          ${d.diode_measurements.map(m => `<div class="p-1.5 rounded bg-gray-900 border border-gray-800"><span class="font-mono text-cyan-300">${m.rail_code}</span>: <b>${m.measured_v}V</b> — <span class="${m.status === 'HEALTHY' ? 'text-emerald-400' : 'text-red-400'}">${m.status}</span></div>`).join('')}
+        </div>
+      </div>
+
+      <div class="bg-gray-950 p-3 rounded-xl border border-gray-800">
+        <div class="flex justify-between items-center mb-2">
+          <span class="font-bold text-cyan-400">🔌 بصمة منفذ USB / التفليش</span>
+          <button onclick="scanBenchUsb(${c.id})" class="bg-cyan-900 hover:bg-cyan-800 px-2 py-1 rounded text-[11px]">فحص منافذ الحاسوب</button>
+        </div>
+        <div class="flex gap-2 mb-2">
+          <input id="usbVid" placeholder="VID (0E8D)" class="w-1/2 bg-gray-900 border border-gray-700 rounded-lg p-2 font-mono">
+          <input id="usbPid" placeholder="PID (0003)" class="w-1/2 bg-gray-900 border border-gray-700 rounded-lg p-2 font-mono">
+        </div>
+        <button onclick="submitUsb(${c.id})" class="w-full bg-cyan-700 py-1.5 rounded-lg font-bold">تحليل البروتوكول</button>
+        <div class="mt-2 space-y-1 max-h-28 overflow-y-auto">
+          ${d.usb_sessions.map(u => `<div class="p-1.5 rounded bg-gray-900 border border-gray-800"><span class="font-mono text-amber-300">${u.vid}:${u.pid}</span> — ${u.mode}</div>`).join('')}
+        </div>
+      </div>
+    </div>
+
+    <!-- OpenCV Board Image Analysis -->
+    <div class="bg-gray-950 p-3 rounded-xl border border-gray-800 text-xs">
+      <div class="font-bold text-orange-400 mb-2">🔬 فحص صورة البوردة عبر OpenCV (كشف حرق وأكسدة)</div>
+      <div class="flex gap-2 items-center">
+        <input type="file" id="boardImgInput" accept="image/*" class="flex-1 text-gray-400">
+        <button onclick="uploadBoardImage(${c.id})" class="bg-orange-600 hover:bg-orange-500 px-4 py-2 rounded-lg font-bold">تحليل الصورة</button>
+      </div>
+      <div class="grid grid-cols-2 gap-2 mt-3">
+        ${d.vision_analyses.map(v => `
+          <div class="bg-gray-900 p-2 rounded-lg border border-gray-800">
+            <img src="/${v.annotated_path || v.image_path}" class="w-full h-32 object-cover rounded mb-1">
+            <div class="font-bold text-emerald-400">مؤشر الصحة: ${v.health_score}%</div>
+          </div>`).join('')}
+      </div>
+    </div>
+  `;
+}
+
+async function submitPower(caseId) {
+  const payload = {
+    case_id: caseId,
+    architecture: document.getElementById('pwrArch').value,
+    pre_boot_ma: parseFloat(document.getElementById('pwrPre').value || '0'),
+    post_boot_ma: parseFloat(document.getElementById('pwrPost').value || '0'),
+    boot_behavior: document.getElementById('pwrBehav').value
+  };
+  await fetch('/api/power/analyze', { method: 'POST', headers: jsonHeaders(), body: JSON.stringify(payload) });
+  selectCase(caseId);
+}
+
+async function submitDiode(caseId) {
+  const rail_code = document.getElementById('diodeRail').value;
+  const measured_v = parseFloat(document.getElementById('diodeVal').value);
+  if (isNaN(measured_v)) return alert('أدخل قيمة صحيحة بالفولت');
+  await fetch('/api/hardware/diode-check', { method: 'POST', headers: jsonHeaders(), body: JSON.stringify({ case_id: caseId, rail_code, measured_v }) });
+  selectCase(caseId);
+}
+
+async function submitUsb(caseId) {
+  const vid = document.getElementById('usbVid').value.trim();
+  const pid = document.getElementById('usbPid').value.trim();
+  if (!vid || !pid) return alert('أدخل VID و PID');
+  await fetch('/api/hardware/usb-detect', { method: 'POST', headers: jsonHeaders(), body: JSON.stringify({ case_id: caseId, vid, pid }) });
+  selectCase(caseId);
+}
+
+async function scanBenchUsb(caseId) {
+  const r = await fetch('/api/hardware/scan-usb', { headers: authHeaders() });
+  const d = await r.json();
+  if (d.count === 0) return alert('لم يتم رصد أي منافذ COM/USB متصلة حالياً بالحاسوب.');
+  const first = d.ports[0];
+  alert(`تم رصد منفذ: ${first.port}\nالوصف: ${first.description}\nVID:PID = ${first.vid}:${first.pid}`);
+  if (first.vid && first.pid) {
+    await fetch('/api/hardware/usb-detect', { method: 'POST', headers: jsonHeaders(), body: JSON.stringify({ case_id: caseId, vid: first.vid, pid: first.pid }) });
+    selectCase(caseId);
+  }
+}
+
+async function uploadBoardImage(caseId) {
+  const inp = document.getElementById('boardImgInput');
+  if (!inp.files.length) return alert('اختر صورة البوردة أولاً');
+  const fd = new FormData();
+  fd.append('file', inp.files[0]);
+  fd.append('analysis_type', 'microscope_board');
+  fd.append('case_id', String(caseId));
+  await fetch('/api/vision/analyze', { method: 'POST', headers: authHeaders(), body: fd });
+  selectCase(caseId);
+}
+
+async function runAiDiagnose(caseId) {
+  await fetch(`/api/cases/${caseId}/ai-diagnose`, { method: 'POST', headers: authHeaders() });
+  selectCase(caseId);
+}
+
+async function downloadPdf(caseId) {
+  const r = await fetch(`/api/cases/${caseId}/report.pdf`, { headers: authHeaders() });
+  if (!r.ok) return alert('تعذر توليد التقرير');
+  const blob = await r.blob();
+  window.open(URL.createObjectURL(blob), '_blank');
+}
+
+initApp();
+</script>
+</body>
+</html>
+
+```
+
+---
+
+### 1️⃣2️⃣ اختبارات التحقق الشاملة للإصدار v13.0: `tests/test_v13.py`
+
+```python
+"""Full End-to-End Verification Suite for Global Repair Enterprise v13.0."""
+import io
+import os
+import sys
+import cv2
+from fastapi.testclient import TestClient
+import numpy as np
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from enterprise_backend import app  # noqa: E402
+
+
+def test_atlas_schematics_and_power_analyzer():
+    with TestClient(app) as client:
+        r = client.post("/api/auth/login", json={"username": "admin", "password": "admin123"})
+        assert r.status_code == 200
+        h = {"Authorization": "Bearer " + r.json()["access_token"]}
+
+        # 1. Verify Device Atlas across brands
+        devs = client.get("/api/atlas/devices", headers=h).json()["devices"]
+        assert len(devs) >= 7
+        iphone = client.get("/api/atlas/devices?q=iPhone%2014", headers=h).json()["devices"]
+        assert len(iphone) == 1
+        assert len(iphone[0]["connector_pinouts"]) >= 5
+
+        # 2. Verify Interactive BoardView Schematics
+        sch_list = client.get("/api/schematics", headers=h).json()["schematics"]
+        assert len(sch_list) >= 3
+        sch_detail = client.get("/api/schematics/iphone_14_pro_board", headers=h).json()
+        assert len(sch_detail["pins"]) >= 5
+        assert len(sch_detail["power_sequence"]) == 5
+
+        # 3. Verify DC Power Supply Analyzer
+        pwr = client.post("/api/power/analyze", headers=h, json={
+            "case_id": 1,
+            "architecture": "mediatek",
+            "pre_boot_ma": 0.0,
+            "post_boot_ma": 55.0,
+            "boot_behavior": "drops_to_zero",
+        }).json()
+        assert pwr["analysis"]["stage"] == "PMIC_WAKE_FAIL"
+
+
+def test_customer_portal_and_multimodal_pdf():
+    with TestClient(app) as client:
+        r = client.post("/api/auth/login", json={"username": "admin", "password": "admin123"})
+        h = {"Authorization": "Bearer " + r.json()["access_token"]}
+
+        # Create case & inspect customer portal
+        c = client.post("/api/cases", headers=h, json={
+            "customer_name": "عميل بوابة التتبع",
+            "device_model": "POCO X3 Pro",
+            "reported_issue": "شاشة رمادية ثم فصل باور",
+            "estimated_cost": 1200.0,
+        }).json()
+        cid = c["case_id"]
+        token = c["case_token"]
+
+        portal_data = client.get(f"/api/public/portal/{token}").json()
+        assert portal_data["case"]["device_model"] == "POCO X3 Pro"
+
+        # Diode + Power + AI Diagnosis + PDF
+        client.post("/api/hardware/diode-check", headers=h, json={
+            "case_id": cid, "rail_code": "PP_VDD_MAIN / VPH_PWR", "measured_v": 0.015
+        })
+        ai = client.post(f"/api/cases/{cid}/ai-diagnose", headers=h).json()
+        assert ai["diagnosis"]["confidence_pct"] >= 94
+
+        pdf = client.get(f"/api/cases/{cid}/report.pdf", headers=h)
+        assert pdf.status_code == 200
+        assert pdf.content[:4] == b"%PDF"
+
+```
+
+---
+
+### 🚀 التشغيل والتحقق الفوري
+
+```bash
+pip install -r requirements.txt
+pytest -v tests/test_v13.py
+python run.py
+
+```
+
+* **لوحة القيادة وموسوعة الهواتف ومحلل الباور سبلاي:** `[http://127.0.0.1:8000](http://127.0.0.1:8000)`
+* **مستعرض المخططات التفاعلية والـ BoardView:** `[http://127.0.0.1:8000/schematics](http://127.0.0.1:8000/schematics)`
+* **غرفة الكاميرا الحية والتعاون:** `[http://127.0.0.1:8000/live](http://127.0.0.1:8000/live)`

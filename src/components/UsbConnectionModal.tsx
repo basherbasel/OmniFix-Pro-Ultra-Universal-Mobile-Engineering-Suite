@@ -171,7 +171,7 @@ export const UsbConnectionModal: React.FC<UsbConnectionModalProps> = ({
             productIdHex: pidHex,
             manufacturerName: dev.manufacturerName || 'Android Hardware',
             productName: dev.productName || 'Smart Diagnostic Terminal',
-            serialNumber: dev.serialNumber || ('USB' + Math.random().toString(36).substring(2, 8).toUpperCase()),
+            serialNumber: dev.serialNumber || `USB-${vidHex}-${pidHex}`,
             deviceClass: dev.deviceClass,
             deviceProtocol: dev.deviceProtocol,
             usbVersionMajor: dev.usbVersionMajor,
@@ -190,9 +190,9 @@ export const UsbConnectionModal: React.FC<UsbConnectionModalProps> = ({
             mode: 'ADB_ONLINE',
             port: `Auto-Detect Port [VID_${vidHex}&PID_${pidHex}]`,
             vidPid: `${vidHex}:${pidHex}`,
-            serialNumber: dev.serialNumber || 'SN_' + Math.random().toString(36).substring(2, 9).toUpperCase(),
-            imei1: '35' + Math.floor(1000000000000 + Math.random() * 9000000000000),
-            imei2: '35' + Math.floor(1000000000000 + Math.random() * 9000000000000),
+            serialNumber: dev.serialNumber || `SN-${vidHex}-${pidHex}`,
+            imei1: currentDevice.imei1 || '358941209384721',
+            imei2: currentDevice.imei2 || '358941209384722',
             basebandVersion: 'AUTO_DETECT_SYNCED',
             androidVersion: 'Android 14 / OneUI 6.1',
             securityPatch: '2024-08-01',
@@ -219,8 +219,8 @@ export const UsbConnectionModal: React.FC<UsbConnectionModalProps> = ({
       const autoDevice: ConnectedDevice = {
         ...topPreset,
         port: 'USB High-Speed Port 0x01 (Direct Protocol)',
-        serialNumber: 'SN_' + Math.random().toString(36).substring(2, 9).toUpperCase(),
-        batteryLevel: 92
+        serialNumber: topPreset.serialNumber || `SN-${topPreset.model}`,
+        batteryLevel: topPreset.batteryLevel || 88
       };
 
       const autoUsbInfo: WebUsbDeviceInfo = {
@@ -322,9 +322,9 @@ export const UsbConnectionModal: React.FC<UsbConnectionModalProps> = ({
         mode: vidHex === '0E8D' ? 'MTK_BROM' : 'EDL_9008',
         port: `COM Port (Baud 115200) [VID_${vidHex}&PID_${pidHex}]`,
         vidPid: `${vidHex}:${pidHex}`,
-        serialNumber: 'SERIAL_' + Math.random().toString(36).substring(2, 8).toUpperCase(),
-        imei1: '86' + Math.floor(1000000000000 + Math.random() * 9000000000000),
-        imei2: '86' + Math.floor(1000000000000 + Math.random() * 9000000000000),
+        serialNumber: `SERIAL-${vidHex}-${pidHex}`,
+        imei1: currentDevice.imei1 || '358941209384721',
+        imei2: currentDevice.imei2 || '358941209384722',
         basebandVersion: 'DIAG_ONLINE_OK',
         androidVersion: 'Low-Level Mode (Direct Stream)',
         securityPatch: '2024-08-01',

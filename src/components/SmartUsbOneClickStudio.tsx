@@ -20,7 +20,7 @@ import {
   GanttChartSquare,
   Network
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ConnectedDevice } from '../types';
 import { realUsbService } from '../services/realUsbService';
 import { advancedBypassService } from '../services/advancedBypassService';

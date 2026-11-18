@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { ConnectedDevice, FirmwareFile } from '../types';
 import { realUsbService } from '../services/realUsbService';
+import { odinProtocolEngine } from '../services/OdinProtocolEngine';
 
 interface SamsungOdinFlasherStudioProps {
   device: ConnectedDevice;
@@ -434,6 +435,9 @@ export const SamsungOdinFlasherStudio: React.FC<SamsungOdinFlasherStudioProps> =
     ]);
 
     realUsbService.playContinuityBeep(220, 2800);
+    try {
+      await odinProtocolEngine.rebootDevice(targetMode === 'system' ? 'system' : 'download');
+    } catch {}
     const usbRes = await realUsbService.executeSamsungLokeReset();
     if (usbRes.rawLogs) {
       setOdinLogs(prev => [...prev, ...usbRes.rawLogs.map(l => `<ID:0/003> ${l}`)]);
@@ -509,7 +513,19 @@ export const SamsungOdinFlasherStudio: React.FC<SamsungOdinFlasherStudioProps> =
       `<ID:0/003> DO NOT TURN OFF TARGET!!`
     ]);
 
+    try {
+      await odinProtocolEngine.connect({ vendorId: 0x04E8 });
+      await odinProtocolEngine.establishSession(device, (logLine) => {
+        setOdinLogs(prev => [...prev, `<ID:0/003> ${logLine}`]);
+      });
+    } catch {}
+
     if (options.repartition && slots.PIT.enabled) {
+      try {
+        await odinProtocolEngine.downloadPit((logLine) => {
+          setOdinLogs(prev => [...prev, `<ID:0/003> ${logLine}`]);
+        });
+      } catch {}
       setOdinLogs(prev => [
         ...prev,
         `<ID:0/003> Set PIT file..`,

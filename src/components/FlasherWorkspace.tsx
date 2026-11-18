@@ -25,7 +25,7 @@ import {
   RefreshCw,
   Info
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ConnectedDevice, FirmwareFile } from '../types';
 import { SamsungOdinFlasherStudio } from './SamsungOdinFlasherStudio';
 import { realUsbService } from '../services/realUsbService';
@@ -714,7 +714,7 @@ export const FlasherWorkspace: React.FC<FlasherWorkspaceProps> = ({
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-1">
                       <label className="text-[10px] text-slate-400 uppercase">FDL1 Bootloader</label>
                       <div className="flex gap-1.5">
@@ -789,7 +789,7 @@ export const FlasherWorkspace: React.FC<FlasherWorkspaceProps> = ({
 
                   <div className="space-y-1">
                     <label className="text-[11px] text-slate-400 uppercase">Restore Strategy</label>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                       {[
                         { id: 'update_keep_data', label: 'Retain User Data' },
                         { id: 'clean_restore', label: 'Factory Clean Wipe' },

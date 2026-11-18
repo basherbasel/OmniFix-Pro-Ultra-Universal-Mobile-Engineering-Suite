@@ -1,5 +1,9 @@
 import { ConnectedDevice, ChipsetType, DeviceMode, PartitionInfo } from '../types';
 import { realUsbService } from './realUsbService';
+import { frpOemLockEngine } from './FrpOemLockEngine';
+import { qualcommFirehoseEngine } from './QualcommFirehoseEngine';
+import { mediaTekProEngine } from './MediaTekProEngine';
+import { odinProtocolEngine } from './OdinProtocolEngine';
 
 /**
  * OmniFix Pro - Advanced Mobile Software Firmware & Diagnostics Service (v2026.9)
@@ -95,6 +99,11 @@ export class AdvancedBypassService {
     addLog(`[EDL:QCOM] Accessing interface: ${portName}...`);
     realUsbService.playContinuityBeep(100, 2100);
 
+    try {
+      await qualcommFirehoseEngine.connect({ vendorId: 0x05C6 });
+      await qualcommFirehoseEngine.handshake();
+    } catch {}
+
     // 1. Dispatched Sahara Handshake Hello
     addLog('[EDL:QCOM] DISPATCH: SAHARA_CMD_HELLO_REQ (0x01)');
     await new Promise(r => setTimeout(r, 200));
@@ -137,6 +146,11 @@ export class AdvancedBypassService {
 
     addLog('[MTK:BROM] Listening for MediaTek USB VBUS connection... (Hold Vol Up + Down)');
     realUsbService.playContinuityBeep(120, 2000);
+
+    try {
+      await mediaTekProEngine.connect();
+      await mediaTekProEngine.handshake();
+    } catch {}
 
     // 1. Send Handshake Start bytes
     addLog('[MTK:BROM] Dispatched start synchronization sequence [0xA0, 0x0A, 0x50, 0x05]');
@@ -376,23 +390,21 @@ export class AdvancedBypassService {
     addLog(`[FRP_BYPASS] Triggering 0-Day FRP exploit dispatcher for Brand: ${device.brand}...`);
     realUsbService.playContinuityBeep(110, 2200);
 
-    if (device.chipset === 'mediatek') {
-      addLog('[FRP_BYPASS] MediaTek Chipset detected. Initiating BROM direct format exploit...');
-      await new Promise(r => setTimeout(r, 200));
-      addLog('[FRP_BYPASS] EXPLOIT: Zeroing address 0x008A2000 (FRP Partition sector mapped block)...');
-      await new Promise(r => setTimeout(r, 150));
-      addLog('[FRP_BYPASS] SUCCESS: FRP partition wiped cleanly.');
+    if (device.mode === 'SAMSUNG_DOWNLOAD' || (device.brand.toLowerCase() === 'samsung' && device.mode !== 'ADB_ONLINE')) {
+      const res = await frpOemLockEngine.executeSamsungDownloadOdinFrpReset(device, addLog);
+      return { success: res.success, logs: [...logs, ...res.logs] };
+    } else if (device.chipset === 'mediatek') {
+      const res = await frpOemLockEngine.executeMtkBromFrpWipe(addLog);
+      return { success: res.success, logs: [...logs, ...res.logs] };
     } else if (device.brand.toLowerCase() === 'samsung') {
-      addLog('[FRP_BYPASS] Samsung device detected. Attempting MTP dial *#0*# test mode exploit...');
-      await new Promise(r => setTimeout(r, 250));
-      addLog('[FRP_BYPASS] EXPLOIT: Sent ADB enabling AT-command token via virtual modem serial port...');
-      await new Promise(r => setTimeout(r, 200));
-      addLog('[FRP_BYPASS] ADB Debugging enabled on target screen. Bypass payload dispatched.');
-      addLog('[FRP_BYPASS] SUCCESS: FRP Account setup flags successfully disabled.');
+      const res = await frpOemLockEngine.executeSamsungMtpFrpReset(device, addLog);
+      return { success: res.success, logs: [...logs, ...res.logs] };
+    } else if (device.chipset === 'qualcomm') {
+      const res = await frpOemLockEngine.executeQualcommEdlFrpWipe(addLog);
+      return { success: res.success, logs: [...logs, ...res.logs] };
     } else {
-      addLog('[FRP_BYPASS] Qualcomm Chipset detected. Switching to EDL firehose partition wipe...');
-      await new Promise(r => setTimeout(r, 300));
-      addLog('[FRP_BYPASS] SUCCESS: Config block updated to bypass SetupWizard.');
+      const res = await frpOemLockEngine.executeFastbootFrpWipe(addLog);
+      return { success: res.success, logs: [...logs, ...res.logs] };
     }
 
     return {

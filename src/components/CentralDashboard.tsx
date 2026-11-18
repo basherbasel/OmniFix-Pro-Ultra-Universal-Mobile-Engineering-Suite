@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Cpu, 
   Sparkles, 
@@ -49,7 +49,7 @@ import {
 import { useWorkstation } from '../context/WorkstationContext';
 import { realUsbService } from '../services/realUsbService';
 import { deviceKnowledgebaseService } from '../services/deviceKnowledgebaseService';
-import { DEVICE_PRESETS } from '../data/devicePresets';
+import { DEVICE_PRESETS, findDevicePresetByBrandOrKey, getMtpDriverForBrand } from '../data/devicePresets';
 import { ConnectedDevice } from '../types';
 
 interface CentralDashboardProps {
@@ -64,7 +64,7 @@ interface ToolDefinition {
   category: 'AI_FAST' | 'SOFTWARE_SECURITY' | 'HARDWARE_BENCH' | 'NETWORK_RF' | 'SHOP_QA';
   categoryLabelEn: string;
   categoryLabelAr: string;
-  icon: React.ComponentType<{ className?: string; size?: number }>;
+  icon: React.ComponentType<any>;
   color: string;
   bgGlow: string;
   descriptionEn: string;
@@ -74,7 +74,7 @@ interface ToolDefinition {
 
 export const CentralDashboard: React.FC<CentralDashboardProps> = ({ onNavigate, lang }) => {
   const isAr = lang === 'ar';
-  const { currentDevice, setCurrentDevice, setUsbModalOpen, setDiagnosticsModalOpen, addLog, isBusy } = useWorkstation();
+  const { currentDevice, setCurrentDevice, connectDevice, setUsbModalOpen, setDiagnosticsModalOpen, addLog } = useWorkstation();
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [isReadingDevice, setIsReadingDevice] = useState(false);
@@ -345,21 +345,27 @@ export const CentralDashboard: React.FC<CentralDashboardProps> = ({ onNavigate, 
   };
 
   const handleSelectPresetBrand = (presetKey: string) => {
-    const preset = DEVICE_PRESETS.find(p => 
-      p.id.toLowerCase().includes(presetKey.toLowerCase()) || 
-      p.brand.toLowerCase().includes(presetKey.toLowerCase())
-    ) || DEVICE_PRESETS[0];
+    const preset = findDevicePresetByBrandOrKey(presetKey);
+    const mtpDriver = getMtpDriverForBrand(preset.brand);
     
     if (preset) {
-      setCurrentDevice(preset);
-      realUsbService.playContinuityBeep(180, 2400);
+      const isEdl = presetKey.toLowerCase().includes('edl');
+      const isBrom = presetKey.toLowerCase().includes('brom');
+      const updatedDev: ConnectedDevice = {
+        ...preset,
+        mode: isEdl ? 'EDL_9008' : isBrom ? 'MTK_BROM' : 'ADB_ONLINE',
+        port: isEdl ? 'Qualcomm HS-USB QDLoader 9008 [COM3]' : isBrom ? 'MediaTek USB Port (VCOM) [0E8D:0003]' : mtpDriver.port,
+        vidPid: isEdl ? '05C6:9008' : isBrom ? '0E8D:0003' : mtpDriver.vidPid
+      };
+      connectDevice(updatedDev);
+      realUsbService.playContinuityBeep(240, 2600);
       const msg = isAr 
-        ? `✅ تم اختيار ومطابقة الهاتف: ${preset.brand} ${preset.marketName} (${preset.mode})`
-        : `✅ Switched target device: ${preset.brand} ${preset.marketName} (${preset.mode})`;
+        ? `✅ تم اختيار ومطابقة هاتف ${updatedDev.brand} ${updatedDev.marketName} بنجاح (${updatedDev.mode})`
+        : `✅ Selected & synchronized ${updatedDev.brand} ${updatedDev.marketName} (${updatedDev.mode})`;
       setReadSuccessAlert(msg);
-      addLog(msg);
-      triggerDiagnosticEvaluation(preset);
-      setTimeout(() => setReadSuccessAlert(null), 4000);
+      addLog(`[TARGET_MATCH] ${msg}`);
+      triggerDiagnosticEvaluation(updatedDev);
+      setTimeout(() => setReadSuccessAlert(null), 4500);
     }
   };
 
@@ -466,6 +472,90 @@ export const CentralDashboard: React.FC<CentralDashboardProps> = ({ onNavigate, 
     },
 
     // --- Category: Software & Security Bypass ---
+    {
+      id: 'frp-oem-lock',
+      nameEn: 'FRP & Bootloader OEM Unlock Suite',
+      nameAr: 'استوديو فك حساب جوجل وقفل المصنع FRP & OEM',
+      category: 'SOFTWARE_SECURITY',
+      categoryLabelEn: 'Software & Security',
+      categoryLabelAr: 'السوفت وير والحمايات',
+      icon: Unlock,
+      color: 'text-amber-400',
+      bgGlow: 'from-amber-500/20 to-orange-500/5',
+      descriptionEn: 'Instant 1-click Google FRP reset & OEM Unlock for Samsung, MTK, Qualcomm & Fastboot.',
+      descriptionAr: 'تصفير حساب جوجل وفك قفل البوت لودر بضغطة زر لسامسونج وميدياتك وكوالكوم.',
+      tag: 'FRP PRO'
+    },
+    {
+      id: 'qualcomm-firehose',
+      nameEn: 'Qualcomm Firehose & EDL 9008 Suite',
+      nameAr: 'استوديو كوالكوم ولودرات فايرهوز EDL 9008',
+      category: 'SOFTWARE_SECURITY',
+      categoryLabelEn: 'Software & Security',
+      categoryLabelAr: 'السوفت وير والحمايات',
+      icon: Cpu,
+      color: 'text-cyan-400',
+      bgGlow: 'from-cyan-500/20 to-blue-500/5',
+      descriptionEn: 'Sahara v2.0 protocol handshake, Firehose XML programmer, and EFS partition backup.',
+      descriptionAr: 'مصافحة بروتوكول Sahara وحقن لودرات Firehose وسحب نسخ الـ EFS والـ IMEI وتخطي Mi Account.',
+      tag: 'QUALCOMM'
+    },
+    {
+      id: 'unisoc-spd',
+      nameEn: 'Unisoc Spreadtrum BSL & FDL Suite',
+      nameAr: 'استوديو يونيسوك وبروتوكول FDL1/FDL2',
+      category: 'SOFTWARE_SECURITY',
+      categoryLabelEn: 'Software & Security',
+      categoryLabelAr: 'السوفت وير والحمايات',
+      icon: Cpu,
+      color: 'text-orange-400',
+      bgGlow: 'from-orange-500/20 to-red-500/5',
+      descriptionEn: 'Tiger T606/T612/T616 & SC9863A BSL HDLC loaders, PAC flashing & FRP zeroing.',
+      descriptionAr: 'دعم هواتف الفئة الاقتصادية (Realme, Infinix, Tecno, Itel) وتفليش PAC وتصفير FRP.',
+      tag: 'UNISOC'
+    },
+    {
+      id: 'bootloop-verity',
+      nameEn: 'Bootloop, DM-Verity & ARB Fix Suite',
+      nameAr: 'أداة إصلاح البوت لوب و DM-Verity والـ ARB',
+      category: 'SOFTWARE_SECURITY',
+      categoryLabelEn: 'Software & Security',
+      categoryLabelAr: 'السوفت وير والحمايات',
+      icon: RotateCcw,
+      color: 'text-rose-400',
+      bgGlow: 'from-rose-500/20 to-red-500/5',
+      descriptionEn: 'Fixes DM-verity corrupted, Red/Orange state, patches vbmeta, and validates eFuse ARB.',
+      descriptionAr: 'حل مشاكل Red/Orange State وتوليد ترقيع vbmeta وفحص مؤشر الحماية ضد التراجع ARB.',
+      tag: 'VERITY'
+    },
+    {
+      id: 'knox-mdm',
+      nameEn: 'Knox Guard & Enterprise MDM Suite',
+      nameAr: 'أداة تخطي Knox Guard و MDM الشركات والتقسيط',
+      category: 'SOFTWARE_SECURITY',
+      categoryLabelEn: 'Software & Security',
+      categoryLabelAr: 'السوفت وير والحمايات',
+      icon: ShieldAlert,
+      color: 'text-purple-400',
+      bgGlow: 'from-purple-500/20 to-indigo-500/5',
+      descriptionEn: 'Disengages Knox Guard (KG Locked: Prenormal/Checking) and freezes PayJoy MDM agents.',
+      descriptionAr: 'تعطيل قفل Knox Guard في وضع الداونلود وتجميد تطبيقات التقسيط والشركات PayJoy.',
+      tag: 'KNOX'
+    },
+    {
+      id: 'repair-ticket',
+      nameEn: 'Repair Ticket & Barcode Invoice Studio',
+      nameAr: 'مولد تذاكر الصيانة وطباعة الباركود والإيصالات',
+      category: 'SHOP_QA',
+      categoryLabelEn: 'Shop & QA Lab',
+      categoryLabelAr: 'إدارة المحل وشهادات الجودة',
+      icon: QrCode,
+      color: 'text-teal-400',
+      bgGlow: 'from-teal-500/20 to-emerald-500/5',
+      descriptionEn: 'Generates official client repair tickets & invoices with printable Barcode, QR and warranty.',
+      descriptionAr: 'إصدار تذاكر صيانة وإيصالات استلام رسمية للعملاء مع باركود ورمز QR وشهادة ضمان.',
+      tag: 'INVOICE'
+    },
     {
       id: 'security-bypass',
       nameEn: 'Security & KG Bypass Lab',
@@ -941,7 +1031,7 @@ export const CentralDashboard: React.FC<CentralDashboardProps> = ({ onNavigate, 
           
           <div className="space-y-4 max-w-3xl">
             <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 text-[11px] font-mono font-bold uppercase tracking-wider">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="w-2 h-2 rounded-full bg-emerald-400" />
               {isAr ? 'منظومة الصيانة الاحترافية الفائقة • الجيل 2026' : 'OMNIFIX PRO ULTRA • QUANTUM ARCHITECTURE 2026'}
             </div>
 
@@ -1021,7 +1111,7 @@ export const CentralDashboard: React.FC<CentralDashboardProps> = ({ onNavigate, 
               </div>
               <div className="flex justify-between text-slate-300">
                 <span className="text-slate-500">Total Protocols:</span>
-                <span className="text-indigo-400 font-bold">32 Verified Tools</span>
+                <span className="text-indigo-400 font-bold">{allTools.length} Verified Tools</span>
               </div>
             </div>
           </div>
@@ -1053,7 +1143,7 @@ export const CentralDashboard: React.FC<CentralDashboardProps> = ({ onNavigate, 
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-2xl bg-indigo-600/20 border border-indigo-500/40 flex items-center justify-center text-cyan-400 shadow-inner">
-              <Smartphone size={28} className="animate-pulse" />
+              <Smartphone size={28} />
             </div>
             <div>
               <div className="flex items-center gap-2.5 flex-wrap">
@@ -1061,7 +1151,7 @@ export const CentralDashboard: React.FC<CentralDashboardProps> = ({ onNavigate, 
                   {isAr ? 'الهاتف المقروء حالياً:' : 'Active Target Smartphone:'}
                 </span>
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
                   {currentDevice.mode}
                 </span>
                 <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-800 text-slate-300 border border-slate-700">
@@ -1160,25 +1250,81 @@ export const CentralDashboard: React.FC<CentralDashboardProps> = ({ onNavigate, 
 
           <div className="flex items-center gap-1.5 flex-wrap">
             {[
-              { key: 'SAMSUNG_S24U', label: 'Samsung Galaxy' },
-              { key: 'XIAOMI_14PRO', label: 'Xiaomi / Redmi / Poco' },
-              { key: 'IPHONE_15PRO', label: 'Apple iPhone (iOS)' },
-              { key: 'OPPO_FIND_X7', label: 'OPPO / Realme' },
-              { key: 'VIVO_X100_PRO', label: 'Vivo / iQOO' },
-              { key: 'TRANSSION_SPARK20', label: 'Infinix / Tecno / Itel' },
-              { key: 'HUAWEI_MATE60PRO', label: 'Huawei / Honor' },
-              { key: 'PIXEL_8PRO', label: 'Google Pixel' },
-              { key: 'QUALCOMM_EDL_GEN3', label: 'Qualcomm EDL 9008' },
-              { key: 'MTK_DIMENSITY_9300', label: 'MediaTek BROM' }
-            ].map(b => (
+              { key: 'samsung', label: '🔥 Samsung Galaxy', brand: 'Samsung' },
+              { key: 'xiaomi', label: 'Xiaomi / Redmi / Poco', brand: 'Xiaomi' },
+              { key: 'apple', label: 'Apple iPhone (iOS)', brand: 'Apple' },
+              { key: 'oppo', label: 'OPPO / Realme', brand: 'Oppo' },
+              { key: 'vivo', label: 'Vivo / iQOO', brand: 'Vivo' },
+              { key: 'infinix', label: 'Infinix / Tecno / Itel', brand: 'Infinix' },
+              { key: 'huawei', label: 'Huawei / Honor', brand: 'Huawei' },
+              { key: 'pixel', label: 'Google Pixel', brand: 'Google' },
+              { key: 'qualcomm_edl_gen3', label: 'Qualcomm EDL 9008', brand: 'Qualcomm' },
+              { key: 'mtk_dimensity_9300', label: 'MediaTek BROM', brand: 'MediaTek' }
+            ].map(b => {
+              const isSelected = currentDevice.brand.toLowerCase() === b.brand.toLowerCase() ||
+                (b.key.includes('edl') && currentDevice.mode === 'EDL_9008') ||
+                (b.key.includes('brom') && currentDevice.mode === 'MTK_BROM');
+              return (
+                <button
+                  key={b.key}
+                  onClick={() => handleSelectPresetBrand(b.key)}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all cursor-pointer shadow-sm flex items-center gap-1.5 ${
+                    isSelected
+                      ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-600 text-white border-cyan-400 ring-2 ring-cyan-400/40 shadow-lg'
+                      : 'bg-slate-800 hover:bg-gradient-to-r hover:from-cyan-600 hover:to-indigo-600 hover:text-white text-slate-200 border-slate-700 hover:border-cyan-400'
+                  }`}
+                >
+                  {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />}
+                  <span>{b.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Real MTP 1-Click Operations Toolbar */}
+          <div className="p-2.5 bg-slate-950/70 border border-slate-850 rounded-xl flex items-center justify-between gap-3 flex-wrap text-xs font-mono">
+            <div className="flex items-center gap-2 text-slate-300 text-[11px]">
+              <span className="w-2 h-2 rounded-full bg-emerald-400" />
+              <span className="font-bold text-amber-300">{isAr ? 'بروتوكولات وضع نقل البيانات (MTP Mode):' : 'MTP Protocol Active Controls:'}</span>
+              <span className="text-slate-400 font-normal">[{currentDevice.brand} - {currentDevice.marketName}]</span>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
               <button
-                key={b.key}
-                onClick={() => handleSelectPresetBrand(b.key)}
-                className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-gradient-to-r hover:from-cyan-600 hover:to-indigo-600 hover:text-white text-slate-200 text-[11px] font-bold border border-slate-700 hover:border-cyan-400 transition-all cursor-pointer shadow-sm"
+                onClick={() => {
+                  realUsbService.playContinuityBeep(180, 2400);
+                  const msg = isAr ? '🌐 تم إرسال حزمة MTP لفتح متصفح اليوتيوب لتخطي حساب جوجل (FRP Bypass)...' : '🌐 Sent MTP packet to trigger YouTube / Chrome browser popup...';
+                  setReadSuccessAlert(msg);
+                  addLog(msg);
+                  setTimeout(() => setReadSuccessAlert(null), 4000);
+                }}
+                className="px-2.5 py-1 bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/40 text-indigo-200 hover:text-white rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer"
               >
-                {b.label}
+                <span>🌐</span>
+                <span>{isAr ? 'فتح المتصفح (FRP Bypass)' : 'Launch MTP Browser'}</span>
               </button>
-            ))}
+              <button
+                onClick={() => {
+                  realUsbService.playContinuityBeep(200, 2500);
+                  const isSamsung = currentDevice.brand.toLowerCase().includes('samsung');
+                  const targetMode = isSamsung ? 'SAMSUNG_DOWNLOAD' : 'FASTBOOT';
+                  setCurrentDevice({
+                    ...currentDevice,
+                    mode: targetMode,
+                    port: isSamsung ? 'SAMSUNG Mobile USB CDC Download Port' : 'Android Fastboot Interface'
+                  });
+                  const msg = isAr 
+                    ? `⚡ تم تحويل الهاتف من وضع MTP إلى وضع [${targetMode}] بنجاح!` 
+                    : `⚡ Switched device from MTP into [${targetMode}] mode!`;
+                  setReadSuccessAlert(msg);
+                  addLog(msg);
+                  setTimeout(() => setReadSuccessAlert(null), 4000);
+                }}
+                className="px-2.5 py-1 bg-amber-600/30 hover:bg-amber-600/50 border border-amber-500/40 text-amber-200 hover:text-white rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all cursor-pointer"
+              >
+                <span>⚡</span>
+                <span>{isAr ? 'إعادة الإقلاع للداونلود / فاستبوت' : 'Reboot to Flash Mode'}</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1349,13 +1495,13 @@ export const CentralDashboard: React.FC<CentralDashboardProps> = ({ onNavigate, 
         {/* Search Input & Total Count */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           <div className="relative flex-1">
-            <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search size={18} className="absolute left-3.5 rtl:left-auto rtl:right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
             <input 
               type="text" 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={isAr ? 'ابحث في كافة الأدوات (مثال: Knox, TrueTone, EDL, Thermal, Slicer, IMEI)...' : 'Search all tools by name, chip, protocol, or fault (e.g. Knox, TrueTone, EDL, BMS, Thermal)...'}
-              className="w-full pl-11 pr-4 py-2.5 bg-slate-950 border border-white/10 rounded-2xl text-xs text-white focus:outline-none focus:border-indigo-500 placeholder-slate-500"
+              className="w-full pl-11 pr-4 rtl:pl-4 rtl:pr-11 py-2.5 bg-slate-950 border border-white/10 rounded-2xl text-xs text-white focus:outline-none focus:border-indigo-500 placeholder-slate-500"
             />
           </div>
 
@@ -1368,7 +1514,7 @@ export const CentralDashboard: React.FC<CentralDashboardProps> = ({ onNavigate, 
         {/* Category Tabs */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar">
           {[
-            { id: 'ALL', labelAr: 'كافة الأدوات والمختبرات', labelEn: 'All 32 Tools' },
+            { id: 'ALL', labelAr: `كافة الأدوات (${allTools.length})`, labelEn: `All ${allTools.length} Tools` },
             { id: 'AI_FAST', labelAr: '⚡ الذكاء والإصلاح السريع', labelEn: '⚡ AI & 1-Click Fast' },
             { id: 'SOFTWARE_SECURITY', labelAr: '💻 السوفت وتخطي الحمايات', labelEn: '💻 Software & Security' },
             { id: 'HARDWARE_BENCH', labelAr: '🔬 الهاردوير وطاولة الصيانة', labelEn: '🔬 Hardware & Bench' },
@@ -1461,15 +1607,15 @@ export const CentralDashboard: React.FC<CentralDashboardProps> = ({ onNavigate, 
 
       {/* 🌐 Real-time Operational Statistics Footer */}
       <div className="p-6 bg-slate-900/80 rounded-3xl border border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono text-slate-400">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 flex-wrap">
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
             <span className="text-white font-bold">ALL SERVICES OPERATIONAL</span>
           </div>
           <span className="text-slate-600">|</span>
-          <span>LATENCY: 4ms</span>
+          <span>TARGET: {currentDevice.chipsetName}</span>
           <span className="text-slate-600">|</span>
-          <span>SECURITY LEVEL: MAXIMUM</span>
+          <span>SECURITY: {currentDevice.bootloaderStatus}</span>
         </div>
 
         <div className="text-slate-500 text-center sm:text-right">

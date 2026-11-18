@@ -1,0 +1,464 @@
+[
+  {
+    "id": 1,
+    "case_token": "case-a32-water-9012",
+    "customer_name": "كريم محمود السيد",
+    "customer_phone": "+201001234567",
+    "device_model": "Samsung Galaxy A32 (SM-A325F)",
+    "serial_imei": "354891110492817",
+    "reported_issue": "الجهاز سقط في الماء ولا يشحن مع ظهور علامة الرطوبة ثم فصل باور نهائياً",
+    "workflow_stage": "board_surgery",
+    "diagnosis_summary": "تآكل وأكسدة حول آيسي SM5714 مع قصر جزئي على خط USB_CC1 — تم تنظيف المنطقة وقياس الممانعات.",
+    "estimated_cost": 850,
+    "received_at": "2026-11-18T02:18:30.460Z",
+    "events": [
+      {
+        "id": 1,
+        "event_type": "case_received",
+        "details": "استلام الجهاز Samsung Galaxy A32 (SM-A325F) وفتح تذكرة الفحص المخبري",
+        "created_at": "2026-11-18T02:18:30.460Z"
+      },
+      {
+        "id": 2,
+        "event_type": "diode_measured",
+        "details": "قياس USB_CC1 / USB_CC2 = 0.065V (SHORT_CIRCUIT)",
+        "created_at": "2026-11-18T02:18:30.460Z"
+      }
+    ],
+    "diode_measurements": [
+      {
+        "rail_code": "USB_CC1 / USB_CC2",
+        "rail_name_ar": "مسارات تعريف الشحن السريع Type-C CC",
+        "rail_name_en": "USB Type-C Configuration Channel",
+        "measured_v": 0.065,
+        "expected_range": "0.500V – 0.740V",
+        "status": "SHORT_CIRCUIT",
+        "diagnosis": "قصر حرج على مسارات تعريف الشحن السريع Type-C CC! المشتبه بهم: تلف متحكم Type-C نتيجة استخدام شاحن رديء أو تسرب 20V لخطوط الداتا",
+        "diagnosis_en": "Critical Short Circuit on USB Type-C Configuration Channel. Suspects: تلف متحكم Type-C نتيجة استخدام شاحن رديء أو تسرب 20V لخطوط الداتا",
+        "safety_note": "افصل البطارية والشاحن فوراً واستخدم حقناً محدود التيار (1.0V-1.5V / 2A) فقط."
+      }
+    ],
+    "power_supply_logs": [],
+    "usb_sessions": [
+      {
+        "matched": true,
+        "vid": "04E8",
+        "pid": "685D",
+        "chipset": "Samsung Exynos / Qualcomm",
+        "mode": "ODIN / Download Mode",
+        "description": "وضع الداونلود الرسمي لأجهزة سامسونج — جاهز لتمرير الفلاشة الرباعية (BL/AP/CP/CSC)",
+        "descriptionEn": "Samsung Loke/ODIN Download protocol ready for 4-file firmware & PIT partition table flashing.",
+        "recommended_tools": [
+          "Odin3 v3.14.4",
+          "Heimdall",
+          "Chimera / Z3X"
+        ],
+        "risk_level": "low"
+      }
+    ],
+    "vision_analyses": [],
+    "multimodal_runs": []
+  },
+  {
+    "id": 2,
+    "case_token": "case-ip14p-short-4821",
+    "customer_name": "سارة عبد الرحمن",
+    "customer_phone": "+201119876543",
+    "device_model": "iPhone 14 Pro (A2890)",
+    "serial_imei": "359124887102344",
+    "reported_issue": "الجهاز يسخن بشدة عند توصيل الشاحن ولا يقلع (سحب 620mA قبل الضغط على الباور)",
+    "workflow_stage": "diagnosing",
+    "diagnosis_summary": "قصر صريح (Short Circuit) على مسار PP_VDD_MAIN / VPH_PWR بقيمة 0.012V",
+    "estimated_cost": 2400,
+    "received_at": "2026-11-18T02:18:30.460Z",
+    "events": [
+      {
+        "id": 6,
+        "event_type": "ai_diagnosis_completed",
+        "details": "التشخيص المتكامل: قصر صريح (Short Circuit) على مسار PP_VDD_MAIN / VPH_PWR بقيمة 0.012V (ثقة 95%)",
+        "created_at": "2026-11-18T02:20:09.033Z"
+      },
+      {
+        "id": 5,
+        "event_type": "ai_diagnosis_completed",
+        "details": "التشخيص المتكامل: قصر صريح (Short Circuit) على مسار PP_VDD_MAIN / VPH_PWR بقيمة 0.012V (ثقة 95%)",
+        "created_at": "2026-11-18T02:19:15.293Z"
+      },
+      {
+        "id": 4,
+        "event_type": "power_analyzed",
+        "details": "تحليل باور سبلاي: قصر صريح على خط التغذية الرئيسي (سحب 620mA قبل الضغط على الباور)",
+        "created_at": "2026-11-18T02:18:30.487Z"
+      },
+      {
+        "id": 3,
+        "event_type": "diode_measured",
+        "details": "قياس PP_VDD_MAIN / VPH_PWR = 0.012V (SHORT_CIRCUIT)",
+        "created_at": "2026-11-18T02:18:30.478Z"
+      },
+      {
+        "id": 1,
+        "event_type": "case_received",
+        "details": "استلام الجهاز iPhone 14 Pro وفتح تذكرة الفحص المخبري",
+        "created_at": "2026-11-18T02:18:30.460Z"
+      },
+      {
+        "id": 2,
+        "event_type": "power_analyzed",
+        "details": "تحليل باور سبلاي: قصر صريح على خط التغذية الرئيسي (620mA pre-boot)",
+        "created_at": "2026-11-18T02:18:30.460Z"
+      }
+    ],
+    "diode_measurements": [
+      {
+        "rail_code": "PP_VDD_MAIN / VPH_PWR",
+        "rail_name_ar": "خط التغذية الرئيسي للبوردة",
+        "rail_name_en": "Primary Main System Power Rail",
+        "measured_v": 0.012,
+        "expected_range": "0.310V – 0.480V",
+        "status": "SHORT_CIRCUIT",
+        "diagnosis": "قصر حرج على خط التغذية الرئيسي للبوردة! المشتبه بهم: مكثفات التصفية على خط VDD_MAIN، آيسي الشحن، آيسي الباور PMIC، أو مضخم الشبكة PA",
+        "diagnosis_en": "Critical Short Circuit on Primary Main System Power Rail. Suspects: مكثفات التصفية على خط VDD_MAIN، آيسي الشحن، آيسي الباور PMIC، أو مضخم الشبكة PA",
+        "safety_note": "افصل البطارية والشاحن فوراً واستخدم حقناً محدود التيار (1.0V-1.5V / 2A) فقط.",
+        "created_at": "2026-11-18T02:18:30.478Z"
+      },
+      {
+        "rail_code": "PP_VDD_MAIN / VPH_PWR",
+        "rail_name_ar": "خط التغذية الرئيسي للبوردة",
+        "rail_name_en": "Primary Main System Power Rail",
+        "measured_v": 0.014,
+        "expected_range": "0.310V – 0.480V",
+        "status": "SHORT_CIRCUIT",
+        "diagnosis": "قصر حرج على خط التغذية الرئيسي للبوردة! المشتبه بهم: مكثفات التصفية على خط VDD_MAIN، آيسي الشحن، آيسي الباور PMIC، أو مضخم الشبكة PA",
+        "diagnosis_en": "Critical Short Circuit on Primary Main System Power Rail. Suspects: مكثفات التصفية على خط VDD_MAIN، آيسي الشحن، آيسي الباور PMIC، أو مضخم الشبكة PA",
+        "safety_note": "افصل البطارية والشاحن فوراً واستخدم حقناً محدود التيار (1.0V-1.5V / 2A) فقط."
+      }
+    ],
+    "power_supply_logs": [
+      {
+        "stage": "PRE_BOOT_DEAD_SHORT",
+        "severity": "critical",
+        "fault_title": "قصر صريح على خط التغذية الرئيسي (سحب 620mA قبل الضغط على الباور)",
+        "fault_title_en": "Primary Power Rail Dead Short (620mA draw before Power Key)",
+        "suspect_rails": [
+          "PP_VDD_MAIN / VPH_PWR",
+          "PP_BATT_VCC / VBAT"
+        ],
+        "suspect_components": [
+          "مكثفات التصفية على خط VDD_MAIN / VPH_PWR",
+          "آيسي الشحن (Hydra / SM5714 / PM8150B)",
+          "مضخم إشارة الشبكة (2G/4G PA)"
+        ],
+        "suspect_components_en": [
+          "Filter MLCC capacitors on VDD_MAIN / VPH_PWR rail",
+          "Charging / IF-PMIC IC (Hydra / SM5714 / PM8150B)",
+          "RF Power Amplifier (2G/4G PA) connected directly to VPH_PWR"
+        ],
+        "action_plan": [
+          "افصل البوردة واضبط الباور سبلاي على 1.2V وحد أقصى للتيار 2.5A",
+          "احقن الجهد على خط VDD_MAIN واستخدم الكاميرا الحرارية أو بخاخ التبريد لرصد المكون الساخن فوراً",
+          "تحذير: لا تحقن أكثر من 1.5V على خطوط التغذية الرئيسية لتجنب حرق الطبقات الداخلية"
+        ],
+        "action_plan_en": [
+          "Disconnect peripherals and limit Bench DC Supply to 1.2V / 2.5A max",
+          "Inject onto VDD_MAIN/VPH_PWR while inspecting with Thermal Camera or Rosin vapor",
+          "Safety warning: never exceed 1.5V during low-impedance short injection"
+        ],
+        "waveform_curve": [
+          {
+            "time_s": 0,
+            "current_ma": 635,
+            "phase": "PRE_BOOT_SHORT"
+          },
+          {
+            "time_s": 0.5,
+            "current_ma": 610,
+            "phase": "PRE_BOOT_SHORT"
+          },
+          {
+            "time_s": 1,
+            "current_ma": 635,
+            "phase": "PRE_BOOT_SHORT"
+          },
+          {
+            "time_s": 1.5,
+            "current_ma": 610,
+            "phase": "PRE_BOOT_SHORT"
+          },
+          {
+            "time_s": 2,
+            "current_ma": 635,
+            "phase": "PRE_BOOT_SHORT"
+          },
+          {
+            "time_s": 2.5,
+            "current_ma": 610,
+            "phase": "PRE_BOOT_SHORT"
+          },
+          {
+            "time_s": 3,
+            "current_ma": 635,
+            "phase": "PRE_BOOT_SHORT"
+          },
+          {
+            "time_s": 3.5,
+            "current_ma": 610,
+            "phase": "PRE_BOOT_SHORT"
+          },
+          {
+            "time_s": 4,
+            "current_ma": 635,
+            "phase": "PRE_BOOT_SHORT"
+          },
+          {
+            "time_s": 4.5,
+            "current_ma": 610,
+            "phase": "PRE_BOOT_SHORT"
+          },
+          {
+            "time_s": 5,
+            "current_ma": 635,
+            "phase": "PRE_BOOT_SHORT"
+          },
+          {
+            "time_s": 5.5,
+            "current_ma": 610,
+            "phase": "PRE_BOOT_SHORT"
+          }
+        ],
+        "architecture": "apple",
+        "preBootMa": 620,
+        "postBootMa": 620,
+        "created_at": "2026-11-18T02:18:30.487Z"
+      },
+      {
+        "stage": "PRE_BOOT_DEAD_SHORT",
+        "severity": "critical",
+        "fault_title": "قصر صريح على خط التغذية الرئيسي (سحب 620mA قبل الضغط على الباور)",
+        "fault_title_en": "Primary Power Rail Dead Short (620mA draw before Power Key)",
+        "suspect_rails": [
+          "PP_VDD_MAIN / VPH_PWR",
+          "PP_BATT_VCC / VBAT"
+        ],
+        "suspect_components": [
+          "مكثفات التصفية على خط VDD_MAIN / VPH_PWR",
+          "آيسي الشحن (Hydra / SM5714 / PM8150B)",
+          "مضخم إشارة الشبكة (2G/4G PA)"
+        ],
+        "suspect_components_en": [
+          "Filter MLCC capacitors on VDD_MAIN / VPH_PWR rail",
+          "Charging / IF-PMIC IC (Hydra / SM5714 / PM8150B)",
+          "RF Power Amplifier (2G/4G PA) connected directly to VPH_PWR"
+        ],
+        "action_plan": [
+          "افصل البوردة واضبط الباور سبلاي على 1.2V وحد أقصى للتيار 2.5A",
+          "احقن الجهد على خط VDD_MAIN واستخدم الكاميرا الحرارية أو بخاخ التبريد لرصد المكون الساخن فوراً",
+          "تحذير: لا تحقن أكثر من 1.5V على خطوط التغذية الرئيسية لتجنب حرق الطبقات الداخلية"
+        ],
+        "action_plan_en": [
+          "Disconnect peripherals and limit Bench DC Supply to 1.2V / 2.5A max",
+          "Inject onto VDD_MAIN/VPH_PWR while inspecting with Thermal Camera or Rosin vapor",
+          "Safety warning: never exceed 1.5V during low-impedance short injection"
+        ],
+        "waveform_curve": [
+          {
+            "time_s": 0,
+            "current_ma": 635,
+            "phase": "PRE_BOOT_SHORT"
+          },
+          {
+            "time_s": 0.5,
+            "current_ma": 610,
+            "phase": "PRE_BOOT_SHORT"
+          },
+          {
+            "time_s": 1,
+            "current_ma": 635,
+            "phase": "PRE_BOOT_SHORT"
+          },
+          {
+            "time_s": 1.5,
+            "current_ma": 610,
+            "phase": "PRE_BOOT_SHORT"
+          },
+          {
+            "time_s": 2,
+            "current_ma": 635,
+            "phase": "PRE_BOOT_SHORT"
+          },
+          {
+            "time_s": 2.5,
+            "current_ma": 610,
+            "phase": "PRE_BOOT_SHORT"
+          },
+          {
+            "time_s": 3,
+            "current_ma": 635,
+            "phase": "PRE_BOOT_SHORT"
+          },
+          {
+            "time_s": 3.5,
+            "current_ma": 610,
+            "phase": "PRE_BOOT_SHORT"
+          },
+          {
+            "time_s": 4,
+            "current_ma": 635,
+            "phase": "PRE_BOOT_SHORT"
+          },
+          {
+            "time_s": 4.5,
+            "current_ma": 610,
+            "phase": "PRE_BOOT_SHORT"
+          },
+          {
+            "time_s": 5,
+            "current_ma": 635,
+            "phase": "PRE_BOOT_SHORT"
+          },
+          {
+            "time_s": 5.5,
+            "current_ma": 610,
+            "phase": "PRE_BOOT_SHORT"
+          }
+        ],
+        "architecture": "apple",
+        "preBootMa": 620,
+        "postBootMa": 620
+      }
+    ],
+    "usb_sessions": [],
+    "vision_analyses": [],
+    "multimodal_runs": [
+      {
+        "final_diagnosis_ar": "قصر صريح (Short Circuit) على مسار PP_VDD_MAIN / VPH_PWR بقيمة 0.012V",
+        "final_diagnosis_en": "Direct Short Circuit on PP_VDD_MAIN / VPH_PWR (0.012V diode drop)",
+        "confidence_pct": 95,
+        "evidence": [
+          {
+            "source": "diode_mode",
+            "detail_ar": "قصر حرج على خط التغذية الرئيسي للبوردة! المشتبه بهم: مكثفات التصفية على خط VDD_MAIN، آيسي الشحن، آيسي الباور PMIC، أو مضخم الشبكة PA",
+            "detail_en": "Critical Short Circuit on Primary Main System Power Rail. Suspects: مكثفات التصفية على خط VDD_MAIN، آيسي الشحن، آيسي الباور PMIC، أو مضخم الشبكة PA"
+          },
+          {
+            "source": "dc_power_supply",
+            "detail_ar": "قبل الباور 620mA / بعد الباور 620mA — قصر صريح على خط التغذية الرئيسي (سحب 620mA قبل الضغط على الباور)",
+            "detail_en": "Pre-boot 620mA / Post-boot 620mA — Primary Power Rail Dead Short (620mA draw before Power Key)"
+          }
+        ],
+        "recommended_actions_ar": [
+          "حقن جهد منخفض ومحدود التيار (1.0V - 1.5V / 2A) على مسار PP_VDD_MAIN / VPH_PWR لتحديد المكون الساخن",
+          "استخدام بخاخ التبريد (Rosin / Freeze Spray) أو الكاميرا الحرارية لعزل المكثف أو الآيسي المتسبب بالقصر"
+        ],
+        "recommended_actions_en": [
+          "Inject current-limited low voltage (1.0V–1.5V / 2A) into PP_VDD_MAIN / VPH_PWR to isolate thermal hotspot",
+          "Apply Rosin smoke or thermal camera to pinpoint shorted MLCC capacitor or IC"
+        ],
+        "engine_label": "GRE-Multimodal Scientific Engine v13",
+        "created_at": "2026-11-18T02:20:09.033Z"
+      },
+      {
+        "final_diagnosis_ar": "قصر صريح (Short Circuit) على مسار PP_VDD_MAIN / VPH_PWR بقيمة 0.012V",
+        "final_diagnosis_en": "Direct Short Circuit on PP_VDD_MAIN / VPH_PWR (0.012V diode drop)",
+        "confidence_pct": 95,
+        "evidence": [
+          {
+            "source": "diode_mode",
+            "detail_ar": "قصر حرج على خط التغذية الرئيسي للبوردة! المشتبه بهم: مكثفات التصفية على خط VDD_MAIN، آيسي الشحن، آيسي الباور PMIC، أو مضخم الشبكة PA",
+            "detail_en": "Critical Short Circuit on Primary Main System Power Rail. Suspects: مكثفات التصفية على خط VDD_MAIN، آيسي الشحن، آيسي الباور PMIC، أو مضخم الشبكة PA"
+          },
+          {
+            "source": "dc_power_supply",
+            "detail_ar": "قبل الباور 620mA / بعد الباور 620mA — قصر صريح على خط التغذية الرئيسي (سحب 620mA قبل الضغط على الباور)",
+            "detail_en": "Pre-boot 620mA / Post-boot 620mA — Primary Power Rail Dead Short (620mA draw before Power Key)"
+          }
+        ],
+        "recommended_actions_ar": [
+          "حقن جهد منخفض ومحدود التيار (1.0V - 1.5V / 2A) على مسار PP_VDD_MAIN / VPH_PWR لتحديد المكون الساخن",
+          "استخدام بخاخ التبريد (Rosin / Freeze Spray) أو الكاميرا الحرارية لعزل المكثف أو الآيسي المتسبب بالقصر",
+          "تحليل الذكاء الاصطناعي الهندسي: افحص اللوحة بالكاميرا الحرارية أو الرجينة أثناء حقن مسار PP_VDD_MAIN بفولت يبدأ من **1.0V** (وبحد أقصى **1.5V**) وتيار أقصى **3A** لتحديد العنصر الساخن بأمان وحماية خطوط المعالج من التلف في حال وجود قصر عابر عبر آيسي الباور أو الشحن.\nإذا لم يظهر المكون المسبب للقصر على السطح الخارجي أو تركزت الحرارة بين الطبقتين، افصل طبقتي البوردة (Sandwich) بحرارة مضبوطة لاستبدال المكثف أو الآيسي التالف، ثم تأكد من عودة ممانعة المسار لوضعها الطبيعي قبل إعادة اللحام."
+        ],
+        "recommended_actions_en": [
+          "Inject current-limited low voltage (1.0V–1.5V / 2A) into PP_VDD_MAIN / VPH_PWR to isolate thermal hotspot",
+          "Apply Rosin smoke or thermal camera to pinpoint shorted MLCC capacitor or IC"
+        ],
+        "engine_label": "GRE-Multimodal + Gemini Vision/Engineering AI",
+        "created_at": "2026-11-18T02:19:15.293Z"
+      },
+      {
+        "final_diagnosis_ar": "قصر صريح (Short Circuit) على مسار PP_VDD_MAIN / VPH_PWR بقيمة 0.014V",
+        "final_diagnosis_en": "Direct Short Circuit on PP_VDD_MAIN / VPH_PWR (0.014V diode drop)",
+        "confidence_pct": 95,
+        "evidence": [
+          {
+            "source": "diode_mode",
+            "detail_ar": "قصر حرج على خط التغذية الرئيسي للبوردة! المشتبه بهم: مكثفات التصفية على خط VDD_MAIN، آيسي الشحن، آيسي الباور PMIC، أو مضخم الشبكة PA",
+            "detail_en": "Critical Short Circuit on Primary Main System Power Rail. Suspects: مكثفات التصفية على خط VDD_MAIN، آيسي الشحن، آيسي الباور PMIC، أو مضخم الشبكة PA"
+          },
+          {
+            "source": "dc_power_supply",
+            "detail_ar": "قبل الباور 620mA / بعد الباور 620mA — قصر صريح على خط التغذية الرئيسي (سحب 620mA قبل الضغط على الباور)",
+            "detail_en": "Pre-boot 620mA / Post-boot 620mA — Primary Power Rail Dead Short (620mA draw before Power Key)"
+          }
+        ],
+        "recommended_actions_ar": [
+          "حقن جهد منخفض ومحدود التيار (1.0V - 1.5V / 2A) على مسار PP_VDD_MAIN / VPH_PWR لتحديد المكون الساخن",
+          "استخدام بخاخ التبريد (Rosin / Freeze Spray) أو الكاميرا الحرارية لعزل المكثف أو الآيسي المتسبب بالقصر"
+        ],
+        "recommended_actions_en": [
+          "Inject current-limited low voltage (1.0V–1.5V / 2A) into PP_VDD_MAIN / VPH_PWR to isolate thermal hotspot",
+          "Apply Rosin smoke or thermal camera to pinpoint shorted MLCC capacitor or IC"
+        ],
+        "engine_label": "GRE-Multimodal Scientific Engine v13"
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "case_token": "case-rmx3760-brom-7731",
+    "customer_name": "محمود طارق حسن",
+    "customer_phone": "+201223344556",
+    "device_model": "Realme C53 (RMX3760)",
+    "serial_imei": "864219053187420",
+    "reported_issue": "توقف الجهاز على وضع BROM بعد تحديث خاطئ للنظام",
+    "workflow_stage": "software_flashing",
+    "diagnosis_summary": "تم التعرف على المعالج في وضع MediaTek BROM (0E8D:0003) وجارٍ تمرير البريلودر والنظام.",
+    "estimated_cost": 450,
+    "received_at": "2026-11-18T02:18:30.460Z",
+    "events": [
+      {
+        "id": 1,
+        "event_type": "case_received",
+        "details": "استلام الجهاز Realme C53 وفتح تذكرة الفحص المخبري",
+        "created_at": "2026-11-18T02:18:30.460Z"
+      },
+      {
+        "id": 2,
+        "event_type": "usb_detected",
+        "details": "رصد منفذ BROM Mode (BootROM) 0E8D:0003",
+        "created_at": "2026-11-18T02:18:30.460Z"
+      }
+    ],
+    "diode_measurements": [],
+    "power_supply_logs": [],
+    "usb_sessions": [
+      {
+        "matched": true,
+        "vid": "0E8D",
+        "pid": "0003",
+        "chipset": "MediaTek (MTK)",
+        "mode": "BROM Mode (BootROM)",
+        "description": "وضع البوت روم المباشر — المعالج يستجيب قبل تحميل البريلودر (مناسب لفك البوتلودر وإصلاح السوفت الميت)",
+        "descriptionEn": "Direct BootROM endpoint before Preloader execution. Ideal for SLA/DAA bypass, unbrick & partition dump.",
+        "recommended_tools": [
+          "mtkclient",
+          "SP Flash Tool",
+          "Pandora / UnlockTool"
+        ],
+        "risk_level": "medium"
+      }
+    ],
+    "vision_analyses": [],
+    "multimodal_runs": []
+  }
+]

@@ -15,7 +15,7 @@ import {
   CheckSquare,
   Square
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ConnectedDevice, PartitionInfo } from '../types';
 import { realUsbService } from '../services/realUsbService';
 

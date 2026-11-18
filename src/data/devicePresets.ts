@@ -1042,3 +1042,113 @@ export const DEVICE_PRESETS: ConnectedDevice[] = [
     storageUsedGb: 112
   }
 ];
+
+export const BRAND_TO_PRESET_ID: Record<string, string> = {
+  // Samsung
+  'samsung': 'samsung-s24u',
+  'samsung_s24u': 'samsung-s24u',
+  'samsung-galaxy': 'samsung-s24u',
+  'samsung-sovereign-odin': 'samsung-s24u',
+  'samsung_a32': 'samsung-galaxy-a32-a325f',
+  'samsung-galaxy-a32-a325f': 'samsung-galaxy-a32-a325f',
+
+  // Xiaomi / Redmi / Poco
+  'xiaomi': 'xiaomi-14u',
+  'xiaomi_14pro': 'xiaomi-14u',
+  'redmi': 'xiaomi-redmi-note13p',
+  'poco': 'poco-f6pro',
+
+  // Apple iPhone
+  'apple': 'apple-iphone15pm',
+  'iphone': 'apple-iphone15pm',
+  'iphone_15pro': 'apple-iphone15pm',
+
+  // OPPO / Realme
+  'oppo': 'oppo-findx7u',
+  'oppo_find_x7': 'oppo-findx7u',
+  'realme': 'realme-gt5p',
+
+  // Vivo / iQOO
+  'vivo': 'vivo-x100p',
+  'vivo_x100_pro': 'vivo-x100p',
+  'iqoo': 'vivo-x100p',
+
+  // Transsion (Infinix / Tecno / Itel)
+  'infinix': 'infinix-gt20p',
+  'tecno': 'tecno-spark20',
+  'transsion_spark20': 'infinix-gt20p',
+
+  // Huawei / Honor
+  'huawei': 'huawei-mate60',
+  'huawei_mate60pro': 'huawei-mate60',
+  'honor': 'honor-magic6p',
+
+  // Google Pixel
+  'pixel': 'google-pixel8p',
+  'google': 'google-pixel8p',
+  'pixel_8pro': 'google-pixel8p',
+
+  // Qualcomm / MediaTek specialized
+  'qualcomm': 'samsung-s26u',
+  'qualcomm_edl_gen3': 'samsung-s26u',
+  'mediatek': 'vivo-x100p',
+  'mtk_dimensity_9300': 'vivo-x100p'
+};
+
+export const findDevicePresetByBrandOrKey = (key: string): ConnectedDevice => {
+  const norm = key.toLowerCase().trim().replace(/[-_\s]+/g, '_');
+  
+  // 1. Direct dictionary match
+  for (const [dictKey, presetId] of Object.entries(BRAND_TO_PRESET_ID)) {
+    const normDict = dictKey.toLowerCase().replace(/[-_\s]+/g, '_');
+    if (norm === normDict || norm.includes(normDict) || normDict.includes(norm)) {
+      const found = DEVICE_PRESETS.find(p => p.id === presetId);
+      if (found) return found;
+    }
+  }
+
+  // 2. Search by id
+  const idMatch = DEVICE_PRESETS.find(p => {
+    const pNorm = p.id.toLowerCase().replace(/[-_\s]+/g, '_');
+    return pNorm.includes(norm) || norm.includes(pNorm);
+  });
+  if (idMatch) return idMatch;
+
+  // 3. Search by brand
+  const brandMatch = DEVICE_PRESETS.find(p => {
+    const bNorm = p.brand.toLowerCase().replace(/[-_\s]+/g, '_');
+    return bNorm.includes(norm) || norm.includes(bNorm);
+  });
+  if (brandMatch) return brandMatch;
+
+  return DEVICE_PRESETS[0];
+};
+
+export const getMtpDriverForBrand = (brand: string): { port: string; vidPid: string } => {
+  const b = brand.toLowerCase();
+  if (b.includes('samsung')) {
+    return { port: 'SAMSUNG Mobile USB Composite Device (MTP + CDC) [VID_04E8&PID_6860]', vidPid: '04E8:6860' };
+  }
+  if (b.includes('xiaomi') || b.includes('redmi') || b.includes('poco')) {
+    return { port: 'Xiaomi Composite MTP Device (USB\\VID_2717&PID_FF40)', vidPid: '2717:FF40' };
+  }
+  if (b.includes('apple') || b.includes('iphone')) {
+    return { port: 'Apple Mobile Device USB Composite (AFC/MTP) [VID_05AC&PID_12A8]', vidPid: '05AC:12A8' };
+  }
+  if (b.includes('oppo') || b.includes('realme') || b.includes('oneplus')) {
+    return { port: 'OPPO USB MTP Device [VID_22D9&PID_2765]', vidPid: '22D9:2765' };
+  }
+  if (b.includes('vivo') || b.includes('iqoo')) {
+    return { port: 'vivo MTP Media Player USB [VID_2D95&PID_6001]', vidPid: '2D95:6001' };
+  }
+  if (b.includes('infinix') || b.includes('tecno') || b.includes('transsion') || b.includes('itel')) {
+    return { port: 'Transsion Holdings MTP USB Composite [VID_1782&PID_4D00]', vidPid: '1782:4D00' };
+  }
+  if (b.includes('huawei') || b.includes('honor')) {
+    return { port: 'HUAWEI HDB / MTP Mobile USB [VID_12D1&PID_107E]', vidPid: '12D1:107E' };
+  }
+  if (b.includes('pixel') || b.includes('google')) {
+    return { port: 'Google Pixel MTP Media Transfer [VID_18D1&PID_4EE1]', vidPid: '18D1:4EE1' };
+  }
+  return { port: 'Generic USB MTP Composite Device [VID_18D1&PID_4EE0]', vidPid: '18D1:4EE0' };
+};

@@ -18,7 +18,7 @@ import {
   Sparkles,
   ShieldAlert
 } from 'lucide-react';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 import { ConnectedDevice, DeviceMode } from '../types';
 
 interface DeviceHeaderCardProps {

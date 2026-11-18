@@ -208,7 +208,23 @@ export const ToolExecutionHub: React.FC<ToolExecutorProps> = ({ device, lang }) 
             <div className="text-[10px] text-slate-400 mt-1 leading-normal">{isAr ? 'تعطيل حماية Preloader SLA/DAA وتمرير الـ DA' : 'Bypasses hardware authentication checks and clears NVRAM regions'}</div>
           </div>
         </button>
+
+        {/* ADB Sideload / Recovery Repair (Apply update from ADB) */}
+        <button
+          disabled={executing}
+          onClick={() => runSelectedTool('ADB_SIDELOAD_RECOVERY')}
+          className="p-4 bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-indigo-500/30 rounded-xl text-xs font-semibold text-left transition flex items-start gap-3 cursor-pointer disabled:opacity-50"
+        >
+          <div className="p-2 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-indigo-400">
+            <Layers className="w-4 h-4 text-indigo-400" />
+          </div>
+          <div>
+            <div className="font-bold text-[13px]">{isAr ? 'تثبيت التحديث وإصلاح الـ Recovery ADB' : 'Apply Update from ADB (Sideload)'}</div>
+            <div className="text-[10px] text-slate-400 mt-1 leading-normal">{isAr ? 'إصلاح وترميم فلاشة ونظام الهاتف عبر وضع الـ Sideload' : 'Flash official OTA update.zip packages in recovery mode to repair system'}</div>
+          </div>
+        </button>
       </div>
+
 
       {/* Progress Bar */}
       {executing && (

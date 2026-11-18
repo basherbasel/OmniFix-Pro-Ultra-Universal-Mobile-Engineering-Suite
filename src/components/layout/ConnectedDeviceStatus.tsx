@@ -97,19 +97,19 @@ export function ConnectedDeviceStatus({ device, isBusy, lang }: ConnectedDeviceS
       {/* Target Device Status Card */}
       <div 
         onClick={() => setUsbModalOpen(true)}
-        className="flex items-center gap-3.5 cursor-pointer hover:bg-white/5 p-1.5 rounded-xl transition-all group border border-transparent hover:border-white/10"
-        title={isAr ? 'انقر لفتح مركز توصيل USB واختيار الهواتف' : 'Click to open USB Device Connection Center'}
+        className="flex items-center gap-2 sm:gap-3.5 cursor-pointer hover:bg-white/5 p-1 rounded-xl transition-all group border border-transparent hover:border-white/10"
+        title={isAr ? 'انقر لفتح مركز توصيل USB وااختيار الهواتف' : 'Click to open USB Device Connection Center'}
       >
         <div className="flex flex-col items-end">
-          <div className="flex items-center gap-2">
-            <span className="text-[12px] font-black text-white tracking-tight group-hover:text-cyan-300 transition-colors">
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <span className="text-[11px] sm:text-[12px] font-black text-white tracking-tight group-hover:text-cyan-300 transition-colors max-w-[100px] sm:max-w-[180px] truncate">
               {device.marketName.toLowerCase().startsWith(device.brand.toLowerCase()) ? device.marketName : `${device.brand} ${device.marketName}`}
             </span>
-            <div className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border ${getModeColor(device.mode)}`}>
+            <div className={`px-1.5 sm:px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border ${getModeColor(device.mode)}`}>
               {device.mode}
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="hidden sm:flex items-center gap-3">
             <div className="flex items-center gap-1">
               <Battery size={11} className={device.batteryLevel > 20 ? 'text-emerald-400' : 'text-rose-400'} />
               <span className="text-[10px] font-mono font-bold text-slate-300">{device.batteryLevel}%</span>
@@ -124,12 +124,13 @@ export function ConnectedDeviceStatus({ device, isBusy, lang }: ConnectedDeviceS
           </div>
         </div>
         
-        <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-cyan-400 relative group-hover:border-cyan-500 transition-colors shadow-inner">
-          <Smartphone size={20} className="group-hover:scale-110 transition-transform" />
+        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-cyan-400 relative group-hover:border-cyan-500 transition-colors shadow-inner shrink-0">
+          <Smartphone size={16} className="sm:hidden group-hover:scale-110 transition-transform" />
+          <Smartphone size={20} className="hidden sm:block group-hover:scale-110 transition-transform" />
           {isBusy && (
              <div className="absolute inset-0 rounded-xl border-2 border-cyan-500 animate-ping opacity-75" />
           )}
-          <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-500 border-2 border-slate-900 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+          <span className="absolute -top-1 -right-1 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-emerald-500 border-2 border-slate-900 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
         </div>
       </div>
     </div>

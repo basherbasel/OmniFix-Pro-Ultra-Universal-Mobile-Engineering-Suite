@@ -33,7 +33,7 @@ import {
   Clock,
   CheckCheck
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ConnectedDevice } from '../types';
 import { useWorkstation } from '../context/WorkstationContext';
 import { realUsbService } from '../services/realUsbService';

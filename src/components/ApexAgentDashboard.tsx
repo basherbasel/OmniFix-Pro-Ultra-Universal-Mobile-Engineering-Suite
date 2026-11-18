@@ -18,7 +18,6 @@ import {
   RefreshCw,
   AlertTriangle,
   Hexagon,
-  Microchip,
   Waves,
   Eye,
   Info,
@@ -27,7 +26,7 @@ import {
   CpuIcon,
   BookOpen
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ConnectedDevice } from '../types';
 import { ApexAgentState, ApexModuleId } from '../agents/apex/types';
 import { ApexEngine, INITIAL_APEX_STATE } from '../agents/apex/engine';
@@ -372,7 +371,7 @@ export const ApexAgentDashboard: React.FC<ApexAgentDashboardProps> = ({ device, 
                           transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
                           className="w-16 h-16 rounded-[1.5rem] bg-indigo-500/20 flex items-center justify-center text-indigo-400 border border-indigo-500/40 group-hover:scale-110 transition-transform shadow-[inset_0_0_20px_rgba(99,102,241,0.2)]"
                         >
-                          <Microchip className="w-10 h-10" />
+                          <Cpu className="w-10 h-10" />
                         </motion.div>
                         <div>
                           <span className="text-[10px] text-slate-500 block uppercase font-black tracking-[0.3em] mb-1">{isAr ? 'المعالج المكتشف' : 'Neural CPU Identity'}</span>

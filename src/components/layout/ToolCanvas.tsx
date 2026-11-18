@@ -53,24 +53,53 @@ import { MediaTekProToolStudio } from '../MediaTekProToolStudio';
 import { AllChipsetsProStudio } from '../AllChipsetsProStudio';
 import { UnifiedCoreCppStudio } from '../UnifiedCoreCppStudio';
 import { FrpOemLockStudio } from '../FrpOemLockStudio';
+import { QualcommFirehoseStudio } from '../QualcommFirehoseStudio';
+import { BootloopVerityRepairStudio } from '../BootloopVerityRepairStudio';
+import { KnoxMdmBypassStudio } from '../KnoxMdmBypassStudio';
+import { UnisocSpdStudio } from '../UnisocSpdStudio';
+import { RepairTicketBarcodeStudio } from '../RepairTicketBarcodeStudio';
+import { SamsungPitEditorStudio } from '../SamsungPitEditorStudio';
+import { PayloadDumperStudio } from '../PayloadDumperStudio';
+import { FastbootdLogicalStudio } from '../FastbootdLogicalStudio';
+import { AppleRamdiskStudio } from '../AppleRamdiskStudio';
+import { XiaomiSideloadStudio } from '../XiaomiSideloadStudio';
+import { HuaweiKirinStudio } from '../HuaweiKirinStudio';
+import { FirmwareHexCarverStudio } from '../FirmwareHexCarverStudio';
+import { RawSerialSnifferStudio } from '../RawSerialSnifferStudio';
+import { GoogleTensorPixelStudio } from '../GoogleTensorPixelStudio';
+import { OppoOfpExtractorStudio } from '../OppoOfpExtractorStudio';
+import { LgLafStudio } from '../LgLafStudio';
+import { AppleSysCfgStudio } from '../AppleSysCfgStudio';
+import { SonyS1Studio } from '../SonyS1Studio';
+import { VivoAuthStudio } from '../VivoAuthStudio';
+import { MsmDeepFlashStudio } from '../MsmDeepFlashStudio';
+import { RpmbEmmcHealthStudio } from '../RpmbEmmcHealthStudio';
+import { TranssionMtkStudio } from '../TranssionMtkStudio';
+import { AppleBasebandStudio } from '../AppleBasebandStudio';
+import { SamsungExynosStudio } from '../SamsungExynosStudio';
+import { HuaweiHarmonyStudio } from '../HuaweiHarmonyStudio';
 
 export function ToolCanvas() {
   const { 
     activeTab, 
     lang, 
     currentDevice, 
+    deviceTelemetry,
     setCurrentDevice,
     isBusy, 
     setIsBusy, 
     setActiveTab, 
-    addLog 
+    addLog,
+    apexDiagnostic
   } = useWorkstation();
 
   const handleApplyFix = (fix: any) => {
     addLog(`Applying Fix: ${typeof fix === 'string' ? fix : JSON.stringify(fix)}`);
   };
 
-  switch (activeTab) {
+  const normalizedTab = (activeTab || 'dashboard').toString().toLowerCase().trim();
+
+  switch (normalizedTab) {
     case 'dashboard':
       return <CentralDashboard lang={lang} onNavigate={setActiveTab} />;
 
@@ -107,6 +136,143 @@ export function ToolCanvas() {
     case 'oem-unlock':
     case 'frp-bypass':
       return <FrpOemLockStudio device={currentDevice} lang={lang} onAddLog={addLog} />;
+
+    case 'qualcomm-firehose':
+    case 'qualcomm-edl':
+    case 'firehose':
+    case 'edl-programmer':
+      return <QualcommFirehoseStudio device={currentDevice} lang={lang} onAddLog={addLog} />;
+
+    case 'bootloop-verity':
+    case 'dm-verity':
+    case 'anti-rollback':
+    case 'arb-fix':
+      return <BootloopVerityRepairStudio device={currentDevice} lang={lang} onAddLog={addLog} />;
+
+    case 'knox-mdm':
+    case 'knox-guard':
+    case 'mdm-bypass':
+    case 'payjoy':
+      return <KnoxMdmBypassStudio device={currentDevice} lang={lang} onAddLog={addLog} />;
+
+    case 'unisoc-spd':
+    case 'unisoc':
+    case 'spreadtrum':
+    case 'spd-fdl':
+      return <UnisocSpdStudio device={currentDevice} lang={lang} onAddLog={addLog} />;
+
+    case 'repair-ticket':
+    case 'ticket-barcode':
+    case 'invoice':
+      return <RepairTicketBarcodeStudio device={currentDevice} lang={lang} />;
+
+    case 'samsung-pit':
+    case 'pit-editor':
+    case 're-partition':
+      return <SamsungPitEditorStudio device={currentDevice} lang={lang} onAddLog={addLog} />;
+
+    case 'payload-dumper':
+    case 'payload-slicer':
+    case 'boot-patcher':
+      return <PayloadDumperStudio device={currentDevice} lang={lang} onAddLog={addLog} />;
+
+    case 'fastbootd':
+    case 'fastbootd-logical':
+    case 'super-partitions':
+    case 'gsi-flasher':
+      return <FastbootdLogicalStudio device={currentDevice} lang={lang} onAddLog={addLog} />;
+
+    case 'apple-ramdisk':
+    case 'checkm8':
+    case 'purple-mode':
+    case 'ios-passcode':
+      return <AppleRamdiskStudio device={currentDevice} lang={lang} onAddLog={addLog} />;
+
+    case 'xiaomi-sideload':
+    case 'xiaomi':
+    case 'mi-account':
+    case 'poco':
+      return <XiaomiSideloadStudio device={currentDevice} lang={lang} onAddLog={addLog} />;
+
+    case 'huawei-kirin':
+    case 'kirin':
+    case 'huawei':
+    case 'usb-com-1':
+    case 'huawei-harmony':
+    case 'harmonyos':
+      return <HuaweiHarmonyStudio device={currentDevice} lang={lang} onAddLog={addLog} />;
+
+    case 'hex-carver':
+    case 'hex-inspector':
+    case 'firmware-carver':
+      return <FirmwareHexCarverStudio device={currentDevice} lang={lang} onAddLog={addLog} />;
+
+    case 'serial-sniffer':
+    case 'raw-serial':
+    case 'com-sniffer':
+      return <RawSerialSnifferStudio device={currentDevice} lang={lang} onAddLog={addLog} />;
+
+    case 'google-pixel':
+    case 'pixel':
+    case 'tensor':
+    case 'titan-m2':
+      return <GoogleTensorPixelStudio device={currentDevice} lang={lang} onAddLog={addLog} />;
+
+    case 'oppo-ofp':
+    case 'realme-ofp':
+    case 'oneplus-ops':
+    case 'ofp-extractor':
+      return <OppoOfpExtractorStudio device={currentDevice} lang={lang} onAddLog={addLog} />;
+
+    case 'lg-laf':
+    case 'lg':
+    case 'kdz':
+      return <LgLafStudio device={currentDevice} lang={lang} onAddLog={addLog} />;
+
+    case 'apple-syscfg':
+    case 'syscfg':
+    case 'wifi-unbind':
+      return <AppleSysCfgStudio device={currentDevice} lang={lang} onAddLog={addLog} />;
+
+    case 'sony-s1':
+    case 'sony':
+    case 'xperia':
+    case 'sin-flasher':
+      return <SonyS1Studio device={currentDevice} lang={lang} onAddLog={addLog} />;
+
+    case 'vivo-auth':
+    case 'vivo':
+    case 'iqoo':
+    case 'bbk':
+      return <VivoAuthStudio device={currentDevice} lang={lang} onAddLog={addLog} />;
+
+    case 'msm-deepflash':
+    case 'msm':
+    case 'deep-testing':
+    case 'oneplus-msm':
+      return <MsmDeepFlashStudio device={currentDevice} lang={lang} onAddLog={addLog} />;
+
+    case 'rpmb-health':
+    case 'emmc-health':
+    case 'ufs-health':
+    case 'rpmb':
+      return <RpmbEmmcHealthStudio device={currentDevice} lang={lang} onAddLog={addLog} />;
+
+    case 'transsion-mtk':
+    case 'infinix':
+    case 'tecno':
+    case 'itel':
+      return <TranssionMtkStudio device={currentDevice} lang={lang} onAddLog={addLog} />;
+
+    case 'apple-baseband':
+    case 'modem-panic':
+    case 'bb-eeprom':
+      return <AppleBasebandStudio device={currentDevice} lang={lang} onAddLog={addLog} />;
+
+    case 'samsung-exynos':
+    case 'exynos':
+    case 'shannon-cp':
+      return <SamsungExynosStudio device={currentDevice} lang={lang} onAddLog={addLog} />;
 
     case 'master-prompt':
     case 'ai-system-prompt':
@@ -335,7 +501,7 @@ export function ToolCanvas() {
 
     case 'next-gen-workspace':
     case 'predictive-workspace':
-    case 'universal-platform':
+    case 'predictive-platform':
       return (
         <div className="p-4 md:p-6 max-w-7xl mx-auto">
           <NextGenPredictiveWorkspace isAr={lang === 'ar'} />

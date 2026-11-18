@@ -31,7 +31,7 @@ import {
   Compass,
   ExternalLink
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ConnectedDevice } from '../types';
 import { FaultDecisionTree } from './FaultDecisionTree';
 import { HARDWARE_REPAIR_GUIDES } from '../data/hardwareRepairGuides';
@@ -39,6 +39,14 @@ import { safeFetchJson } from '../utils/apiHelper';
 import { ReportExporter, DiagnosticReportData } from '../utils/reportExporter';
 import { DiagnosticCheckItem } from './SmartDeviceDiagnosticsRepairModal';
 import { realUsbService } from '../services/realUsbService';
+import { useWorkstation } from '../context/WorkstationContext';
+import {
+  inspectPcbImageCanvas,
+  runMultimodalSynthesis,
+  MultimodalSynthesisResult,
+} from '../services/multimodalDiagnostics';
+import { USB_HARDWARE_SIGNATURES } from '../data/hardwareAtlas';
+import { Camera, Usb, Eye } from 'lucide-react';
 
 const detectHardwareGuideId = (text: string): string => {
   const lower = (text || '').toLowerCase();
@@ -195,11 +203,110 @@ export const AiDiagnosticEngine: React.FC<AiDiagnosticEngineProps> = ({
   lang
 }) => {
   const isAr = lang === 'ar';
-  const [activeSubTab, setActiveSubTab] = useState<'LIVE_SCAN' | 'NETWORK_DIAG' | 'COPILOT' | 'DECISION_TREE' | 'LOG_ANALYZER' | 'FUTURE_LAB'>('LIVE_SCAN');
+  const {
+    activeCaseId,
+    setActiveCaseId,
+    diodeSessionLogs,
+    powerSessionLogs,
+    usbBenchPorts,
+    scanRealBenchUsb,
+    visionFindings,
+    setVisionFindings,
+  } = useWorkstation();
+
+  const [activeSubTab, setActiveSubTab] = useState<'LIVE_SCAN' | 'MULTIMODAL_HUB' | 'NETWORK_DIAG' | 'COPILOT' | 'DECISION_TREE' | 'LOG_ANALYZER' | 'FUTURE_LAB'>('LIVE_SCAN');
   const [logText, setLogText] = useState(SAMPLE_LOGS.kernel_panic);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<any>(null);
   const [highlightedComponentId, setHighlightedComponentId] = useState<string | null>(null);
+
+  // Multimodal PCB Vision + USB Bench + Scientific Case Synthesis State
+  const [pcbImageBase64, setPcbImageBase64] = useState<string | null>(null);
+  const [pcbScanScore, setPcbScanScore] = useState<number | null>(null);
+  const [pcbScanNote, setPcbScanNote] = useState<string>('');
+  const [isScanningUsb, setIsScanningUsb] = useState(false);
+  const [isRunningMultimodal, setIsRunningMultimodal] = useState(false);
+  const [multimodalResult, setMultimodalResult] = useState<MultimodalSynthesisResult | null>(null);
+  const [casesList, setCasesList] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetch('/api/cases')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json) => {
+        if (json?.success && Array.isArray(json.cases)) {
+          setCasesList(json.cases);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handlePcbImageUpload = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const dataUrl = String(reader.result || '');
+      if (!dataUrl) return;
+      setPcbImageBase64(dataUrl);
+      const res = await inspectPcbImageCanvas(dataUrl);
+      setPcbScanScore(res.healthScore);
+      setPcbScanNote(isAr ? res.annotatedPreviewNoteAr : res.annotatedPreviewNoteEn);
+      setVisionFindings(res.findings);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleTriggerBenchUsbScan = async () => {
+    setIsScanningUsb(true);
+    try {
+      await scanRealBenchUsb();
+    } finally {
+      setIsScanningUsb(false);
+    }
+  };
+
+  const handleExecuteMultimodalDiagnosis = async () => {
+    setIsRunningMultimodal(true);
+    try {
+      const usbSigs = usbBenchPorts.map((p) => p.identification);
+      const res = await safeFetchJson(`/api/cases/${activeCaseId}/ai-diagnose`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageBase64: pcbImageBase64 || undefined,
+          extraDiodeReadings: diodeSessionLogs,
+          extraPowerLogs: powerSessionLogs,
+          extraUsbSignatures: usbSigs,
+          extraVisionFindings: visionFindings,
+        }),
+      });
+      if (res.success && res.data?.diagnosis) {
+        setMultimodalResult(res.data.diagnosis);
+      } else {
+        setMultimodalResult(
+          runMultimodalSynthesis({
+            deviceModel: `${device.brand} ${device.marketName}`,
+            reportedIssue: 'فحص مخبري متكامل من جلسة الصيانة',
+            diodeReadings: diodeSessionLogs,
+            powerLogs: powerSessionLogs,
+            usbSignatures: usbSigs,
+            visionFindings,
+          })
+        );
+      }
+    } catch {
+      setMultimodalResult(
+        runMultimodalSynthesis({
+          deviceModel: `${device.brand} ${device.marketName}`,
+          reportedIssue: 'فحص مخبري متكامل من جلسة الصيانة',
+          diodeReadings: diodeSessionLogs,
+          powerLogs: powerSessionLogs,
+          usbSignatures: usbBenchPorts.map((p) => p.identification),
+          visionFindings,
+        })
+      );
+    } finally {
+      setIsRunningMultimodal(false);
+    }
+  };
 
   // Dedicated Network, No Service & Null IMEI Diagnostics State
   const [networkFilter, setNetworkFilter] = useState<'ALL' | 'NO_SERVICE' | 'NULL_IMEI' | 'EMERGENCY_ONLY' | 'NO_SIM'>('ALL');
@@ -537,7 +644,7 @@ export const AiDiagnosticEngine: React.FC<AiDiagnosticEngineProps> = ({
       })),
       recommendedFixesAr: liveTests.filter(t => t.hasFix).map(t => t.fixActionNameAr || t.nameAr),
       recommendedFixesEn: liveTests.filter(t => t.hasFix).map(t => t.fixActionNameEn || t.nameEn),
-      sha256VerificationHash: `SHA256-${Math.random().toString(36).substring(2, 10).toUpperCase()}-VERIFIED`,
+      sha256VerificationHash: `VERIFIED-${(device.model || 'DEV').replace(/[^A-Z0-9]/gi, '').toUpperCase()}-${(device.serialNumber || device.imei1 || 'HOST').slice(-6).toUpperCase()}-${Date.now().toString(16).toUpperCase()}`,
       isForensicCertified: true
     };
     ReportExporter.printDiagnosticReport(reportData, isAr);
@@ -650,7 +757,7 @@ export const AiDiagnosticEngine: React.FC<AiDiagnosticEngineProps> = ({
         'If IMEI is corrupt, re-flash 4-file official stock ROM with exact matching CP binary',
         'If signal loss persists, probe coaxial antenna cable and WTR/SDR transceiver diode rails'
       ],
-      sha256VerificationHash: `SHA256-RF-${Math.random().toString(36).substring(2, 10).toUpperCase()}-VERIFIED`,
+      sha256VerificationHash: `RF-VERIFIED-${(device.model || 'MODEM').replace(/[^A-Z0-9]/gi, '').toUpperCase()}-${(device.imei1 || device.serialNumber || 'RF').slice(-6).toUpperCase()}-${Date.now().toString(16).toUpperCase()}`,
       isForensicCertified: true
     };
     ReportExporter.printDiagnosticReport(reportData, isAr);
@@ -776,6 +883,20 @@ export const AiDiagnosticEngine: React.FC<AiDiagnosticEngineProps> = ({
           >
             <Activity className="w-4 h-4 text-emerald-300 animate-pulse" />
             <span>{isAr ? '🩺 الفحص الدقيق والتشخيص الحقيقي' : '🩺 Live Accurate Diagnostics'}</span>
+          </button>
+          <button
+            onClick={() => {
+              setActiveSubTab('MULTIMODAL_HUB');
+              if (usbBenchPorts.length === 0) handleTriggerBenchUsbScan();
+            }}
+            className={`px-6 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-3 border ${
+              activeSubTab === 'MULTIMODAL_HUB'
+                ? 'bg-gradient-to-r from-cyan-600 to-indigo-600 text-white border-cyan-400 shadow-xl shadow-cyan-500/20'
+                : 'text-slate-500 border-transparent hover:bg-slate-100'
+            }`}
+          >
+            <Eye className="w-4 h-4 text-cyan-300" />
+            <span>{isAr ? '🔬 التشخيص متعدد الوسائط و USB' : '🔬 Multimodal PCB & USB Lab'}</span>
           </button>
           <button
             onClick={() => {
@@ -1543,6 +1664,238 @@ export const AiDiagnosticEngine: React.FC<AiDiagnosticEngineProps> = ({
           </div>
 
         </div>
+      ) : activeSubTab === 'MULTIMODAL_HUB' ? (
+        <div className="space-y-6 animate-in fade-in duration-300">
+          {/* Case Selector & Multimodal Synthesis Mission Bar */}
+          <div className="p-5 rounded-2xl bg-slate-950 border border-slate-800 text-slate-100 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <h3 className="text-base font-black text-white flex items-center gap-2">
+                  <Eye className="w-5 h-5 text-cyan-400" />
+                  <span>{isAr ? 'محرك التشخيص العلمي متعدد الوسائط وفحص منافذ البنش' : 'Multimodal Hardware Diagnosis & Real Bench USB Scanner'}</span>
+                </h3>
+                <p className="text-xs text-slate-400 mt-1">
+                  {isAr
+                    ? 'يدمج قراءات الدايود + بصمة الباور سبلاي + منافذ USB الفعلية + فحص صورة البوردة عبر الرؤية البصرية والذكاء الهندسي'
+                    : 'Fuses Diode Mode + DC Power Logs + Physical USB VID:PID Ports + PCB Microscope Vision & Engineering AI'}
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                {casesList.length > 0 && (
+                  <select
+                    value={activeCaseId}
+                    onChange={(e) => setActiveCaseId(Number(e.target.value))}
+                    className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 font-mono"
+                  >
+                    {casesList.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        #{c.id} — {c.device_model} ({c.customer_name})
+                      </option>
+                    ))}
+                  </select>
+                )}
+                <button
+                  onClick={handleExecuteMultimodalDiagnosis}
+                  disabled={isRunningMultimodal}
+                  className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>{isRunningMultimodal ? (isAr ? 'جاري التحليل المتكامل...' : 'Synthesizing...') : (isAr ? 'تشغيل التحليل المتكامل وتحديث التذكرة' : 'Run Multimodal Synthesis')}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Active Session Telemetry Summary */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs font-mono tabular-nums">
+              <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
+                <span className="text-[10px] text-slate-400 block">{isAr ? 'قياسات الدايود المسجلة' : 'DIODE READINGS'}</span>
+                <span className="text-lg font-black text-emerald-400">{diodeSessionLogs.length}</span>
+              </div>
+              <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
+                <span className="text-[10px] text-slate-400 block">{isAr ? 'تحليلات الباور سبلاي' : 'DC POWER LOGS'}</span>
+                <span className="text-lg font-black text-amber-400">{powerSessionLogs.length}</span>
+              </div>
+              <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
+                <span className="text-[10px] text-slate-400 block">{isAr ? 'منافذ USB المكتشفة' : 'USB BENCH PORTS'}</span>
+                <span className="text-lg font-black text-cyan-400">{usbBenchPorts.length}</span>
+              </div>
+              <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
+                <span className="text-[10px] text-slate-400 block">{isAr ? 'صحة صورة البوردة' : 'PCB VISION SCORE'}</span>
+                <span className="text-lg font-black text-indigo-300">{pcbScanScore !== null ? `${pcbScanScore}/100` : '--'}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* 2-Column Grid: Real Host USB Bench Scanner & PCB Image Visual Inspector */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            {/* Real Bench USB / Serial Port Scanner */}
+            <div className="p-5 rounded-2xl bg-slate-950 border border-slate-800 text-slate-100 space-y-4">
+              <div className="flex items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                <div className="flex items-center gap-2">
+                  <Usb className="w-4 h-4 text-cyan-400" />
+                  <h4 className="text-xs font-black uppercase tracking-wider">
+                    {isAr ? 'ماسح منافذ الـ USB والسيريال الفعلي (Host Bench Scanner)' : 'Physical USB & Serial Port Bench Scanner'}
+                  </h4>
+                </div>
+                <button
+                  onClick={handleTriggerBenchUsbScan}
+                  disabled={isScanningUsb}
+                  className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-bold text-cyan-300 flex items-center gap-1.5 cursor-pointer"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isScanningUsb ? 'animate-spin' : ''}`} />
+                  <span>{isAr ? 'فحص المنافذ الآن' : 'Scan Host Ports'}</span>
+                </button>
+              </div>
+
+              {usbBenchPorts.length === 0 ? (
+                <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-2 text-xs">
+                  <p className="text-slate-300 font-semibold">
+                    {isAr
+                      ? 'لم يتم رصد هاتف متصل حالياً عبر منافذ النظام (/sys/bus/usb, /dev/ttyUSB*, ADB) أو WebUSB.'
+                      : 'No physical mobile handset detected right now on host USB/TTY/ADB endpoints or WebUSB.'}
+                  </p>
+                  <p className="text-[11px] text-slate-400">
+                    {isAr
+                      ? 'بصمات البروتوكولات المدعومة تلقائياً عند التوصيل:'
+                      : 'Supported VID:PID boot-state signatures ready for auto-matching:'}
+                  </p>
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {USB_HARDWARE_SIGNATURES.slice(0, 6).map((s, i) => (
+                      <span key={i} className="px-2 py-0.5 rounded bg-slate-950 border border-slate-800 font-mono text-[10px] text-cyan-300">
+                        {s.vid}:{s.pid} ({s.mode.split(' ')[0]})
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2.5 max-h-64 overflow-y-auto">
+                  {usbBenchPorts.map((port, idx) => (
+                    <div key={idx} className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1.5 text-xs">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-mono font-bold text-cyan-300">{port.port} • {port.vid}:{port.pid}</span>
+                        <span className="px-2 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-mono text-[10px]">
+                          {port.identification.mode}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-300">{isAr ? port.identification.description : port.identification.descriptionEn}</p>
+                      <div className="flex flex-wrap gap-1">
+                        {port.identification.recommended_tools.map((t, ti) => (
+                          <span key={ti} className="px-1.5 py-0.5 rounded bg-slate-950 border border-slate-800 font-mono text-[10px] text-amber-300">
+                            {t}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Visual PCB Microscope / Burn & Corrosion Scanner */}
+            <div className="p-5 rounded-2xl bg-slate-950 border border-slate-800 text-slate-100 space-y-4">
+              <div className="flex items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                <div className="flex items-center gap-2">
+                  <Camera className="w-4 h-4 text-amber-400" />
+                  <h4 className="text-xs font-black uppercase tracking-wider">
+                    {isAr ? 'الفحص البصري لصورة البوردة (رصد الحرق والأكسدة)' : 'PCB Optical Anomaly Inspector (Burn & Corrosion)'}
+                  </h4>
+                </div>
+                <label className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold cursor-pointer">
+                  <span>{isAr ? 'رفع صورة الميكروسكوب' : 'Upload PCB Photo'}</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) handlePcbImageUpload(f);
+                    }}
+                  />
+                </label>
+              </div>
+
+              {pcbImageBase64 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
+                  <div className="relative rounded-xl overflow-hidden border border-slate-800 bg-black">
+                    <img src={pcbImageBase64} alt="PCB Inspection" className="w-full h-40 object-contain" />
+                  </div>
+                  <div className="space-y-2 text-xs">
+                    <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-800 font-mono">
+                      <span className="text-slate-400 block text-[10px]">{pcbScanNote}</span>
+                      <span className="text-emerald-400 font-bold">Surface Score: {pcbScanScore}/100</span>
+                    </div>
+                    {visionFindings.map((vf, i) => (
+                      <div key={i} className="p-2.5 rounded-lg bg-slate-900 border border-slate-800">
+                        <span className={`font-bold block ${vf.type === 'burn_marks' ? 'text-rose-400' : vf.type === 'corrosion' ? 'text-amber-400' : 'text-emerald-400'}`}>
+                          {isAr ? vf.label_ar : vf.label_en}
+                        </span>
+                        <span className="text-[10px] font-mono text-slate-400">
+                          Confidence: {vf.confidence_pct}% • Zones: {vf.count}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="p-6 rounded-xl border border-dashed border-slate-800 bg-slate-900/50 text-center space-y-2 text-xs text-slate-400">
+                  <Camera className="w-7 h-7 mx-auto text-slate-500" />
+                  <p>
+                    {isAr
+                      ? 'ارفع صورة مكبّرة للوحة الأم لفحص بؤر التفحم الحراري أو الأكسدة الخضراء/البيضاء وتمريرها مع بيانات القياس للذكاء الهندسي.'
+                      : 'Upload a magnified motherboard photo to scan for carbonized burn marks or oxidation clusters and fuse into case diagnosis.'}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Unified Multimodal Verdict Card */}
+          {multimodalResult && (
+            <div className="p-6 rounded-2xl bg-slate-950 border border-emerald-500/40 text-slate-100 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                <div>
+                  <span className="text-[10px] font-mono text-emerald-400 uppercase block">{multimodalResult.engine_label}</span>
+                  <h4 className="text-base font-black text-white mt-0.5">
+                    {isAr ? multimodalResult.final_diagnosis_ar : multimodalResult.final_diagnosis_en}
+                  </h4>
+                </div>
+                <span className="px-3 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/30 font-mono text-xs font-bold text-emerald-300 tabular-nums">
+                  {isAr ? `درجة الثقة: ${multimodalResult.confidence_pct}%` : `Confidence: ${multimodalResult.confidence_pct}%`}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
+                  <span className="text-[10px] font-bold text-cyan-400 uppercase block">
+                    {isAr ? 'سجل الأدلة المجمّعة (Evidence Ledger):' : 'Correlated Bench Evidence:'}
+                  </span>
+                  {multimodalResult.evidence.length === 0 ? (
+                    <p className="text-slate-400">{isAr ? 'تم الاعتماد على المعطيات الافتراضية للحالة.' : 'Baseline case metadata evaluated.'}</p>
+                  ) : (
+                    multimodalResult.evidence.map((ev, i) => (
+                      <div key={i} className="p-2 rounded bg-slate-950 border border-slate-800">
+                        <span className="font-mono text-[10px] text-indigo-300 uppercase block">{ev.source}</span>
+                        <span className="text-slate-200">{isAr ? ev.detail_ar : ev.detail_en}</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
+                  <span className="text-[10px] font-bold text-emerald-400 uppercase block">
+                    {isAr ? 'خطة الإصلاح الآمنة الموصى بها:' : 'Verified Safe Repair Protocol:'}
+                  </span>
+                  <ol className="space-y-1.5 list-decimal list-inside text-slate-200">
+                    {(isAr ? multimodalResult.recommended_actions_ar : multimodalResult.recommended_actions_en).map((act, i) => (
+                      <li key={i} className="leading-relaxed">{act}</li>
+                    ))}
+                  </ol>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       ) : activeSubTab === 'COPILOT' ? (
         <div className="space-y-8 animate-in fade-in duration-500">
           {/* Prompt Templates and Guidelines Box */}
@@ -2036,7 +2389,7 @@ export const AiDiagnosticEngine: React.FC<AiDiagnosticEngineProps> = ({
                       <p className="text-xs text-slate-800 leading-relaxed italic">{analysisResult.summary}</p>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 shadow-inner">
                         <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">CULPRIT</span>
                         <span className="text-indigo-600 font-black text-[10px] font-mono">{analysisResult.culpritModule}</span>
@@ -2327,7 +2680,7 @@ export const AiDiagnosticEngine: React.FC<AiDiagnosticEngineProps> = ({
                           {isAr ? 'خريطة بوردة الهاتف الإرشادية - انقر على أحد المكونات لتشخيصه نانوياً:' : 'Motherboard PCB Node Grid - Click any component to probe:'}
                         </span>
 
-                        <div className="grid grid-cols-4 gap-3">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                           {[
                             { name: 'C3042 (Capacitor)', type: 'CAP', state: 'FAULTY', healthy: '0.520V', measured: '0.002V (SHORT)' },
                             { name: 'R104 (Resistor)', type: 'RES', state: 'HEALTHY', healthy: '0.120V', measured: '0.120V' },

@@ -45,42 +45,172 @@ export const ThermalRosinCameraStudio: React.FC<ThermalRosinCameraStudioProps> =
 
   // DC Power Supply Controls
   const [powerOutput, setPowerOutput] = useState<boolean>(false);
-  const [injectionVolts, setInjectionVolts] = useState<number>(4.2);
-  const [currentLimit, setCurrentLimit] = useState<number>(5.0);
+  const [injectionVolts, setInjectionVolts] = useState<number>(3.8);
+  const [currentLimit, setCurrentLimit] = useState<number>(2.5);
   const [palette, setPalette] = useState<'IRONBOW' | 'RAINBOW' | 'LAVA' | 'GRAY'>('IRONBOW');
   const [rosinMode, setRosinMode] = useState<boolean>(true); // Smoke/Rosin overlay
 
-  // Hotspots on current PCB
-  const [hotspots, setHotspots] = useState<ThermalHotspot[]>([
-    {
-      id: 'cap-c8021',
-      nameAr: 'المكثف C8021 على مسار VDD_MAIN (Short to GND)',
-      nameEn: 'Capacitor C8021 on VDD_MAIN (Short to GND)',
-      chipset: 'Power Rail Bypass Cap',
-      normalTemp: 28,
-      shortedTemp: 118,
-      xRatio: 0.45,
-      yRatio: 0.38,
-      rosinEvaporated: false,
-      solutionAr: 'إزالة المكثف C8021 المتفحم وتغييره بمكثف 10uF 10V B-Case. يعود السحب إلى 0mA قبل الباور.',
-      solutionEn: 'Remove shorted capacitor C8021 and replace with 10uF 10V 0402 SMD. Standby current returns to 0mA.'
-    },
-    {
-      id: 'ic-pmic-primary',
-      nameAr: 'آيسي الباور الرئيسي PM8350 Primary PMIC',
-      nameEn: 'Primary PM8350 Power Management IC',
-      chipset: 'PM8350 PMIC',
-      normalTemp: 34,
-      shortedTemp: 82,
-      xRatio: 0.62,
-      yRatio: 0.52,
-      rosinEvaporated: false,
-      solutionAr: 'حرارة مرتفعة ثانوية بسبب شورت المكثف. قم بتغيير المكثف C8021 أولاً قبل رفع الآيسي.',
-      solutionEn: 'Secondary heat dissipation due to C8021 rail short. Replace C8021 first before reballing PMIC.'
+  const buildHotspotsForChipset = (chipset: ConnectedDevice['chipset']): ThermalHotspot[] => {
+    switch (chipset) {
+      case 'apple_ios':
+        return [
+          {
+            id: 'apple-pp-vdd-main-cap',
+            nameAr: 'المكثف C2801 على مسار PP_VDD_MAIN (Short to GND)',
+            nameEn: 'Capacitor C2801 on PP_VDD_MAIN (Short to GND)',
+            chipset: '338S00946 PMU Bypass',
+            normalTemp: 27,
+            shortedTemp: 124,
+            xRatio: 0.44,
+            yRatio: 0.36,
+            rosinEvaporated: false,
+            solutionAr: 'عزل المكثف C2801 بحقن 3.8V / 2.5A على PP_VDD_MAIN واستبداله بمكثف 10uF 0402. يتوقف السحب المباشر.',
+            solutionEn: 'Isolate C2801 using 3.8V/2.5A injection on PP_VDD_MAIN and replace with 10uF 0402 SMD.'
+          },
+          {
+            id: 'apple-hydra-tigris',
+            nameAr: 'آيسي الشحن SN2611 / Hydra Interface',
+            nameEn: 'SN2611 Charger / Hydra USB Controller',
+            chipset: 'Hydra / Tigris PMU',
+            normalTemp: 33,
+            shortedTemp: 88,
+            xRatio: 0.63,
+            yRatio: 0.54,
+            rosinEvaporated: false,
+            solutionAr: 'سحب 120mA متكرر مع حرارة في SN2611 يدل على تلف حماية Tristar/Hydra من شاحن غير أصلي.',
+            solutionEn: '120mA pulse draw & SN2611 warmth indicates blown Tristar/Hydra USB protection.'
+          }
+        ];
+      case 'samsung_exynos':
+      case 'google_tensor':
+        return [
+          {
+            id: 'exynos-s2mps-vsys',
+            nameAr: 'مكثف C5014 على مسار VSYS_3V8 (Exynos / Tensor)',
+            nameEn: 'Capacitor C5014 on VSYS_3V8 (Exynos / Tensor)',
+            chipset: 'S2MPS24 / S2MPG14',
+            normalTemp: 28,
+            shortedTemp: 115,
+            xRatio: 0.46,
+            yRatio: 0.40,
+            rosinEvaporated: false,
+            solutionAr: 'انزع المكثف C5014 المتضرر من الرطوبة بجوار آيسي الباور S2MPS24 ثم أعد فحص الممانعة.',
+            solutionEn: 'Remove moisture-corroded C5014 beside S2MPS24 PMIC and re-verify VSYS diode mode.'
+          },
+          {
+            id: 'exynos-s2dos05-display',
+            nameAr: 'آيسي تغذية شاشة AMOLED (S2DOS05)',
+            nameEn: 'S2DOS05 AMOLED ELVDD/ELVSS Power IC',
+            chipset: 'S2DOS05 Bias IC',
+            normalTemp: 31,
+            shortedTemp: 94,
+            xRatio: 0.60,
+            yRatio: 0.50,
+            rosinEvaporated: false,
+            solutionAr: 'حرارة مرتفعة عند توصيل الشاشة تعني شورت في خط ELVDD 4.6V أو ELVSS -4.4V.',
+            solutionEn: 'Localized heat with OLED connected indicates ELVDD +4.6V or ELVSS -4.4V short.'
+          }
+        ];
+      case 'mediatek':
+      case 'unisoc_spd':
+        return [
+          {
+            id: 'mtk-vsys-charger-cap',
+            nameAr: 'مكثف الحماية C4009 بجانب آيسي الشحن (MT6375 / SGM41513)',
+            nameEn: 'Input Filter C4009 near Charger IC (MT6375 / SGM41513)',
+            chipset: chipset === 'unisoc_spd' ? 'SC2730G / SGM41513' : 'MT6368 / MT6375',
+            normalTemp: 29,
+            shortedTemp: 112,
+            xRatio: 0.42,
+            yRatio: 0.44,
+            rosinEvaporated: false,
+            solutionAr: 'استبدال مكثف التنعيم C4009 وإعادة لحام ملف الشحن VBUS 5V/9V يعيد الهاتف إلى وضع الإقلاع السليم.',
+            solutionEn: 'Replace shorted C4009 and inspect VBUS OVP diode to restore stable charging & boot.'
+          },
+          {
+            id: 'mtk-vio18-pmic',
+            nameAr: 'مسار VIO18_PMU حول المعالج وذاكرة UFS',
+            nameEn: 'VIO18_PMU Rail around SoC & UFS',
+            chipset: chipset === 'unisoc_spd' ? 'SC2730G LDO' : 'MT6368 LDO',
+            normalTemp: 32,
+            shortedTemp: 84,
+            xRatio: 0.62,
+            yRatio: 0.48,
+            rosinEvaporated: false,
+            solutionAr: 'تنبيه: استخدم جهد حقن لا يتعدى 1.5V على خط VIO18 لكشف المكثف التالف بأمان دون إتلاف المعالج.',
+            solutionEn: 'WARNING: Inject max 1.5V on VIO18 to pinpoint shorted cap safely without damaging SoC I/O.'
+          }
+        ];
+      case 'hisilicon_kirin':
+        return [
+          {
+            id: 'kirin-hi6526-supercharge',
+            nameAr: 'آيسي الشحن فائق السرعة Hi6526 ومكثف VBAT_SYS',
+            nameEn: 'Hi6526 SuperCharge IC & VBAT_SYS Bypass Cap',
+            chipset: 'Hi6421V700 / Hi6526',
+            normalTemp: 30,
+            shortedTemp: 116,
+            xRatio: 0.47,
+            yRatio: 0.39,
+            rosinEvaporated: false,
+            solutionAr: 'فحص خط VBAT_SYS وVLDO_1V8 لإزالة الشورت واستعادة منفذ USB COM 1.0 بنجاح.',
+            solutionEn: 'Clear VBAT_SYS short around Hi6526 to restore USB COM 1.0 and normal boot sequence.'
+          },
+          {
+            id: 'kirin-hi6363-rf',
+            nameAr: 'مغلف الترددات Hi6363 RF Transceiver',
+            nameEn: 'Hi6363 RF Transceiver Sub-Circuit',
+            chipset: 'Hi6363 RF',
+            normalTemp: 34,
+            shortedTemp: 86,
+            xRatio: 0.64,
+            yRatio: 0.55,
+            rosinEvaporated: false,
+            solutionAr: 'شورت على خط RF 2.85V يسبب سحب تيار أثناء البحث عن الشبكة؛ افحص مكثفات التصفية حول Hi6363.',
+            solutionEn: 'RF 2.85V rail short spikes draw during network search; inspect decoupling caps near Hi6363.'
+          }
+        ];
+      default:
+        return [
+          {
+            id: 'cap-c8021',
+            nameAr: 'المكثف C8021 على مسار VDD_MAIN (Short to GND)',
+            nameEn: 'Capacitor C8021 on VDD_MAIN (Short to GND)',
+            chipset: 'Power Rail Bypass Cap',
+            normalTemp: 28,
+            shortedTemp: 118,
+            xRatio: 0.45,
+            yRatio: 0.38,
+            rosinEvaporated: false,
+            solutionAr: 'إزالة المكثف C8021 المتفحم وتغييره بمكثف 10uF 10V 0402. يعود السحب إلى 0mA قبل الباور.',
+            solutionEn: 'Remove shorted capacitor C8021 and replace with 10uF 10V 0402 SMD. Standby current returns to 0mA.'
+          },
+          {
+            id: 'ic-pmic-primary',
+            nameAr: 'آيسي الباور الرئيسي PM8550 Primary PMIC',
+            nameEn: 'Primary PM8550 Power Management IC',
+            chipset: 'PM8550 PMIC',
+            normalTemp: 34,
+            shortedTemp: 82,
+            xRatio: 0.62,
+            yRatio: 0.52,
+            rosinEvaporated: false,
+            solutionAr: 'حرارة مرتفعة ثانوية بسبب شورت المكثف. قم بتغيير المكثف C8021 أولاً قبل رفع الآيسي.',
+            solutionEn: 'Secondary heat dissipation due to C8021 rail short. Replace C8021 first before reballing PMIC.'
+          }
+        ];
     }
-  ]);
+  };
 
-  const [activeSpotId, setActiveSpotId] = useState<string>('cap-c8021');
+  const [hotspots, setHotspots] = useState<ThermalHotspot[]>(() => buildHotspotsForChipset(device.chipset));
+  const [activeSpotId, setActiveSpotId] = useState<string>(() => buildHotspotsForChipset(device.chipset)[0].id);
+
+  useEffect(() => {
+    const nextSpots = buildHotspotsForChipset(device.chipset);
+    setHotspots(nextSpots);
+    setActiveSpotId(nextSpots[0].id);
+  }, [device.id, device.chipset]);
+
   const selectedHotspot = hotspots.find(h => h.id === activeSpotId) || hotspots[0];
 
   // Calculated current draw
@@ -272,9 +402,9 @@ export const ThermalRosinCameraStudio: React.FC<ThermalRosinCameraStudioProps> =
         <div className="lg:col-span-8 space-y-3">
           <div className="bg-slate-950 border border-slate-800 rounded-2xl p-3 shadow-2xl relative">
             {/* Top Thermal HUD Stats */}
-            <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-800 text-[11px] font-mono text-slate-300 flex-wrap gap-2">
+            <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-800 text-[11px] font-mono tabular-nums text-slate-300 flex-wrap gap-2">
               <div className="flex items-center gap-4">
-                <span>MAX TEMP: <strong className={liveTemp > 80 ? 'text-rose-400 font-bold text-sm animate-pulse' : 'text-emerald-400'}>{liveTemp.toFixed(1)}°C</strong></span>
+                <span>MAX TEMP: <strong className={liveTemp > 80 ? 'text-rose-400 font-bold text-sm' : 'text-emerald-400'}>{liveTemp.toFixed(1)}°C</strong></span>
                 <span>AMPS DRAW: <strong className={liveCurrentAmps > 1 ? 'text-amber-400 font-bold' : 'text-slate-400'}>{liveCurrentAmps.toFixed(2)}A</strong></span>
                 <span>POWER: <strong className="text-cyan-400">{liveWatts}W</strong></span>
               </div>
@@ -345,14 +475,40 @@ export const ThermalRosinCameraStudio: React.FC<ThermalRosinCameraStudioProps> =
             </h4>
 
             <div className="space-y-3 text-xs font-mono">
+              {/* Safe Rail Injection Presets */}
+              <div className="grid grid-cols-2 gap-1.5">
+                {[
+                  { label: 'CPU Buck 0.8V/2A', v: 0.8, a: 2.0 },
+                  { label: 'Logic 1.8V -> 1.5V', v: 1.5, a: 1.5 },
+                  { label: 'VDD_MAIN 3.8V/2.5A', v: 3.8, a: 2.5 },
+                  { label: 'VBUS 5.0V/2.0A', v: 5.0, a: 2.0 },
+                ].map((preset) => (
+                  <button
+                    key={preset.label}
+                    onClick={() => {
+                      setInjectionVolts(preset.v);
+                      setCurrentLimit(preset.a);
+                      audioSynth.playMultimeterBeep();
+                    }}
+                    className={`px-2 py-1.5 rounded-lg border text-[10px] font-bold transition-colors cursor-pointer ${
+                      Math.abs(injectionVolts - preset.v) < 0.05
+                        ? 'bg-amber-500/20 border-amber-500 text-amber-300'
+                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+
               <div className="space-y-1">
                 <div className="flex items-center justify-between text-slate-400">
                   <span>{isAr ? 'الفولتية المحقونة (Voltage):' : 'Injected Volts:'}</span>
-                  <span className="text-amber-300 font-bold">{injectionVolts.toFixed(1)}V DC</span>
+                  <span className="text-amber-300 font-bold tabular-nums">{injectionVolts.toFixed(1)}V DC</span>
                 </div>
                 <input
                   type="range"
-                  min={1.0}
+                  min={0.5}
                   max={12.0}
                   step={0.1}
                   value={injectionVolts}
@@ -364,7 +520,7 @@ export const ThermalRosinCameraStudio: React.FC<ThermalRosinCameraStudioProps> =
               <div className="space-y-1">
                 <div className="flex items-center justify-between text-slate-400">
                   <span>{isAr ? 'حد التيار (Current Limit):' : 'Ampere Limit:'}</span>
-                  <span className="text-cyan-300 font-bold">{currentLimit.toFixed(1)}A</span>
+                  <span className="text-cyan-300 font-bold tabular-nums">{currentLimit.toFixed(1)}A</span>
                 </div>
                 <input
                   type="range"
@@ -376,6 +532,17 @@ export const ThermalRosinCameraStudio: React.FC<ThermalRosinCameraStudioProps> =
                   className="w-full accent-cyan-500 cursor-pointer"
                 />
               </div>
+
+              {injectionVolts > 1.8 && (
+                <div className="p-2 rounded-lg bg-amber-950/50 border border-amber-500/40 text-[10px] font-sans text-amber-200 flex items-start gap-1.5">
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                  <span>
+                    {isAr
+                      ? 'تنبيه هندسي: إذا كان القصر على مسار Buck للمعالج أو 1.8V، اخفض الجهد إلى 0.8V–1.5V أولاً لتجنب تلف السيليكون.'
+                      : 'Safety Guard: Never exceed 0.8V–1.5V when probing CPU buck or 1.8V logic rails; reserve ≥3.8V strictly for VDD_MAIN/VBUS.'}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
