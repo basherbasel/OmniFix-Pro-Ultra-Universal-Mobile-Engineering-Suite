@@ -1,7 +1,7 @@
-import { ConnectedDevice } from '../types';
-import { realUsbService } from './realUsbService';
-import { odinProtocolEngine } from './OdinProtocolEngine';
-import { nexusEventBus } from './NexusEcosystemEngine';
+import { ConnectedDevice } from '../types.ts';
+import { realUsbService } from './realUsbService.ts';
+import { odinProtocolEngine } from './OdinProtocolEngine.ts';
+import { nexusEventBus } from './NexusEcosystemEngine.ts';
 
 export interface KnoxMdmResult {
   success: boolean;

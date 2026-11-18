@@ -1,12 +1,12 @@
-import { ConnectedDevice } from '../types';
-import { realUsbService } from './realUsbService';
+import { ConnectedDevice } from '../types.ts';
+import { realUsbService } from './realUsbService.ts';
 import { 
   BaseProtocolEngine, 
   HardwareDeviceDetails, 
   ProtocolEngineOptions,
   hardwareInterfaceService 
-} from './HardwareInterfaceService';
-import { nexusEventBus } from './NexusEcosystemEngine';
+} from './HardwareInterfaceService.ts';
+import { nexusEventBus } from './NexusEcosystemEngine.ts';
 
 /**
  * Qualcomm Sahara Protocol Command Codes

@@ -1,4 +1,4 @@
-import { HardwareRepairGuide } from '../types';
+import { HardwareRepairGuide } from '../types.ts';
 
 export const HARDWARE_REPAIR_GUIDES: HardwareRepairGuide[] = [
   {

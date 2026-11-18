@@ -1,4 +1,4 @@
-import { OfficialFirmwarePackage } from '../types';
+import { OfficialFirmwarePackage } from '../types.ts';
 
 export const OFFICIAL_FIRMWARE_CATALOG: OfficialFirmwarePackage[] = [
   {

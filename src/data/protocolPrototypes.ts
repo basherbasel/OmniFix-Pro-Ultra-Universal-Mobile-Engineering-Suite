@@ -1,4 +1,4 @@
-import { GeneratedCodeSnippet } from '../types';
+import { GeneratedCodeSnippet } from '../types.ts';
 
 export const PROTOCOL_CODE_SNIPPETS: GeneratedCodeSnippet[] = [
   {

@@ -1,4 +1,4 @@
-import { ConnectedDevice } from '../types';
+import { ConnectedDevice } from '../types.ts';
 
 export interface CorrectiveCommand {
   id: string;

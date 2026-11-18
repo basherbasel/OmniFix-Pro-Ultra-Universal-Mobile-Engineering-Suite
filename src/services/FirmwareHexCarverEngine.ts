@@ -1,5 +1,5 @@
-import { nexusEventBus } from './NexusEcosystemEngine';
-import { realUsbService } from './realUsbService';
+import { nexusEventBus } from './NexusEcosystemEngine.ts';
+import { realUsbService } from './realUsbService.ts';
 
 export interface BinaryMagicInspection {
   format: 'ANDROID_BOOT' | 'ANDROID_SPARSE' | 'ANDROID_VBMETA' | 'SAMSUNG_PIT' | 'QUALCOMM_ELF' | 'UNISOC_PAC' | 'ZIP_OTA' | 'RAW_BINARY';

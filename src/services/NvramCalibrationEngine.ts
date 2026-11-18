@@ -1,5 +1,5 @@
-import { ConnectedDevice } from '../types';
-import { realUsbService } from './realUsbService';
+import { ConnectedDevice } from '../types.ts';
+import { realUsbService } from './realUsbService.ts';
 
 export interface CalibrationReport {
   success: boolean;

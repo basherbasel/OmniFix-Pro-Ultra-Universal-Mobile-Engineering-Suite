@@ -1,6 +1,6 @@
-import { ConnectedDevice } from '../types';
-import { realUsbService } from './realUsbService';
-import { nexusEventBus } from './NexusEcosystemEngine';
+import { ConnectedDevice } from '../types.ts';
+import { realUsbService } from './realUsbService.ts';
+import { nexusEventBus } from './NexusEcosystemEngine.ts';
 
 export interface StorageHealthInfo {
   storageType: 'UFS 4.0' | 'UFS 3.1' | 'eMMC 5.1';

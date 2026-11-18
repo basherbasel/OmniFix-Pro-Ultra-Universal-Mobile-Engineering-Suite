@@ -1,13 +1,13 @@
-import { ConnectedDevice, DeviceMode } from '../types';
-import { deviceKnowledgebaseService, DeviceKnowledgeProfile } from './deviceKnowledgebaseService';
-import { realUsbService, UsbExecutionResult } from './realUsbService';
+import { ConnectedDevice, DeviceMode } from '../types.ts';
+import { deviceKnowledgebaseService, DeviceKnowledgeProfile } from './deviceKnowledgebaseService.ts';
+import { realUsbService, UsbExecutionResult } from './realUsbService.ts';
 import { 
   PowerDiagnostics, 
   powerDiagnosticsEngine, 
   PowerFluctuationData, 
   PowerFaultType, 
   PowerDiagnosticAnalysis 
-} from './PowerDiagnostics';
+} from './PowerDiagnostics.ts';
 
 export { 
   PowerDiagnostics, 

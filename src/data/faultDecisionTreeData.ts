@@ -1,4 +1,4 @@
-import { DecisionTreeQuestion } from '../types';
+import { DecisionTreeQuestion } from '../types.ts';
 
 export const FAULT_DECISION_TREE_QUESTIONS: Record<string, DecisionTreeQuestion> = {
   root: {

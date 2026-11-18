@@ -1,5 +1,5 @@
-import { realUsbService } from './realUsbService';
-import { nexusEventBus } from './NexusEcosystemEngine';
+import { realUsbService } from './realUsbService.ts';
+import { nexusEventBus } from './NexusEcosystemEngine.ts';
 
 export interface OfpPartitionFile {
   name: string;

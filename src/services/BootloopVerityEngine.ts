@@ -1,10 +1,10 @@
-import { ConnectedDevice } from '../types';
-import { realUsbService } from './realUsbService';
-import { fastbootController } from './FastbootController';
-import { mediaTekProEngine } from './MediaTekProEngine';
-import { odinProtocolEngine } from './OdinProtocolEngine';
-import { qualcommFirehoseEngine } from './QualcommFirehoseEngine';
-import { nexusEventBus } from './NexusEcosystemEngine';
+import { ConnectedDevice } from '../types.ts';
+import { realUsbService } from './realUsbService.ts';
+import { fastbootController } from './FastbootController.ts';
+import { mediaTekProEngine } from './MediaTekProEngine.ts';
+import { odinProtocolEngine } from './OdinProtocolEngine.ts';
+import { qualcommFirehoseEngine } from './QualcommFirehoseEngine.ts';
+import { nexusEventBus } from './NexusEcosystemEngine.ts';
 
 /**
  * Android Verified Boot (AVB 2.0) & Bootloop Fix Engine

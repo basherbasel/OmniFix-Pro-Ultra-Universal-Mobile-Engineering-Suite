@@ -1,4 +1,4 @@
-import { OemDeviceRecord } from '../types';
+import { OemDeviceRecord } from '../types.ts';
 
 export const OEM_DEVICE_DATABASE: OemDeviceRecord[] = [
   // ==========================================

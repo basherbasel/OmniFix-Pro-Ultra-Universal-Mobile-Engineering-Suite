@@ -21,6 +21,8 @@ import {
   OPEN_SOURCE_REPAIR_TOOLS,
   PHONE_CIRCUIT_SUBSYSTEMS,
   SOC_PROCESSOR_DATABASE,
+  REPAIR_JUMPER_GUIDES,
+  OPEN_SOURCE_AUTOMATION_SNIPPETS,
 } from './src/data/openSourceHardwareCatalog.ts';
 import { analyzeDcPowerDraw } from './src/services/powerAnalyzer.ts';
 import { runMultimodalSynthesis } from './src/services/multimodalDiagnostics.ts';
@@ -411,7 +413,6 @@ async function generateAIContent(ai: GoogleGenAI, prompt: string, options: { res
   let lastError: any = null;
 
   for (const model of models) {
-    // Attempt with Search Grounding only if requested AND not requiring JSON schema (which conflicts with search grounding)
     if (options.enableSearchGrounding && options.responseMimeType !== 'application/json') {
       try {
         const response = await ai.models.generateContent({
@@ -425,11 +426,14 @@ async function generateAIContent(ai: GoogleGenAI, prompt: string, options: { res
           return { text: response.text, modelUsed: model, grounded: true };
         }
       } catch (err: any) {
-        // Quietly fallback to standard configuration
+        lastError = err;
+        if (err?.status === 429 || err?.message?.includes('429') || err?.message?.includes('Quota') || err?.message?.includes('Rate')) {
+          console.warn(`[AI Engine] Rate limit (429) encountered on ${model} with search grounding. Switching fallback...`);
+          await new Promise(r => setTimeout(r, 350));
+        }
       }
     }
 
-    // Standard attempt
     try {
       const response = await ai.models.generateContent({
         model,
@@ -443,11 +447,15 @@ async function generateAIContent(ai: GoogleGenAI, prompt: string, options: { res
       }
     } catch (err: any) {
       lastError = err;
-      // If validation error (invalid args), do not retry
-      if (err?.status === 400 && !err?.message?.includes('model')) {
+      const errMsg = String(err?.message || err || '').toLowerCase();
+      if (err?.status === 400 && !errMsg.includes('model') && !errMsg.includes('quota')) {
         throw err;
       }
-      // If rate limited or quota exceeded (429), proceed to next fallback model
+      if (err?.status === 429 || errMsg.includes('429') || errMsg.includes('quota') || errMsg.includes('rate') || errMsg.includes('exhausted')) {
+        console.warn(`[AI Engine] Rate limit (429) or quota exceeded on ${model}. Trying next fallback...`);
+        await new Promise(r => setTimeout(r, 400));
+        continue;
+      }
     }
   }
   throw lastError || new Error('All fallback models failed or quota exceeded');
@@ -2026,6 +2034,8 @@ app.get('/api/catalogs', (_req, res) => {
     open_source_tools_count: OPEN_SOURCE_REPAIR_TOOLS.length,
     circuit_subsystems_count: PHONE_CIRCUIT_SUBSYSTEMS.length,
     soc_families_count: SOC_PROCESSOR_DATABASE.length,
+    jumper_guides_count: REPAIR_JUMPER_GUIDES.length,
+    automation_snippets_count: OPEN_SOURCE_AUTOMATION_SNIPPETS.length,
   });
 });
 
@@ -2067,6 +2077,8 @@ app.get('/api/opensource-resources', (req, res) => {
     open_source_tools: tools,
     circuit_subsystems: circuits,
     soc_processors: socs,
+    jumper_guides: REPAIR_JUMPER_GUIDES,
+    automation_snippets: OPEN_SOURCE_AUTOMATION_SNIPPETS,
   });
 });
 

@@ -12,10 +12,10 @@
  * - Modem AT Commands & UART Serial Bridges
  */
 
-import { ConnectedDevice } from '../types';
-import { deviceKnowledgebaseService } from './deviceKnowledgebaseService';
-import { nexusEventBus } from './NexusEcosystemEngine';
-import { realUsbService } from './realUsbService';
+import { ConnectedDevice } from '../types.ts';
+import { deviceKnowledgebaseService } from './deviceKnowledgebaseService.ts';
+import { nexusEventBus } from './NexusEcosystemEngine.ts';
+import { realUsbService } from './realUsbService.ts';
 
 export type HardwareProtocolType = 
   | 'FASTBOOT' 

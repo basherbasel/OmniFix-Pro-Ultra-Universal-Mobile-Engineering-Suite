@@ -1,11 +1,11 @@
-import { ConnectedDevice } from '../types';
-import { realUsbService } from './realUsbService';
+import { ConnectedDevice } from '../types.ts';
+import { realUsbService } from './realUsbService.ts';
 import { 
   BaseProtocolEngine, 
   ProtocolEngineOptions, 
   hardwareInterfaceService 
-} from './HardwareInterfaceService';
-import { nexusEventBus } from './NexusEcosystemEngine';
+} from './HardwareInterfaceService.ts';
+import { nexusEventBus } from './NexusEcosystemEngine.ts';
 
 /**
  * Unisoc / Spreadtrum BSL (Boot-Serial-Loader) Protocol Command Codes

@@ -1,4 +1,4 @@
-import { ConnectedDevice } from '../types';
+import { ConnectedDevice } from '../types.ts';
 
 export const DEVICE_PRESETS: ConnectedDevice[] = [
   // Samsung Galaxy A32 4G (SM-A325F)

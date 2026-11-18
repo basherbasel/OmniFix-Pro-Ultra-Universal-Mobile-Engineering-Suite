@@ -1,4 +1,4 @@
-import { FrpMethod } from '../types';
+import { FrpMethod } from '../types.ts';
 
 export const FRP_METHODS: FrpMethod[] = [
   // 1. SAMSUNG LOCKS & FRP & KNOX GUARD

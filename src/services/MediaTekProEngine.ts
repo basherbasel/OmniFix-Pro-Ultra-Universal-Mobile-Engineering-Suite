@@ -1,10 +1,10 @@
-import { realUsbService } from './realUsbService';
-import { nexusEventBus } from './NexusEcosystemEngine';
+import { realUsbService } from './realUsbService.ts';
+import { nexusEventBus } from './NexusEcosystemEngine.ts';
 import { 
   BaseProtocolEngine, 
   HardwareDeviceDetails, 
   ProtocolEngineOptions 
-} from './HardwareInterfaceService';
+} from './HardwareInterfaceService.ts';
 
 /**
  * MediaTek Pro Engine (v2026.9)

@@ -24,6 +24,8 @@ import {
   OPEN_SOURCE_REPAIR_TOOLS,
   PHONE_CIRCUIT_SUBSYSTEMS,
   SOC_PROCESSOR_DATABASE,
+  REPAIR_JUMPER_GUIDES,
+  OPEN_SOURCE_AUTOMATION_SNIPPETS,
 } from '../src/data/openSourceHardwareCatalog';
 import type { ConnectedDevice, HardwareCategory } from '../src/types';
 
@@ -193,6 +195,8 @@ function testOpenSourceCatalog() {
   assert.ok(OPEN_SOURCE_REPAIR_TOOLS.length >= 12, `Expected >=12 open-source tools, got ${OPEN_SOURCE_REPAIR_TOOLS.length}`);
   assert.ok(PHONE_CIRCUIT_SUBSYSTEMS.length >= 10, `Expected >=10 circuit subsystems, got ${PHONE_CIRCUIT_SUBSYSTEMS.length}`);
   assert.ok(SOC_PROCESSOR_DATABASE.length >= 9, `Expected >=9 SoC families, got ${SOC_PROCESSOR_DATABASE.length}`);
+  assert.ok(REPAIR_JUMPER_GUIDES.length >= 3, `Expected >=3 repair jumper guides, got ${REPAIR_JUMPER_GUIDES.length}`);
+  assert.ok(OPEN_SOURCE_AUTOMATION_SNIPPETS.length >= 3, `Expected >=3 automation snippets, got ${OPEN_SOURCE_AUTOMATION_SNIPPETS.length}`);
 
   for (const tool of OPEN_SOURCE_REPAIR_TOOLS) {
     assert.ok(tool.sampleCommands.length >= 1, `Tool ${tool.id} needs sampleCommands`);
@@ -206,9 +210,15 @@ function testOpenSourceCatalog() {
     assert.ok(soc.pairedPmics.length >= 1, `SoC ${soc.id} needs pairedPmics`);
     assert.ok(soc.socPartNumbers.length >= 1, `SoC ${soc.id} needs socPartNumbers`);
   }
+  for (const jmp of REPAIR_JUMPER_GUIDES) {
+    assert.ok(jmp.jumperSourceNet && jmp.jumperTargetNet, `Jumper ${jmp.id} needs net sources`);
+  }
+  for (const snip of OPEN_SOURCE_AUTOMATION_SNIPPETS) {
+    assert.ok(snip.codeSnippet.length >= 10, `Snippet ${snip.id} needs codeSnippet`);
+  }
 
   console.log(
-    `✓ OpenSourceHardwareCatalog checks passed (${OPEN_SOURCE_REPAIR_TOOLS.length} tools, ${PHONE_CIRCUIT_SUBSYSTEMS.length} circuits, ${SOC_PROCESSOR_DATABASE.length} SoCs)`
+    `✓ OpenSourceHardwareCatalog checks passed (${OPEN_SOURCE_REPAIR_TOOLS.length} tools, ${PHONE_CIRCUIT_SUBSYSTEMS.length} circuits, ${SOC_PROCESSOR_DATABASE.length} SoCs, ${REPAIR_JUMPER_GUIDES.length} jumpers, ${OPEN_SOURCE_AUTOMATION_SNIPPETS.length} snippets)`
   );
 }
 
@@ -427,6 +437,8 @@ async function testLiveHttpApi() {
     assert.ok(oss.data.open_source_tools.length >= 12);
     assert.ok(oss.data.circuit_subsystems.length >= 10);
     assert.ok(oss.data.soc_processors.length >= 9);
+    assert.ok(oss.data.jumper_guides.length >= 3);
+    assert.ok(oss.data.automation_snippets.length >= 3);
 
     const schematicOne = await fetchJson('/api/schematics/unisoc_tiger_board');
     assert.equal(schematicOne.status, 200);

@@ -1,10 +1,10 @@
-import { ConnectedDevice } from '../types';
-import { realUsbService } from './realUsbService';
+import { ConnectedDevice } from '../types.ts';
+import { realUsbService } from './realUsbService.ts';
 import { 
   BaseProtocolEngine, 
   HardwareDeviceDetails, 
   ProtocolEngineOptions 
-} from './HardwareInterfaceService';
+} from './HardwareInterfaceService.ts';
 
 export interface FastbootResponse {
   status: 'OKAY' | 'FAIL' | 'DATA' | 'INFO' | 'UNKNOWN';

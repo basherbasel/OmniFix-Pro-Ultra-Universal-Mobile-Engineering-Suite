@@ -1,4 +1,4 @@
-import { ApexAgentState, ApexModuleId } from './types';
+import { ApexAgentState, ApexModuleId } from './types.ts';
 import { ConnectedDevice } from '../../types';
 import { realUsbService } from '../../services/realUsbService';
 import { zeroPollingHotPlugEngine, eventBus, DeviceContext } from '../../services/eventDrivenPipelineEngine';

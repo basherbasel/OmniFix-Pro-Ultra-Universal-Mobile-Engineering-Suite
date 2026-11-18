@@ -1,6 +1,6 @@
-import { ConnectedDevice } from '../types';
-import { realUsbService } from './realUsbService';
-import { apexAgent } from './ApexAgent';
+import { ConnectedDevice } from '../types.ts';
+import { realUsbService } from './realUsbService.ts';
+import { apexAgent } from './ApexAgent.ts';
 
 /**
  * Nexus Ecosystem Architecture - Unified Repair OS Engine

@@ -1,6 +1,6 @@
-import { ConnectedDevice } from '../types';
-import { realUsbService } from './realUsbService';
-import { nexusEventBus } from './NexusEcosystemEngine';
+import { ConnectedDevice } from '../types.ts';
+import { realUsbService } from './realUsbService.ts';
+import { nexusEventBus } from './NexusEcosystemEngine.ts';
 
 export interface SonyDeviceInfo {
   model: string;

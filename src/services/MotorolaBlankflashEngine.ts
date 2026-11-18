@@ -1,7 +1,7 @@
-import { ConnectedDevice } from '../types';
-import { realUsbService } from './realUsbService';
-import { fastbootController } from './FastbootController';
-import { nexusEventBus } from './NexusEcosystemEngine';
+import { ConnectedDevice } from '../types.ts';
+import { realUsbService } from './realUsbService.ts';
+import { fastbootController } from './FastbootController.ts';
+import { nexusEventBus } from './NexusEcosystemEngine.ts';
 
 export interface MotoDeviceInfo {
   model: string;

@@ -1,4 +1,4 @@
-import { CloudSecurityBulletin, FlashToolItem } from '../types';
+import { CloudSecurityBulletin, FlashToolItem } from '../types.ts';
 
 export const CLOUD_SECURITY_BULLETINS: CloudSecurityBulletin[] = [
   {

@@ -1,4 +1,4 @@
-import { FaultRepairItem } from '../types';
+import { FaultRepairItem } from '../types.ts';
 
 export const FAULT_REPAIRS: FaultRepairItem[] = [
   // 1. BOOT & STARTUP ENGINES

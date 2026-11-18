@@ -1,10 +1,10 @@
-import { realUsbService } from './realUsbService';
-import { nexusEventBus } from './NexusEcosystemEngine';
-import { ConnectedDevice } from '../types';
-import { odinProtocolEngine } from './OdinProtocolEngine';
-import { fastbootController } from './FastbootController';
-import { mediaTekProEngine } from './MediaTekProEngine';
-import { hardwareInterfaceService } from './HardwareInterfaceService';
+import { realUsbService } from './realUsbService.ts';
+import { nexusEventBus } from './NexusEcosystemEngine.ts';
+import { ConnectedDevice } from '../types.ts';
+import { odinProtocolEngine } from './OdinProtocolEngine.ts';
+import { fastbootController } from './FastbootController.ts';
+import { mediaTekProEngine } from './MediaTekProEngine.ts';
+import { hardwareInterfaceService } from './HardwareInterfaceService.ts';
 
 /**
  * FRP & OEM Lock Bypass Engine (v2026.9)

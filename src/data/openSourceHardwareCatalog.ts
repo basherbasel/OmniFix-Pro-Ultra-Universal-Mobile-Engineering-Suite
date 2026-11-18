@@ -598,3 +598,137 @@ export const SOC_PROCESSOR_DATABASE: SocProcessorSpec[] = [
     commonHardwareFaultsEn: 'LCD 19.5V boost diode/coil open lines and soft-bricked partitions easily revived via FDL1/FDL2 + PAC restore.',
   },
 ];
+
+export interface RepairJumperGuide {
+  id: string;
+  faultCategory: string;
+  titleAr: string;
+  titleEn: string;
+  affectedModels: string[];
+  jumperSourceNet: string;
+  jumperTargetNet: string;
+  solderingWireGauge: string;
+  instructionsAr: string;
+  instructionsEn: string;
+  safetyPrecaution: string;
+}
+
+export const REPAIR_JUMPER_GUIDES: RepairJumperGuide[] = [
+  {
+    id: 'jumper-power-key',
+    faultCategory: 'POWER',
+    titleAr: 'تعويض قفلة زر الباور المقطوع (Power Key Jumper)',
+    titleEn: 'Power Key Trace Restoration Jumper',
+    affectedModels: ['جميع الهواتف (Samsung, iPhone, Xiaomi, Infinix)'],
+    jumperSourceNet: 'PWR_KEY_N (PMIC Interrupt Pin)',
+    jumperTargetNet: 'External Flex Switch Pad (Side Key Ribbon)',
+    solderingWireGauge: '0.01mm Copper Enameled Jumper Wire (0.01 ملليمتر)',
+    instructionsAr: 'قم بكشط طبقة حماية البوردة بحذر فوق نقطة التست بوينت (Testpoint) الخاصة بمسار زر الباور بجوار آيسي الباور، وثبت شعرة نحاس 0.01 ملم بلحام سائل UV، ثم اوصلها بالنقطة سليمة في فلاتة الأزرار.',
+    instructionsEn: 'Gently scrape solder mask near PMIC power key testpoint, anchor 0.01mm enameled wire with UV curing solder mask, and bridge to side key flex connector.',
+    safetyPrecaution: 'تجنب ملامسة خطوط 1.8V VIO أو 3.85V VBAT المجاورة لعدم إحداث شورت.',
+  },
+  {
+    id: 'jumper-usb-vbus',
+    faultCategory: 'CHARGING',
+    titleAr: 'تعويض مسار الشحن VBUS 5V المقطوع بعد تلف آيسي الشحن',
+    titleEn: 'VBUS 5V Charging Trace & Diode Restoration',
+    affectedModels: ['POCO X3 Pro, Samsung A32/A54, iPhone 11/12/13/14'],
+    jumperSourceNet: 'USB_VBUS_IN (Sub-Board Flex Pad 1)',
+    jumperTargetNet: 'OVP IC Input / Charging IC VBUS Capacitor',
+    solderingWireGauge: '0.02mm Insulated Copper Wire',
+    instructionsAr: 'في حال تلف المسار النحاسي الواصل من فلاتة الشحن السفلية إلى اللوحة الرئيسية، قم بلحام شعرة نحاسية مباشرة من مكثف دخل الشحن (قبل OVP) إلى النقطة بديلة على الفلاتة.',
+    instructionsEn: 'Solder 0.02mm jumper wire directly from flex connector testpad to input of OVP protection IC or main charging capacitor.',
+    safetyPrecaution: 'تأكد من إزالة أي شورت على خط العودة GND قبل توصيل الشاحن.',
+  },
+  {
+    id: 'jumper-backlight-anode',
+    faultCategory: 'DISPLAY',
+    titleAr: 'تعويض خط أنود الإضاءة الخلفية للشاشة (LCD / OLED Backlight Anode Jumper)',
+    titleEn: 'Backlight Anode Boost Jumper (LCM_BL_18V-24V)',
+    affectedModels: ['Infinix, Tecno, Realme C-Series, Samsung A-Series'],
+    jumperSourceNet: 'Backlight Boost Diode Output (Cathode side)',
+    jumperTargetNet: 'LCD Connector Pin 1 / Anode Pin',
+    solderingWireGauge: '0.01mm High-Voltage Insulated Jumper Wire',
+    instructionsAr: 'عند حدوث انقطاع في مسار رفع الجهد (Boost Driver 19.5V-24V) بسبب احتراق ملف الإضاءة أو الدايود، يتم تعويض الخط بشعرة نحاسية معزولة من خرج الدايود إلى بن إضاءة الشاشة مباشرة.',
+    instructionsEn: 'Bridge enameled jumper wire from backlight boost diode cathode output directly to display connector anode pin when trace is severed.',
+    safetyPrecaution: 'تحذير: جهد الخرج يتجاوز 20 فولت؛ لا تقم باللحام والجهاز متصل بالبطارية أو الشاحن.',
+  },
+];
+
+export interface OpenSourceScriptSnippet {
+  id: string;
+  titleAr: string;
+  titleEn: string;
+  language: 'python' | 'bash' | 'powershell';
+  toolName: string;
+  codeSnippet: string;
+  explanationAr: string;
+}
+
+export const OPEN_SOURCE_AUTOMATION_SNIPPETS: OpenSourceScriptSnippet[] = [
+  {
+    id: 'script-mtk-dump',
+    titleAr: 'سكريبت Python لأخذ نسخة احتياطية لأقسام MTK عبر mtkclient',
+    titleEn: 'Python Script for MTK Partition Backup via mtkclient',
+    language: 'python',
+    toolName: 'mtkclient (bkerler/mtkclient)',
+    codeSnippet: `import sys
+from mtkclient.Library.mtk import Mtk
+
+def backup_mtk_partitions():
+    print("[*] Initializing MediaTek BROM connection...")
+    mtk = Mtk(args=None)
+    if mtk.connect():
+        print("[+] BROM handshake successful!")
+        # Dump boot and super partitions
+        mtk.dumper("boot", "boot_backup.img")
+        mtk.dumper("vbmeta", "vbmeta_backup.img")
+        print("[+] Backup completed successfully.")
+    else:
+        print("[-] Connection failed. Check testpoints and USB cable.")
+
+if __name__ == "__main__":
+    backup_mtk_partitions()`,
+    explanationAr: 'يستخدم هذا السكريبت واجهة البرمجة لـ mtkclient للاتصال بمعالج ميديا تيك وسحب ملفات الإقلاع بوت وفيبميتا.',
+  },
+  {
+    id: 'script-qcom-edl',
+    titleAr: 'سكريبت Python لفحص أقسام GPT عبر معالج Qualcomm Firehose',
+    titleEn: 'Python Script for Qualcomm GPT Inspection via edl',
+    language: 'python',
+    toolName: 'edl (bkerler/edl)',
+    codeSnippet: `import subprocess
+
+def inspect_qualcomm_gpt(loader_elf="prog_firehose_ddr.elf"):
+    print("[*] Launching Qualcomm Sahara 9008 session...")
+    cmd = ["python", "-m", "edl", "printgpt", f"--loader={loader_elf}"]
+    res = subprocess.run(cmd, capture_output=True, text=True)
+    print(res.stdout)
+    if res.returncode == 0:
+        print("[+] GPT partition table successfully parsed.")
+    else:
+        print("[-] Error communicating with EDL device:", res.stderr)
+
+if __name__ == "__main__":
+    inspect_qualcomm_gpt()`,
+    explanationAr: 'سكريبت تلقائي لاستدعاء أداة edl وقراءة جدول التقسيمات لقطاعات كوالكوم في وضع 9008.',
+  },
+  {
+    id: 'script-apple-dfu',
+    titleAr: 'أوامر تفقد أجهزة آبل في وضع DFU / Recovery',
+    titleEn: 'Apple DFU & Recovery Inspection Commands',
+    language: 'bash',
+    toolName: 'libimobiledevice & irecovery',
+    codeSnippet: `#!/usr/bin/env bash
+echo "[*] Polling Apple USB DFU & Recovery devices..."
+system_profiler SPUSBDataType | grep -E "Apple Mobile Device|DFU|Recovery" -B 2 -A 5
+
+echo "[*] Querying device info via irecovery..."
+irecovery -q
+
+echo "[*] Dumping device diagnostics log..."
+idevicediagnostics diagnostics
+`,
+    explanationAr: 'مجموعة أوامر Bash لفحص الاتصال الفيزيائي لأجهزة آبل وقراءة معرفات CPID و ECID واستخراج السجلات.',
+  },
+];

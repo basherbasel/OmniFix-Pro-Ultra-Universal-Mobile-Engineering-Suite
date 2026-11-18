@@ -1,11 +1,11 @@
-import { ConnectedDevice } from '../types';
-import { realUsbService } from './realUsbService';
+import { ConnectedDevice } from '../types.ts';
+import { realUsbService } from './realUsbService.ts';
 import { 
   BaseProtocolEngine, 
   HardwareDeviceDetails, 
   ProtocolEngineOptions, 
   hardwareInterfaceService 
-} from './HardwareInterfaceService';
+} from './HardwareInterfaceService.ts';
 
 /**
  * Samsung Odin "Loke" Protocol Packet Types
