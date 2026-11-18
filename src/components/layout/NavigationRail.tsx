@@ -23,7 +23,6 @@ import {
   Binary,
   Radio
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useWorkstation } from '../../context/WorkstationContext';
 
 export function NavigationRail() {
@@ -96,16 +95,13 @@ export function NavigationRail() {
 
           return (
             <button
+              type="button"
               key={cat.id}
               onClick={() => setActiveTab(cat.targetTab)}
-              className="relative group flex flex-col items-center gap-1 py-3 w-full rounded-2xl transition-all cursor-pointer"
+              className={`relative group flex flex-col items-center gap-1 py-3 w-full rounded-xl transition-all cursor-pointer ${
+                isActive ? 'bg-indigo-500/15 border-e-2 border-indigo-500' : 'hover:bg-white/5'
+              }`}
             >
-              {isActive && (
-                <motion.div 
-                  layoutId="railActive"
-                  className="absolute inset-0 bg-indigo-500/10 border-e-2 border-indigo-500 rounded-none"
-                />
-              )}
               <div className={`p-2 rounded-xl transition-all ${isActive ? 'text-indigo-400' : 'text-slate-500 group-hover:text-slate-300'}`}>
                 <Icon size={22} />
               </div>

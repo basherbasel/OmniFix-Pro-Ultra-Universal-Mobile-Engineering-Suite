@@ -34,7 +34,7 @@ export const CommandPaletteModal: React.FC = () => {
   const {
     lang,
     setActiveTab: onSelectTab,
-    setCurrentDevice: onSelectDevice,
+    connectDevice: onSelectDevice,
     isCommandPaletteOpen: isOpen,
     setCommandPaletteOpen,
     setUsbModalOpen,
@@ -216,7 +216,7 @@ export const CommandPaletteModal: React.FC = () => {
       subtitleEn: 'Cross-reference V-Nominal power rails for Snapdragon, Kirin & Dimensity',
       icon: Zap,
       color: 'text-amber-400',
-      tabId: 'hardware-workbench'
+      tabId: 'voltage-bridge'
     },
     {
       id: 'ufs-memory',

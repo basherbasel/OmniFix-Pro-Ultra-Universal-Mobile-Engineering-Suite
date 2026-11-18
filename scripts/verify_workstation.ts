@@ -20,6 +20,11 @@ import {
 import { analyzeDcPowerDraw } from '../src/services/powerAnalyzer';
 import { FAULT_REPAIRS } from '../src/data/faultRepairs';
 import { HARDWARE_REPAIR_GUIDES } from '../src/data/hardwareRepairGuides';
+import {
+  OPEN_SOURCE_REPAIR_TOOLS,
+  PHONE_CIRCUIT_SUBSYSTEMS,
+  SOC_PROCESSOR_DATABASE,
+} from '../src/data/openSourceHardwareCatalog';
 import type { ConnectedDevice, HardwareCategory } from '../src/types';
 
 const BASE_URL = process.env.WORKSTATION_BASE_URL || 'http://127.0.0.1:3000';
@@ -29,10 +34,10 @@ function makeDevice(overrides: Partial<ConnectedDevice>): ConnectedDevice {
     id: 'test-dev',
     brand: 'Samsung',
     model: 'SM-S928B',
-    marketName: 'Samsung Galaxy S24 Ultra',
+    marketName: overrides.model || 'Test Smartphone',
     chipset: 'qualcomm',
-    chipsetName: 'Snapdragon 8 Gen 3',
-    socId: 'SM8650',
+    chipsetName: overrides.chipsetName || 'Generic SoC',
+    socId: overrides.socId || 'GENERIC',
     mode: 'ADB_ONLINE',
     port: 'ADB:TEST',
     vidPid: '04E8:6860',
@@ -90,12 +95,12 @@ function testHardwareAtlas() {
   assert.equal(evaluateDiodeReading('CUSTOM_UNKNOWN_RAIL', 2.2).status, 'OPEN_LINE');
   assert.equal(evaluateDiodeReading('CUSTOM_UNKNOWN_RAIL', 0.45).status, 'NORMAL_RANGE');
 
-  assert.equal(DEVICE_MODELS_ATLAS.length, 16, 'Expected 16 curated real-world smartphone entries');
+  assert.equal(DEVICE_MODELS_ATLAS.length, 24, 'Expected 24 curated real-world smartphone entries');
   assert.equal(IC_FAULT_CATALOG.length, 9, 'Expected 9 curated IC fault catalog entries');
-  assert.ok(searchDeviceAtlas('', 'Apple').length >= 3, 'Expected >= 3 Apple models');
+  assert.ok(searchDeviceAtlas('', 'Apple').length >= 4, 'Expected >= 4 Apple models');
   assert.ok(searchDeviceAtlas('Kirin', '').length >= 1, 'Expected Kirin search hit');
   assert.ok(searchDeviceAtlas('Unisoc', '').length >= 2, 'Expected Unisoc search hits');
-  console.log('✓ HardwareAtlas pure checks passed (14 USB, 13 Diode Rails, 16 Devices, 9 ICs)');
+  console.log('✓ HardwareAtlas pure checks passed (14 USB, 13 Diode Rails, 24 Devices, 9 ICs)');
 }
 
 function testPowerAnalyzer() {
@@ -123,7 +128,7 @@ function testPowerAnalyzer() {
 
 function testSchematicsEngine() {
   const summary = listSchematicsSummary();
-  assert.equal(summary.length, 6, 'Expected 6 complete BoardViews in BOARD_SCHEMATICS');
+  assert.equal(summary.length, 12, 'Expected 12 complete BoardViews in BOARD_SCHEMATICS');
   for (const item of summary) {
     const detail = getSchematicDetail(item.id);
     assert.ok(detail, `Missing schematic detail for ${item.id}`);
@@ -134,15 +139,23 @@ function testSchematicsEngine() {
 
   assert.equal(
     getSchematicForDevice(makeDevice({ brand: 'Apple', chipset: 'apple_ios', model: 'iPhone 15 Pro Max' })).id,
+    'iphone_15_pro_max_a17'
+  );
+  assert.equal(
+    getSchematicForDevice(makeDevice({ brand: 'Apple', chipset: 'apple_ios', model: 'iPhone 14 Pro' })).id,
     'iphone_14_pro_board'
   );
   assert.equal(
-    getSchematicForDevice(makeDevice({ brand: 'Samsung', chipset: 'samsung_exynos', model: 'SM-A546B' })).id,
+    getSchematicForDevice(makeDevice({ brand: 'Samsung', chipset: 'qualcomm', model: 'SM-S928B', marketName: 'Galaxy S24 Ultra' })).id,
+    'samsung_s24_ultra_sm8650'
+  );
+  assert.equal(
+    getSchematicForDevice(makeDevice({ brand: 'Samsung', chipset: 'samsung_exynos', model: 'SM-A546B', marketName: 'Galaxy A54 5G', socId: 'Exynos 1380' })).id,
     'samsung_exynos_a54_board'
   );
   assert.equal(
     getSchematicForDevice(makeDevice({ brand: 'Google', chipset: 'google_tensor', model: 'Pixel 8 Pro' })).id,
-    'samsung_exynos_a54_board'
+    'google_pixel_tensor_g3'
   );
   assert.equal(
     getSchematicForDevice(makeDevice({ brand: 'Realme', chipset: 'unisoc_spd', model: 'RMX3760' })).id,
@@ -153,6 +166,18 @@ function testSchematicsEngine() {
     'huawei_kirin_board'
   );
   assert.equal(
+    getSchematicForDevice(makeDevice({ brand: 'Xiaomi', chipset: 'qualcomm', model: 'Xiaomi 14 Pro', marketName: 'Xiaomi 14 Pro' })).id,
+    'xiaomi_14_hyperos_qcom'
+  );
+  assert.equal(
+    getSchematicForDevice(makeDevice({ brand: 'OPPO', chipset: 'mediatek', chipsetName: 'Dimensity 8200', model: 'CPH2451' })).id,
+    'oppo_realme_dimensity_board'
+  );
+  assert.equal(
+    getSchematicForDevice(makeDevice({ brand: 'Infinix', chipset: 'mediatek', chipsetName: 'Helio G99', model: 'X6850' })).id,
+    'infinix_tecno_helio_board'
+  );
+  assert.equal(
     getSchematicForDevice(makeDevice({ brand: 'Xiaomi', chipset: 'qualcomm', model: 'POCO F5' })).id,
     'xiaomi_qualcomm_mtk_board'
   );
@@ -161,7 +186,30 @@ function testSchematicsEngine() {
     'samsung_a325f_board'
   );
 
-  console.log('✓ SchematicsEngine pure checks passed across all 6 boards & SoC routers');
+  console.log('✓ SchematicsEngine pure checks passed across all 12 boards & SoC routers');
+}
+
+function testOpenSourceCatalog() {
+  assert.ok(OPEN_SOURCE_REPAIR_TOOLS.length >= 12, `Expected >=12 open-source tools, got ${OPEN_SOURCE_REPAIR_TOOLS.length}`);
+  assert.ok(PHONE_CIRCUIT_SUBSYSTEMS.length >= 10, `Expected >=10 circuit subsystems, got ${PHONE_CIRCUIT_SUBSYSTEMS.length}`);
+  assert.ok(SOC_PROCESSOR_DATABASE.length >= 9, `Expected >=9 SoC families, got ${SOC_PROCESSOR_DATABASE.length}`);
+
+  for (const tool of OPEN_SOURCE_REPAIR_TOOLS) {
+    assert.ok(tool.sampleCommands.length >= 1, `Tool ${tool.id} needs sampleCommands`);
+    assert.ok(tool.repository.includes('/'), `Tool ${tool.id} needs valid repo path`);
+  }
+  for (const circ of PHONE_CIRCUIT_SUBSYSTEMS) {
+    assert.ok(circ.primaryNets.length >= 2, `Circuit ${circ.id} needs >=2 primaryNets`);
+    assert.ok(circ.diagnosticProcedureAr.length >= 2, `Circuit ${circ.id} needs diagnosticProcedureAr`);
+  }
+  for (const soc of SOC_PROCESSOR_DATABASE) {
+    assert.ok(soc.pairedPmics.length >= 1, `SoC ${soc.id} needs pairedPmics`);
+    assert.ok(soc.socPartNumbers.length >= 1, `SoC ${soc.id} needs socPartNumbers`);
+  }
+
+  console.log(
+    `✓ OpenSourceHardwareCatalog checks passed (${OPEN_SOURCE_REPAIR_TOOLS.length} tools, ${PHONE_CIRCUIT_SUBSYSTEMS.length} circuits, ${SOC_PROCESSOR_DATABASE.length} SoCs)`
+  );
 }
 
 function testFaultsAndGuidesIntegrity() {
@@ -266,6 +314,28 @@ function testUiHygieneAndRoutingParity() {
   const missingRailTabs = railTabs.filter((id) => !canvasCases.has(id));
   assert.deepEqual(missingRailTabs, [], `NavigationRail targetTabs missing in ToolCanvas: ${missingRailTabs.join(', ')}`);
 
+  const paletteSrc = fs.readFileSync(path.resolve('src/components/CommandPaletteModal.tsx'), 'utf8');
+  const paletteTabs = Array.from(paletteSrc.matchAll(/tabId:\s*'([^']+)'/g)).map((m) => m[1]);
+  assert.ok(paletteTabs.length >= 20, `Expected >=20 CommandPalette routes, got ${paletteTabs.length}`);
+  const missingPaletteTabs = paletteTabs.filter((id) => !canvasCases.has(id));
+  assert.deepEqual(missingPaletteTabs, [], `CommandPaletteModal tabIds missing in ToolCanvas: ${missingPaletteTabs.join(', ')}`);
+
+  const deterministicFiles = [
+    'src/utils/reportExporter.ts',
+    'src/services/realUsbService.ts',
+    'src/services/samsungNetworkEngine.ts',
+    'src/services/eventDrivenPipelineEngine.ts',
+    'src/components/UsbConnectionModal.tsx',
+    'src/components/CentralDashboard.tsx',
+    'src/components/layout/LiveUsbDetectionBanner.tsx',
+    'src/components/UltimateFaultRepairHub.tsx',
+    'src/components/SamsungOdinFlasherStudio.tsx',
+  ];
+  for (const relPath of deterministicFiles) {
+    const src = fs.readFileSync(path.resolve(relPath), 'utf8');
+    assert.equal(/\bMath\.random\s*\(/.test(src), false, `Forbidden Math.random() in deterministic file ${relPath}`);
+  }
+
   const fwSrc = fs.readFileSync(path.resolve('src/data/firmwareCatalog.ts'), 'utf8');
   const shaHashes = Array.from(fwSrc.matchAll(/sha256Checksum:\s*'([^']+)'/g)).map((m) => m[1]);
   assert.ok(shaHashes.length >= 13, `Expected >=13 OEM firmware entries, got ${shaHashes.length}`);
@@ -273,7 +343,7 @@ function testUiHygieneAndRoutingParity() {
     assert.match(h, /^[a-f0-9]{64}$/i, `Invalid SHA-256 format in firmwareCatalog: ${h}`);
   }
 
-  console.log(`✓ Static UI hygiene & routing parity passed (${dashboardToolIds.length} dashboard tools, ${railTabs.length} rail routes, ${shaHashes.length} SHA-256 OEM firmwares)`);
+  console.log(`✓ Static UI hygiene & routing parity passed (${dashboardToolIds.length} dashboard, ${railTabs.length} rail, ${paletteTabs.length} palette routes, ${shaHashes.length} SHA-256 firmwares)`);
 }
 
 async function waitForServer(maxWaitMs = 8000) {
@@ -341,15 +411,22 @@ async function testLiveHttpApi() {
 
     const atlas = await fetchJson('/api/atlas/devices');
     assert.equal(atlas.status, 200);
-    assert.equal(atlas.data.devices.length, 16);
+    assert.equal(atlas.data.devices.length, 24);
 
     const atlasApple = await fetchJson('/api/atlas/devices?brand=Apple');
     assert.equal(atlasApple.status, 200);
-    assert.ok(atlasApple.data.devices.length >= 3);
+    assert.ok(atlasApple.data.devices.length >= 4);
 
     const schematics = await fetchJson('/api/schematics');
     assert.equal(schematics.status, 200);
-    assert.equal(schematics.data.schematics.length, 6);
+    assert.equal(schematics.data.schematics.length, 12);
+
+    const oss = await fetchJson('/api/opensource-resources');
+    assert.equal(oss.status, 200);
+    assert.equal(oss.data.success, true);
+    assert.ok(oss.data.open_source_tools.length >= 12);
+    assert.ok(oss.data.circuit_subsystems.length >= 10);
+    assert.ok(oss.data.soc_processors.length >= 9);
 
     const schematicOne = await fetchJson('/api/schematics/unisoc_tiger_board');
     assert.equal(schematicOne.status, 200);
@@ -438,6 +515,7 @@ async function main() {
   testHardwareAtlas();
   testPowerAnalyzer();
   testSchematicsEngine();
+  testOpenSourceCatalog();
   testFaultsAndGuidesIntegrity();
   testNavbarToolCanvasParity();
   testUiHygieneAndRoutingParity();

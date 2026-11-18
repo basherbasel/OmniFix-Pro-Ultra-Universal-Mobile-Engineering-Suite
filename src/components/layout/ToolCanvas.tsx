@@ -85,7 +85,7 @@ export function ToolCanvas() {
     lang, 
     currentDevice, 
     deviceTelemetry,
-    setCurrentDevice,
+    connectDevice,
     isBusy, 
     setIsBusy, 
     setActiveTab, 
@@ -411,7 +411,7 @@ export function ToolCanvas() {
             lang={lang} 
             isBusy={isBusy}
             onSwitchDeviceMode={(newMode) => {
-              setCurrentDevice({ ...currentDevice, mode: newMode });
+              connectDevice({ ...currentDevice, mode: newMode });
               addLog(`Device Mode switched to: ${newMode}`);
             }}
             onReadDeviceDeepInfo={(mode) => addLog(`Reading deep telemetry for mode: ${mode}`)}
@@ -454,9 +454,10 @@ export function ToolCanvas() {
             else if (chipLower.includes('bionic') || chipLower.includes('apple')) validChipset = 'apple_ios';
             else if (chipLower.includes('tensor')) validChipset = 'google_tensor';
 
-            setCurrentDevice({
+            connectDevice({
               ...currentDevice,
-              model: record.model,
+              id: `oem-${(record.code_name || record.model).toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+              model: record.code_name || record.model,
               marketName: `${record.brand} ${record.model}`,
               brand: record.brand,
               chipset: validChipset,

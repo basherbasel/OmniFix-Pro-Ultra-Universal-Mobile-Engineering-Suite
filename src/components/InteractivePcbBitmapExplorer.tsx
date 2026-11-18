@@ -14,6 +14,10 @@ import {
   GitBranch,
   Check,
   Copy,
+  Download,
+  CircuitBoard,
+  BookOpen,
+  Search,
 } from 'lucide-react';
 import { ConnectedDevice } from '../types';
 import { useWorkstation } from '../context/WorkstationContext';
@@ -29,6 +33,12 @@ import {
   DiodeEvaluationResult,
   evaluateDiodeReading,
 } from '../data/hardwareAtlas';
+import {
+  OPEN_SOURCE_REPAIR_TOOLS,
+  PHONE_CIRCUIT_SUBSYSTEMS,
+  SOC_PROCESSOR_DATABASE,
+  PhoneCircuitSubsystem,
+} from '../data/openSourceHardwareCatalog';
 
 interface InteractivePcbBitmapExplorerProps {
   device: ConnectedDevice;
@@ -63,6 +73,12 @@ export const InteractivePcbBitmapExplorer: React.FC<InteractivePcbBitmapExplorer
   );
   const [isLogging, setIsLogging] = useState(false);
   const [copiedCmd, setCopiedCmd] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'boardview' | 'circuits' | 'soc_oss'>('boardview');
+  const [boardSearch, setBoardSearch] = useState<string>('');
+  const [circuitFilter, setCircuitFilter] = useState<'ALL' | PhoneCircuitSubsystem['category']>('ALL');
+  const [socVendorFilter, setSocVendorFilter] = useState<string>('ALL');
+  const [ossSearch, setOssSearch] = useState<string>('');
+  const [downloadedFile, setDownloadedFile] = useState<string | null>(null);
 
   // Sync board schematic automatically when connected device changes
   useEffect(() => {
@@ -110,14 +126,79 @@ export const InteractivePcbBitmapExplorer: React.FC<InteractivePcbBitmapExplorer
   const primaryAtlasModel = relatedAtlasModels[0] || DEVICE_MODELS_ATLAS[0];
 
   const handleCopyCommand = (cmd: string) => {
-    navigator.clipboard.writeText(cmd);
+    navigator.clipboard?.writeText(cmd);
     setCopiedCmd(cmd);
     setTimeout(() => setCopiedCmd(null), 1500);
   };
 
+  const handleDownloadJsonPackage = (filename: string, payload: unknown) => {
+    try {
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setDownloadedFile(filename);
+      setTimeout(() => setDownloadedFile(null), 2200);
+    } catch {
+      // ignore if DOM download unavailable in headless SSR
+    }
+  };
+
+  const handleDownloadActiveSchematic = () => {
+    handleDownloadJsonPackage(`${activeSchematic.id}_boardview_netlist.json`, {
+      exportedAt: new Date().toISOString(),
+      format: 'OmniFix-OpenBoardView-Netlist-v1',
+      schematic: activeSchematic,
+      matchedDeviceAtlas: relatedAtlasModels,
+      circuitSubsystemsReference: PHONE_CIRCUIT_SUBSYSTEMS,
+    });
+  };
+
+  const filteredSchematics = schematicList.filter((s) => {
+    const q = boardSearch.trim().toLowerCase();
+    if (!q) return true;
+    return s.title.toLowerCase().includes(q) || s.architecture.toLowerCase().includes(q) || s.id.toLowerCase().includes(q);
+  });
+
+  const filteredCircuits = PHONE_CIRCUIT_SUBSYSTEMS.filter((c) =>
+    circuitFilter === 'ALL' ? true : c.category === circuitFilter
+  );
+
+  const socVendors = ['ALL', ...Array.from(new Set(SOC_PROCESSOR_DATABASE.map((s) => s.vendor)))];
+
+  const filteredSocs = SOC_PROCESSOR_DATABASE.filter((soc) => {
+    const vendorOk = socVendorFilter === 'ALL' || soc.vendor === socVendorFilter;
+    const q = ossSearch.trim().toLowerCase();
+    if (!q) return vendorOk;
+    return (
+      vendorOk &&
+      (soc.familyName.toLowerCase().includes(q) ||
+        soc.vendor.toLowerCase().includes(q) ||
+        soc.socPartNumbers.some((p) => p.toLowerCase().includes(q)) ||
+        soc.representativeDevices.some((d) => d.toLowerCase().includes(q)))
+    );
+  });
+
+  const filteredOssTools = OPEN_SOURCE_REPAIR_TOOLS.filter((t) => {
+    const q = ossSearch.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      t.name.toLowerCase().includes(q) ||
+      t.repository.toLowerCase().includes(q) ||
+      t.summaryEn.toLowerCase().includes(q) ||
+      t.summaryAr.includes(ossSearch.trim()) ||
+      t.supportedChipsetsOrFormats.some((f) => f.toLowerCase().includes(q))
+    );
+  });
+
   return (
     <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-5 text-slate-100">
-      {/* Top Telemetry Header */}
+      {/* Top Telemetry Header & Primary Mode Switcher */}
       <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0">
@@ -126,86 +207,156 @@ export const InteractivePcbBitmapExplorer: React.FC<InteractivePcbBitmapExplorer
           <div>
             <h3 className="text-base font-bold text-white tracking-tight">
               {isAr
-                ? 'مستعرض المخططات التفاعلية والـ BoardView وتسلسل الطاقة'
-                : 'Interactive SVG BoardView & Power-Sequence Schematic Engine'}
+                ? 'مستودع المخططات والدوائر الإلكترونية والمعالجات مفتوحة المصدر'
+                : 'Open-Source Schematics, Electronic Circuits & SoC Lab'}
             </h3>
             <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400 mt-0.5 font-mono">
-              <span>{activeSchematic.architecture}</span>
+              <span>{schematicList.length} BoardViews</span>
               <span aria-hidden="true">·</span>
-              <span>{activeSchematic.components.length} ICs</span>
+              <span>{PHONE_CIRCUIT_SUBSYSTEMS.length} Circuits</span>
               <span aria-hidden="true">·</span>
-              <span>{activeSchematic.pins.length} Testpoints</span>
+              <span>{SOC_PROCESSOR_DATABASE.length} SoC Families</span>
+              <span aria-hidden="true">·</span>
+              <span>{OPEN_SOURCE_REPAIR_TOOLS.length} OSS Tools</span>
             </div>
           </div>
         </div>
 
-        {/* Layer Filter & Zoom */}
+        {/* Mode Tabs + Netlist Export */}
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex items-center bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs font-mono">
-            {(['ALL', 'POWER', 'DATA'] as const).map((layer) => (
-              <button
-                key={layer}
-                onClick={() => setActiveLayerView(layer)}
-                className={`px-3 py-1.5 rounded-md font-medium transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-                  activeLayerView === layer
-                    ? 'bg-cyan-600 text-white'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                {layer === 'ALL'
-                  ? isAr ? 'كل المسارات' : 'All Nets'
-                  : layer === 'POWER'
-                  ? isAr ? 'خطوط التغذية' : 'Power Rails'
-                  : isAr ? 'بيانات / BROM / EDL' : 'Data & Boot'}
-              </button>
-            ))}
+          <div className="flex items-center bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs font-semibold">
+            <button
+              type="button"
+              onClick={() => setViewMode('boardview')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+                viewMode === 'boardview' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Compass className="w-3.5 h-3.5" />
+              <span>{isAr ? `البورد فيو (${schematicList.length})` : `BoardView (${schematicList.length})`}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('circuits')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+                viewMode === 'circuits' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <CircuitBoard className="w-3.5 h-3.5" />
+              <span>{isAr ? `الدوائر (${PHONE_CIRCUIT_SUBSYSTEMS.length})` : `Circuits (${PHONE_CIRCUIT_SUBSYSTEMS.length})`}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('soc_oss')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+                viewMode === 'soc_oss' ? 'bg-cyan-600 text-white' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <BookOpen className="w-3.5 h-3.5" />
+              <span>{isAr ? 'المعالجات والأدوات الحرة' : 'SoCs & OSS Tools'}</span>
+            </button>
           </div>
 
-          <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs font-mono">
-            <button
-              onClick={() => setZoomLevel((z) => Math.max(0.8, Number((z - 0.15).toFixed(2))))}
-              className="px-2.5 py-1 rounded hover:bg-slate-800 text-slate-300 cursor-pointer"
-              aria-label="Zoom Out"
-            >
-              -
-            </button>
-            <span className="px-2 text-cyan-400 tabular-nums">{Math.round(zoomLevel * 100)}%</span>
-            <button
-              onClick={() => setZoomLevel((z) => Math.min(1.8, Number((z + 0.15).toFixed(2))))}
-              className="px-2.5 py-1 rounded hover:bg-slate-800 text-slate-300 cursor-pointer"
-              aria-label="Zoom In"
-            >
-              +
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={handleDownloadActiveSchematic}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 text-xs font-bold cursor-pointer transition-colors"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>
+              {downloadedFile
+                ? isAr ? 'تم التصدير ✓' : 'Exported ✓'
+                : isAr ? 'تنزيل ملف المخطط JSON' : 'Export Netlist JSON'}
+            </span>
+          </button>
         </div>
       </div>
 
-      {/* Schematic Board Selector */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-        {schematicList.map((sch) => {
-          const isActive = sch.id === activeSchematic.id;
-          return (
-            <button
-              key={sch.id}
-              onClick={() => handleSelectSchematic(sch.id)}
-              className={`p-3 rounded-lg border text-start transition-colors cursor-pointer ${
-                isActive
-                  ? 'bg-slate-900 border-cyan-500 text-white'
-                  : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
-              }`}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-bold truncate">{sch.title}</span>
-                <Smartphone className="w-4 h-4 shrink-0 text-cyan-400" />
+      {viewMode === 'boardview' && (
+        <>
+          {/* Layer Filter, Board Search & Zoom */}
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900/70 p-3 rounded-xl border border-slate-800">
+            <div className="relative flex-1 min-w-[220px]">
+              <Search className="w-4 h-4 text-slate-400 absolute top-1/2 -translate-y-1/2 start-3" />
+              <input
+                type="text"
+                value={boardSearch}
+                onChange={(e) => setBoardSearch(e.target.value)}
+                placeholder={isAr ? 'ابحث باسم الهاتف أو المعالج (مثال: S24, iPhone 15, Tensor, Helio)...' : 'Search board or chipset (e.g. S24, iPhone 15, Tensor, Helio)...'}
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg ps-9 pe-3 py-1.5 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-cyan-500"
+              />
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs font-mono">
+                {(['ALL', 'POWER', 'DATA'] as const).map((layer) => (
+                  <button
+                    key={layer}
+                    type="button"
+                    onClick={() => setActiveLayerView(layer)}
+                    className={`px-3 py-1 rounded-md font-medium transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                      activeLayerView === layer
+                        ? 'bg-cyan-600 text-white'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {layer === 'ALL'
+                      ? isAr ? 'كل المسارات' : 'All Nets'
+                      : layer === 'POWER'
+                      ? isAr ? 'خطوط التغذية' : 'Power Rails'
+                      : isAr ? 'بيانات / BROM / EDL' : 'Data & Boot'}
+                  </button>
+                ))}
               </div>
-              <div className="text-[11px] font-mono text-slate-500 mt-1 truncate">
-                {sch.architecture}
+
+              <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs font-mono">
+                <button
+                  type="button"
+                  onClick={() => setZoomLevel((z) => Math.max(0.8, Number((z - 0.15).toFixed(2))))}
+                  className="px-2.5 py-1 rounded hover:bg-slate-800 text-slate-300 cursor-pointer"
+                  aria-label="Zoom Out"
+                >
+                  -
+                </button>
+                <span className="px-2 text-cyan-400 tabular-nums">{Math.round(zoomLevel * 100)}%</span>
+                <button
+                  type="button"
+                  onClick={() => setZoomLevel((z) => Math.min(1.8, Number((z + 0.15).toFixed(2))))}
+                  className="px-2.5 py-1 rounded hover:bg-slate-800 text-slate-300 cursor-pointer"
+                  aria-label="Zoom In"
+                >
+                  +
+                </button>
               </div>
-            </button>
-          );
-        })}
-      </div>
+            </div>
+          </div>
+
+          {/* Schematic Board Selector */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
+            {filteredSchematics.map((sch) => {
+              const isActive = sch.id === activeSchematic.id;
+              return (
+                <button
+                  key={sch.id}
+                  type="button"
+                  onClick={() => handleSelectSchematic(sch.id)}
+                  className={`p-3 rounded-lg border text-start transition-colors cursor-pointer ${
+                    isActive
+                      ? 'bg-slate-900 border-cyan-500 text-white'
+                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold truncate">{sch.title}</span>
+                    <Smartphone className="w-4 h-4 shrink-0 text-cyan-400" />
+                  </div>
+                  <div className="text-[11px] font-mono text-slate-500 mt-1 truncate">
+                    {sch.architecture}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
 
       {/* Main Split Stage: SVG BoardView (7 cols) + Live Diode Evaluator & Pin Specs (5 cols) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
@@ -720,6 +871,289 @@ export const InteractivePcbBitmapExplorer: React.FC<InteractivePcbBitmapExplorer
                       <Copy className="w-3.5 h-3.5" />
                     )}
                   </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+        </>
+      )}
+
+      {viewMode === 'circuits' && (
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900 p-3 rounded-xl border border-slate-800">
+            <div className="flex flex-wrap items-center gap-1.5">
+              {(
+                ['ALL', 'POWER', 'CHARGING', 'DISPLAY', 'RF_BASEBAND', 'MEMORY', 'AUDIO', 'CAMERA', 'CONNECTIVITY'] as const
+              ).map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setCircuitFilter(cat)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
+                    circuitFilter === cat
+                      ? 'bg-cyan-600 text-white'
+                      : 'bg-slate-950 text-slate-400 border border-slate-800 hover:text-white'
+                  }`}
+                >
+                  {cat === 'ALL' ? (isAr ? 'جميع الدوائر' : 'All Circuits') : cat}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() =>
+                handleDownloadJsonPackage('smartphone_electronic_circuits_blueprint.json', {
+                  exportedAt: new Date().toISOString(),
+                  subsystems: PHONE_CIRCUIT_SUBSYSTEMS,
+                })
+              }
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-cyan-300 text-xs font-bold cursor-pointer hover:border-cyan-500"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>{isAr ? 'تنزيل مرجع الدوائر JSON' : 'Export Circuits JSON'}</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {filteredCircuits.map((circ) => (
+              <div
+                key={circ.id}
+                className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-3"
+              >
+                <div className="flex items-start justify-between gap-3 border-b border-slate-800 pb-2.5">
+                  <div>
+                    <span className="text-[11px] font-mono text-cyan-400 font-bold">{circ.category}</span>
+                    <h4 className="text-sm font-bold text-white mt-0.5">
+                      {isAr ? circ.nameAr : circ.nameEn}
+                    </h4>
+                  </div>
+                  <div className="text-end font-mono text-[11px] shrink-0">
+                    <div className="text-emerald-400 font-bold">{circ.diodeRange}</div>
+                    <div className="text-amber-400">{circ.operatingVoltages}</div>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="text-[11px] font-semibold text-slate-400">
+                    {isAr ? 'الخطوط الرئيسية (Nets):' : 'Primary Nets:'}
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {circ.primaryNets.map((net) => (
+                      <span
+                        key={net}
+                        className="px-2 py-0.5 rounded bg-slate-950 border border-slate-800 font-mono text-[11px] text-cyan-300"
+                      >
+                        {net}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800">
+                    <div className="text-[11px] text-slate-400 mb-1 font-semibold">
+                      {isAr ? 'الآيسيهات المرجعية:' : 'Reference ICs:'}
+                    </div>
+                    <div className="font-mono text-[11px] text-slate-200 leading-relaxed">
+                      {circ.referenceIcs.join(' · ')}
+                    </div>
+                  </div>
+                  <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800">
+                    <div className="text-[11px] text-slate-400 mb-1 font-semibold">
+                      {isAr ? 'العناصر المساعدة:' : 'Key Passives:'}
+                    </div>
+                    <div className="font-mono text-[11px] text-slate-200 leading-relaxed">
+                      {circ.keyPassiveComponents.join(' · ')}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded-lg bg-rose-950/20 border border-rose-800/40 text-xs text-rose-200">
+                  <span className="font-bold text-rose-400">{isAr ? 'أعراض التلف: ' : 'Failure Symptoms: '}</span>
+                  {isAr ? circ.failureSymptomsAr : circ.failureSymptomsEn}
+                </div>
+
+                <div className="space-y-1">
+                  <div className="text-[11px] font-semibold text-emerald-400">
+                    {isAr ? 'خطوات الفحص والإصلاح الهندسي:' : 'Diagnostic Procedure:'}
+                  </div>
+                  <ol className="space-y-1 text-xs text-slate-300 list-decimal list-inside">
+                    {(isAr ? circ.diagnosticProcedureAr : circ.diagnosticProcedureEn).map((step, i) => (
+                      <li key={i} className="leading-relaxed">{step}</li>
+                    ))}
+                  </ol>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {viewMode === 'soc_oss' && (
+        <div className="space-y-5">
+          {/* Search & Vendor Filter */}
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900 p-3 rounded-xl border border-slate-800">
+            <div className="relative flex-1 min-w-[220px]">
+              <Search className="w-4 h-4 text-slate-400 absolute top-1/2 -translate-y-1/2 start-3" />
+              <input
+                type="text"
+                value={ossSearch}
+                onChange={(e) => setOssSearch(e.target.value)}
+                placeholder={isAr ? 'ابحث في المعالجات أو الأدوات مفتوحة المصدر (mtkclient, edl, A17, SM8650, OpenBoardView)...' : 'Search SoCs or open-source tools (mtkclient, edl, SM8650, OpenBoardView)...'}
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg ps-9 pe-3 py-1.5 text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-cyan-500"
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {socVendors.map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => setSocVendorFilter(v)}
+                  className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
+                    socVendorFilter === v
+                      ? 'bg-cyan-600 text-white'
+                      : 'bg-slate-950 text-slate-400 border border-slate-800 hover:text-white'
+                  }`}
+                >
+                  {v === 'ALL' ? (isAr ? 'كل المعالجات' : 'All SoCs') : v}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Mobile SoCs Architecture Grid */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                <Cpu className="w-4 h-4 text-cyan-400" />
+                <span>
+                  {isAr
+                    ? `قاعدة بيانات معالجات الهواتف والـ PMICs وأوضاع البوت (${filteredSocs.length})`
+                    : `Mobile SoC Architecture, PMICs & Boot Modes (${filteredSocs.length})`}
+                </span>
+              </h4>
+              <button
+                type="button"
+                onClick={() =>
+                  handleDownloadJsonPackage('mobile_socs_and_oss_tools_registry.json', {
+                    exportedAt: new Date().toISOString(),
+                    socs: SOC_PROCESSOR_DATABASE,
+                    openSourceTools: OPEN_SOURCE_REPAIR_TOOLS,
+                  })
+                }
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-cyan-300 text-xs font-bold cursor-pointer hover:border-cyan-500"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>{isAr ? 'تصدير سجل المعالجات والأدوات JSON' : 'Export Registry JSON'}</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+              {filteredSocs.map((soc) => (
+                <div key={soc.id} className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-2.5">
+                  <div className="flex items-start justify-between gap-2 border-b border-slate-800 pb-2">
+                    <div>
+                      <span className="text-[11px] font-mono text-amber-400 font-bold">{soc.vendor}</span>
+                      <h5 className="text-sm font-bold text-white">{soc.familyName}</h5>
+                    </div>
+                    <span className="text-[11px] font-mono text-cyan-400 bg-slate-950 px-2 py-1 rounded border border-slate-800">
+                      {soc.vidPid}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
+                    <div className="p-2 rounded bg-slate-950 border border-slate-800">
+                      <span className="text-[10px] text-slate-400 block">SoC Models:</span>
+                      <span className="text-slate-200">{soc.socPartNumbers.join(', ')}</span>
+                    </div>
+                    <div className="p-2 rounded bg-slate-950 border border-slate-800">
+                      <span className="text-[10px] text-slate-400 block">Paired PMICs:</span>
+                      <span className="text-emerald-300">{soc.pairedPmics.join(', ')}</span>
+                    </div>
+                  </div>
+
+                  <div className="text-xs text-slate-300">
+                    <span className="text-cyan-400 font-semibold">{isAr ? 'وضع البوت و USB: ' : 'USB Boot Mode: '}</span>
+                    <span className="font-mono">{soc.usbBootMode}</span>
+                    <span className="text-slate-500"> · {soc.memorySupport}</span>
+                  </div>
+
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    {isAr ? soc.architectureNotesAr : soc.architectureNotesEn}
+                  </p>
+                  <p className="text-xs text-amber-200 bg-amber-950/20 border border-amber-800/40 rounded-lg p-2">
+                    {isAr ? soc.commonHardwareFaultsAr : soc.commonHardwareFaultsEn}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Open-Source Repair Software & Schematic Viewers */}
+          <div className="space-y-3">
+            <h4 className="text-sm font-bold text-white flex items-center gap-2">
+              <Terminal className="w-4 h-4 text-emerald-400" />
+              <span>
+                {isAr
+                  ? `البرمجيات والأدوات مفتوحة المصدر لصيانة الهواتف وقراءة المخططات (${filteredOssTools.length})`
+                  : `Open-Source Mobile Servicing & Schematic Tooling (${filteredOssTools.length})`}
+              </span>
+            </h4>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+              {filteredOssTools.map((tool) => (
+                <div key={tool.id} className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-2.5">
+                  <div className="flex items-start justify-between gap-2 border-b border-slate-800 pb-2">
+                    <div>
+                      <h5 className="text-sm font-bold text-white">{tool.name}</h5>
+                      <div className="text-[11px] font-mono text-cyan-400 mt-0.5">
+                        {tool.repository} · {tool.license}
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-mono text-emerald-300 bg-slate-950 px-2 py-1 rounded border border-slate-800 shrink-0">
+                      {tool.category}
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    {isAr ? tool.summaryAr : tool.summaryEn}
+                  </p>
+
+                  <div className="flex flex-wrap gap-1.5">
+                    {tool.supportedChipsetsOrFormats.map((fmt) => (
+                      <span
+                        key={fmt}
+                        className="px-2 py-0.5 rounded bg-slate-950 border border-slate-800 font-mono text-[10px] text-slate-300"
+                      >
+                        {fmt}
+                      </span>
+                    ))}
+                  </div>
+
+                  <div className="space-y-1.5 pt-1">
+                    {tool.sampleCommands.map((cmd, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center justify-between gap-2 p-2 rounded-lg bg-black border border-slate-800 font-mono text-[11px] text-emerald-300"
+                      >
+                        <code className="truncate">{cmd}</code>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyCommand(cmd)}
+                          className="p-1 rounded bg-slate-900 hover:bg-slate-800 text-slate-300 shrink-0 cursor-pointer"
+                          title="Copy command"
+                        >
+                          {copiedCmd === cmd ? (
+                            <Check className="w-3.5 h-3.5 text-emerald-400" />
+                          ) : (
+                            <Copy className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>

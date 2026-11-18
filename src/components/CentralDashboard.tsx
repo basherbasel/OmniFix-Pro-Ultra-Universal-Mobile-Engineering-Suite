@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Cpu, 
   Sparkles, 
@@ -74,7 +73,7 @@ interface ToolDefinition {
 
 export const CentralDashboard: React.FC<CentralDashboardProps> = ({ onNavigate, lang }) => {
   const isAr = lang === 'ar';
-  const { currentDevice, setCurrentDevice, connectDevice, setUsbModalOpen, setDiagnosticsModalOpen, addLog } = useWorkstation();
+  const { currentDevice, connectDevice, setUsbModalOpen, setDiagnosticsModalOpen, addLog } = useWorkstation();
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [isReadingDevice, setIsReadingDevice] = useState(false);
@@ -289,7 +288,7 @@ export const CentralDashboard: React.FC<CentralDashboardProps> = ({ onNavigate, 
       // Connect / Read real WebUSB device
       const usbRes = await realUsbService.requestAndPairWebUsbDevice();
       if (usbRes.success && usbRes.device) {
-        setCurrentDevice(usbRes.device);
+        connectDevice(usbRes.device);
         deviceKnowledgebaseService.saveDevice(usbRes.device);
         realUsbService.playContinuityBeep(250, 2600);
         setIsReadingDevice(false);
@@ -326,7 +325,7 @@ export const CentralDashboard: React.FC<CentralDashboardProps> = ({ onNavigate, 
           currentDevice.model,
           currentDevice.serialNumber && currentDevice.serialNumber !== 'R58XA166B9X' ? currentDevice.serialNumber : `SN_${vidHex}_${pidHex}`
         );
-        setCurrentDevice(fallbackDev);
+        connectDevice(fallbackDev);
         realUsbService.playContinuityBeep(220, 2400);
         setIsReadingDevice(false);
 
@@ -1307,7 +1306,7 @@ export const CentralDashboard: React.FC<CentralDashboardProps> = ({ onNavigate, 
                   realUsbService.playContinuityBeep(200, 2500);
                   const isSamsung = currentDevice.brand.toLowerCase().includes('samsung');
                   const targetMode = isSamsung ? 'SAMSUNG_DOWNLOAD' : 'FASTBOOT';
-                  setCurrentDevice({
+                  connectDevice({
                     ...currentDevice,
                     mode: targetMode,
                     port: isSamsung ? 'SAMSUNG Mobile USB CDC Download Port' : 'Android Fastboot Interface'
@@ -1328,26 +1327,16 @@ export const CentralDashboard: React.FC<CentralDashboardProps> = ({ onNavigate, 
           </div>
         </div>
 
-        {/* 🧠 Dynamic Safety Diagnostic Report & Recommendations Panel */}
-        <AnimatePresence mode="wait">
-          {isDiagnosing && (
-            <motion.div 
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="p-4 rounded-2xl bg-slate-950/80 border border-indigo-500/30 text-xs text-indigo-300 font-mono flex items-center gap-3 shadow-inner"
-            >
-              <Cpu size={16} className="text-indigo-400 animate-spin" />
-              <span>{isAr ? 'جاري الفحص المتقدم لهيكل الحماية، المعالج، ونواة الهاتف لمنع الـ Brick...' : 'Evaluating hardware trust architecture, SoC signature seals & anti-rollback indexing...'}</span>
-            </motion.div>
-          )}
+        {/* Dynamic Safety Diagnostic Report & Recommendations Panel */}
+        {isDiagnosing && (
+          <div className="p-4 rounded-2xl bg-slate-950/80 border border-indigo-500/30 text-xs text-indigo-300 font-mono flex items-center gap-3 shadow-inner">
+            <Cpu size={16} className="text-indigo-400 animate-spin" />
+            <span>{isAr ? 'جاري الفحص المتقدم لهيكل الحماية، المعالج، ونواة الهاتف لمنع الـ Brick...' : 'Evaluating hardware trust architecture, SoC signature seals & anti-rollback indexing...'}</span>
+          </div>
+        )}
 
-          {!isDiagnosing && diagnosticReport && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="p-5 rounded-2xl bg-slate-950 border border-slate-800 space-y-4 shadow-inner"
-            >
+        {!isDiagnosing && diagnosticReport && (
+          <div className="p-5 rounded-2xl bg-slate-950 border border-slate-800 space-y-4 shadow-inner">
               <div className="flex items-center justify-between border-b border-white/5 pb-2.5">
                 <span className="text-[10px] font-mono font-bold text-slate-400 tracking-wider flex items-center gap-2">
                   <span>📝</span>
@@ -1440,9 +1429,8 @@ export const CentralDashboard: React.FC<CentralDashboardProps> = ({ onNavigate, 
                   ))}
                 </div>
               </div>
-            </motion.div>
+            </div>
           )}
-        </AnimatePresence>
       </div>
 
       {/* 🎯 Guided Workflow Paths for Instant Productivity */}
@@ -1537,26 +1525,23 @@ export const CentralDashboard: React.FC<CentralDashboardProps> = ({ onNavigate, 
 
       </div>
 
-      {/* 🎛️ Harmonious Grid of Tools */}
+      {/* Harmonious Grid of Tools */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
         {filteredTools.map(tool => {
           const ToolIcon = tool.icon;
 
           return (
-            <motion.div
+            <button
+              type="button"
               key={tool.id}
-              layout
-              initial={{ opacity: 0, scale: 0.96 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.2 }}
               onClick={() => onNavigate(tool.id)}
-              className="p-6 bg-slate-900/95 hover:bg-slate-850 rounded-3xl border border-white/5 hover:border-indigo-500/40 shadow-xl transition-all cursor-pointer flex flex-col justify-between gap-5 group hover:-translate-y-1 relative overflow-hidden"
+              className="p-6 bg-slate-900/95 hover:bg-slate-800 text-start rounded-3xl border border-white/5 hover:border-indigo-500/40 shadow-xl transition-all cursor-pointer flex flex-col justify-between gap-5 group hover:-translate-y-1 relative overflow-hidden"
             >
               {/* Subtle Ambient Background Gradient Glow */}
               <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl ${tool.bgGlow} rounded-full blur-2xl pointer-events-none group-hover:scale-150 transition-transform`} />
 
               {/* Card Header: Icon + Category Tag */}
-              <div className="flex items-center justify-between relative z-10">
+              <div className="flex items-center justify-between relative z-10 w-full">
                 <div className={`w-12 h-12 rounded-2xl bg-slate-950 border border-white/10 flex items-center justify-center ${tool.color} group-hover:scale-110 transition-transform shadow-lg`}>
                   <ToolIcon size={22} />
                 </div>
@@ -1567,7 +1552,7 @@ export const CentralDashboard: React.FC<CentralDashboardProps> = ({ onNavigate, 
               </div>
 
               {/* Card Body: Titles & Description */}
-              <div className="space-y-2 relative z-10">
+              <div className="space-y-2 relative z-10 w-full">
                 <h3 className="text-sm font-black text-white group-hover:text-indigo-300 transition-colors">
                   {isAr ? tool.nameAr : tool.nameEn}
                 </h3>
@@ -1577,15 +1562,14 @@ export const CentralDashboard: React.FC<CentralDashboardProps> = ({ onNavigate, 
               </div>
 
               {/* Card Footer: Category Label + Launch Arrow */}
-              <div className="flex items-center justify-between pt-3 border-t border-white/5 text-[10px] font-mono text-slate-500 relative z-10">
+              <div className="flex items-center justify-between pt-3 border-t border-white/5 text-[10px] font-mono text-slate-500 relative z-10 w-full">
                 <span>{isAr ? tool.categoryLabelAr : tool.categoryLabelEn}</span>
                 <div className="flex items-center gap-1 text-slate-400 group-hover:text-indigo-400 font-bold transition-colors">
                   <span>{isAr ? 'فتح' : 'OPEN'}</span>
-                  <ArrowRight size={12} className="group-hover:translate-x-1 transition-transform" />
+                  <ArrowRight size={12} className="group-hover:translate-x-1 transition-transform rtl:rotate-180" />
                 </div>
               </div>
-
-            </motion.div>
+            </button>
           );
         })}
       </div>

@@ -87,33 +87,29 @@ export const DeviceHeaderCard: React.FC<DeviceHeaderCardProps> = ({
               <span className="text-[10px] font-black uppercase tracking-widest text-cyan-700 bg-cyan-50 px-2 py-0.5 rounded-full border border-cyan-200">
                 {device.model}
               </span>
-              <motion.span 
-                animate={{ scale: [1, 1.05, 1] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className={`text-[11px] font-mono px-3 py-1 rounded-full border shadow-sm ${getModeBadgeColor(device.mode)}`}
-              >
+              <span className={`text-[11px] font-mono px-3 py-1 rounded-full border shadow-sm ${getModeBadgeColor(device.mode)}`}>
                 ● {device.mode}
-              </motion.span>
+              </span>
             </div>
 
             {/* Sub-specifications Bar */}
-            <div className="flex items-center gap-4 mt-2 flex-wrap text-[11px] text-slate-500 font-mono">
-              <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-50 rounded border border-slate-100">
+            <div className="flex items-center gap-3 mt-2 flex-wrap text-[11px] text-slate-700 font-mono">
+              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 rounded border border-slate-200">
                 <Cpu className="w-3.5 h-3.5 text-cyan-600" />
-                <span className="text-slate-300">{device.chipsetName}</span>
+                <span className="text-slate-800 font-semibold">{device.chipsetName}</span>
               </div>
-              <div className="flex items-center gap-1.5 px-2 py-1 bg-white/5 rounded border border-white/5">
-                <HardDrive className="w-3.5 h-3.5 text-indigo-400" />
-                <span className="text-slate-300">{device.storageType} {device.storageSizeGb}GB</span>
+              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 rounded border border-slate-200">
+                <HardDrive className="w-3.5 h-3.5 text-indigo-600" />
+                <span className="text-slate-800 font-semibold">{device.storageType} {device.storageSizeGb}GB</span>
               </div>
-              <div className="flex items-center gap-1.5 px-2 py-1 bg-white/5 rounded border border-white/5">
-                <Battery className={`w-3.5 h-3.5 ${isBatterySafe ? 'text-emerald-400' : 'text-rose-400 animate-pulse'}`} />
-                <span className={isBatterySafe ? 'text-emerald-300' : 'text-rose-400 font-bold'}>{device.batteryLevel}%</span>
+              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 rounded border border-slate-200">
+                <Battery className={`w-3.5 h-3.5 ${isBatterySafe ? 'text-emerald-600' : 'text-rose-600'}`} />
+                <span className={isBatterySafe ? 'text-emerald-700 font-bold' : 'text-rose-700 font-bold'}>{device.batteryLevel}%</span>
               </div>
               {device.cscCode && (
-                <div className="flex items-center gap-1.5 px-2 py-1 bg-white/5 rounded border border-white/5">
-                  <Radio className="w-3.5 h-3.5 text-amber-400" />
-                  <span className="text-slate-300">CSC: {device.cscCode}</span>
+                <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 rounded border border-slate-200">
+                  <Radio className="w-3.5 h-3.5 text-amber-600" />
+                  <span className="text-slate-800 font-semibold">CSC: {device.cscCode}</span>
                 </div>
               )}
             </div>
@@ -156,8 +152,8 @@ export const DeviceHeaderCard: React.FC<DeviceHeaderCardProps> = ({
                 onClick={onOpenDiagnostics}
                 className="px-4 py-2 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-xs font-black flex items-center gap-2 shadow-lg transition-all cursor-pointer border border-emerald-400"
               >
-                <Activity className="w-4 h-4 animate-pulse text-emerald-100" />
-                <span>{isAr ? '🩺 فحص وتشخيص وإصلاح الأعطال' : '🩺 Deep Diagnostic & Repair'}</span>
+                <Activity className="w-4 h-4 text-emerald-100" />
+                <span>{isAr ? 'فحص وتشخيص وإصلاح الأعطال' : 'Deep Diagnostic & Repair'}</span>
               </motion.button>
             )}
 
@@ -178,7 +174,7 @@ export const DeviceHeaderCard: React.FC<DeviceHeaderCardProps> = ({
                 onClick={onOpenSmartAgent}
                 className="px-4 py-2 bg-gradient-to-r from-indigo-600 via-indigo-700 to-indigo-800 text-white rounded-xl text-xs font-black flex items-center gap-2 shadow-lg transition-all cursor-pointer border border-indigo-500"
               >
-                <Sparkles className="w-4 h-4 animate-pulse text-indigo-100" />
+                <Sparkles className="w-4 h-4 text-indigo-100" />
                 <span>{isAr ? 'العميل الذكي' : 'AI Agent Inspector'}</span>
               </motion.button>
             )}

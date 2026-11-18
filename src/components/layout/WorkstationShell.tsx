@@ -1,10 +1,9 @@
 import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useWorkstation } from '../../context/WorkstationContext';
 import { Navbar } from '../Navbar';
 import { NavigationRail } from './NavigationRail';
 import { ConnectedDeviceStatus } from './ConnectedDeviceStatus';
-import { Terminal, Activity, Zap, ShieldCheck, Search, Globe, Power, RefreshCw, Cpu } from 'lucide-react';
+import { Terminal, Activity, Zap, ShieldCheck, Search, Globe, Power, RefreshCw, Cpu, AlertTriangle, RotateCcw } from 'lucide-react';
 import { CommandPaletteModal } from '../CommandPaletteModal';
 import { UsbConnectionModal } from '../UsbConnectionModal';
 import { WindowsInstallerModal } from '../WindowsInstallerModal';
@@ -12,13 +11,71 @@ import { SmartAgentInspectorModal } from '../SmartAgentInspectorModal';
 import { SmartDeviceDiagnosticsRepairModal } from '../SmartDeviceDiagnosticsRepairModal';
 import { LiveUsbDetectionBanner } from './LiveUsbDetectionBanner';
 
+interface ToolErrorBoundaryProps {
+  activeTab: string;
+  isAr: boolean;
+  onResetDashboard: () => void;
+  children: React.ReactNode;
+}
+
+interface ToolErrorBoundaryState {
+  hasError: boolean;
+  errorMessage: string;
+}
+
+class ToolErrorBoundary extends React.Component<ToolErrorBoundaryProps, ToolErrorBoundaryState> {
+  constructor(props: ToolErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, errorMessage: '' };
+  }
+
+  static getDerivedStateFromError(error: Error): ToolErrorBoundaryState {
+    return { hasError: true, errorMessage: error?.message || 'Unexpected UI render error' };
+  }
+
+  componentDidUpdate(prevProps: ToolErrorBoundaryProps) {
+    if (prevProps.activeTab !== this.props.activeTab && this.state.hasError) {
+      this.setState({ hasError: false, errorMessage: '' });
+    }
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="max-w-xl mx-auto my-12 p-6 rounded-2xl bg-white border border-rose-200 shadow-lg text-center space-y-4">
+          <div className="w-12 h-12 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center mx-auto">
+            <AlertTriangle size={24} />
+          </div>
+          <h3 className="text-base font-black text-slate-900">
+            {this.props.isAr ? 'تعذر تحميل هذه الأداة' : 'Failed to render tool module'}
+          </h3>
+          <p className="text-xs font-mono text-rose-700 bg-rose-50 p-3 rounded-lg border border-rose-100 break-words">
+            {this.state.errorMessage}
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              this.setState({ hasError: false, errorMessage: '' });
+              this.props.onResetDashboard();
+            }}
+            className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold inline-flex items-center gap-2 cursor-pointer"
+          >
+            <RotateCcw size={14} />
+            <span>{this.props.isAr ? 'العودة للوحة التحكم' : 'Return to Dashboard'}</span>
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export function WorkstationShell({ children }: { children: React.ReactNode }) {
   const { 
     lang, 
     activeTab, 
     setActiveTab,
     currentDevice, 
-    setCurrentDevice,
     connectDevice,
     isBusy, 
     isCommandPaletteOpen, 
@@ -40,6 +97,13 @@ export function WorkstationShell({ children }: { children: React.ReactNode }) {
   } = useWorkstation();
 
   const isAr = lang === 'ar';
+  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = 0;
+    }
+  }, [activeTab]);
 
   return (
     <div className="h-screen bg-slate-50 flex flex-col font-sans selection:bg-indigo-100 selection:text-indigo-900 overflow-hidden">
@@ -131,19 +195,12 @@ export function WorkstationShell({ children }: { children: React.ReactNode }) {
               <span className="hidden sm:inline uppercase tracking-widest">{lang === 'en' ? 'AR' : 'EN'}</span>
             </button>
 
-            <AnimatePresence>
-              {isBusy && (
-                <motion.button
-                  initial={{ scale: 0, x: 20 }}
-                  animate={{ scale: 1, x: 0 }}
-                  exit={{ scale: 0, x: 20 }}
-                  className="flex items-center gap-2 px-4 py-2 text-[10px] font-black bg-rose-500 text-white rounded-xl shadow-lg shadow-rose-500/40 border border-white/10"
-                >
-                  <Power size={14} />
-                  <span className="hidden sm:inline uppercase tracking-widest">{isAr ? 'نشط' : 'BUSY'}</span>
-                </motion.button>
-              )}
-            </AnimatePresence>
+            {isBusy && (
+              <div className="flex items-center gap-2 px-4 py-2 text-[10px] font-black bg-rose-500 text-white rounded-xl shadow-lg shadow-rose-500/40 border border-white/10">
+                <Power size={14} />
+                <span className="hidden sm:inline uppercase tracking-widest">{isAr ? 'نشط' : 'BUSY'}</span>
+              </div>
+            )}
           </div>
 
           <div className="hidden sm:block h-8 w-px bg-white/10" />
@@ -166,19 +223,16 @@ export function WorkstationShell({ children }: { children: React.ReactNode }) {
           <LiveUsbDetectionBanner />
 
           {/* Scrolling Content Area */}
-          <div className="flex-1 overflow-y-auto custom-scrollbar bg-slate-50/50 p-4 md:p-6">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeTab}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.2, ease: "easeOut" }}
-                className="h-full"
-              >
+          <div ref={scrollContainerRef} className="flex-1 overflow-y-auto custom-scrollbar bg-slate-50/50 p-4 md:p-6">
+            <ToolErrorBoundary
+              activeTab={activeTab}
+              isAr={isAr}
+              onResetDashboard={() => setActiveTab('dashboard')}
+            >
+              <div key={activeTab} className="min-h-full">
                 {children}
-              </motion.div>
-            </AnimatePresence>
+              </div>
+            </ToolErrorBoundary>
           </div>
 
           {/* HUD Status Bar (Bottom) */}
@@ -243,7 +297,7 @@ export function WorkstationShell({ children }: { children: React.ReactNode }) {
           commands.forEach(cmd => addLog(`CMD >> ${cmd}`));
         }}
         onUpdateDeviceData={(updatedDevice) => {
-          setCurrentDevice(updatedDevice);
+          connectDevice(updatedDevice);
           addLog(`Device State Updated by Neural Inspector`);
         }}
         isBusy={isBusy}

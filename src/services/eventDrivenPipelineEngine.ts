@@ -122,7 +122,7 @@ export class ZeroPollingHotPlugEngine {
       vidPidHex: `${vidHex}:${pidHex}`,
       chipsetType,
       mode,
-      serialNumber: device.serialNumber || 'SN-LIVE-' + Math.random().toString(36).substring(2, 7).toUpperCase(),
+      serialNumber: device.serialNumber || `SN-${vidHex}-${pidHex}`,
       isHotPlugged: isConnected,
       timestamp: new Date().toLocaleTimeString()
     };

@@ -714,7 +714,7 @@ export const DEVICE_MODELS_ATLAS: DeviceAtlasEntry[] = [
     brand: 'Infinix / Tecno / itel',
     model: 'Infinix GT 20 Pro / Note 40 Pro (X6871 / X6850)',
     board_arch: 'single_layer_shielded',
-    schematic_id: 'samsung_a325f_board',
+    schematic_id: 'oppo_realme_dimensity_board',
     soc: 'MediaTek Dimensity 8200 Ultimate (MT6896 4nm)',
     storage: 'UFS 3.1 (256GB)',
     ics: {
@@ -765,7 +765,7 @@ export const DEVICE_MODELS_ATLAS: DeviceAtlasEntry[] = [
     brand: 'Google',
     model: 'Google Pixel 8 Pro (GC3VE)',
     board_arch: 'single_layer_shielded',
-    schematic_id: 'samsung_exynos_a54_board',
+    schematic_id: 'google_pixel_tensor_g3',
     soc: 'Google Tensor G3 + Titan M2 Security Chip',
     storage: 'UFS 3.1 (128GB - 1TB)',
     ics: {
@@ -792,7 +792,7 @@ export const DEVICE_MODELS_ATLAS: DeviceAtlasEntry[] = [
     brand: 'Samsung',
     model: 'Galaxy S24 Ultra 5G (SM-S928B)',
     board_arch: 'qualcomm_flagship_board',
-    schematic_id: 'xiaomi_qualcomm_mtk_board',
+    schematic_id: 'samsung_s24_ultra_sm8650',
     soc: 'Qualcomm Snapdragon 8 Gen 3 (SM8650)',
     storage: 'UFS 4.0 (256GB - 1TB)',
     ics: {
@@ -812,6 +812,216 @@ export const DEVICE_MODELS_ATLAS: DeviceAtlasEntry[] = [
     software_commands: [
       'heimdall print-pit --no-reboot  # فحص جدول التقسيمات في وضع ODIN',
       'edl printgpt --loader=prog_ufs_firehose_sm8650.elf  # قراءة GPT عبر EDL 9008',
+    ],
+  },
+  {
+    id: 'apple-iphone-15-pro-max-a3106',
+    brand: 'Apple',
+    model: 'iPhone 15 Pro Max (A3106)',
+    board_arch: 'sandwich_dual_layer',
+    schematic_id: 'iphone_15_pro_max_a17',
+    soc: 'Apple A17 Pro (3nm APL1V02)',
+    storage: 'NVMe NAND (256GB - 1TB)',
+    ics: {
+      'Main PMIC': 'Apple 338S00946',
+      'USB-C Controller': 'ACE3 CD3217 USB-PD & DP AltMode',
+      'Charger IC': 'U5800 Buck-Boost Charger',
+      'Baseband': 'Qualcomm SDX70M 5G Modem',
+    },
+    connector_pinouts: [
+      { connector: 'J5100 (Battery)', pin: 'Pin 1', net: 'PP_BATT_VCC', diode_v: 0.39, voltage_v: 3.88, notes: 'موجب البطارية الرئيسي' },
+      { connector: 'J6100 (USB-C Flex)', pin: 'Pin 4', net: 'USB_CC1 / CC2', diode_v: 0.515, voltage_v: 5.0, notes: 'تعريف كابل USB-C والشحن عبر ACE3' },
+      { connector: 'J5700 (OLED)', pin: 'Pin 2', net: 'PP_VDD_BOOST', diode_v: 0.445, voltage_v: 5.0, notes: 'تغذية شاشة ProMotion 120Hz' },
+    ],
+    testpoints: [
+      { name: 'DFU Key Sequence', method: 'ضغطة سريعة رفع الصوت ثم خفض الصوت ثم استمرار الباور + خفض الصوت 5 ثوانٍ' },
+    ],
+    software_commands: [
+      'ideviceinfo  # قراءة بيانات المعالج والشريحة التسلسلية عبر libimobiledevice',
+      'irecovery -q  # قراءة CPID و ECID في وضع DFU/Recovery',
+    ],
+  },
+  {
+    id: 'samsung-a15-5g-sm-a156b',
+    brand: 'Samsung',
+    model: 'Galaxy A15 5G / A15 4G (SM-A156B / SM-A155F)',
+    board_arch: 'single_layer_shielded',
+    schematic_id: 'infinix_tecno_helio_board',
+    soc: 'MediaTek Dimensity 6100+ / Helio G99 (MT6789)',
+    storage: 'UFS 2.2 (128GB / 256GB)',
+    ics: {
+      'Main PMIC': 'MT6358W / MT6363',
+      'Charger / IF-PMIC': 'S2MU106X01 / MT6360',
+      'Display Power': 'S2DOS05 AMOLED Bias (Super AMOLED 90Hz)',
+      'RF Transceiver': 'MT6177M / MT6190',
+    },
+    connector_pinouts: [
+      { connector: 'HDC5000 (Battery)', pin: 'Pin 1', net: 'VBAT_MAIN', diode_v: 0.382, voltage_v: 3.85, notes: 'موجب البطارية' },
+      { connector: 'HDC7001 (Main Sub)', pin: 'Pin 4', net: 'VBUS_5V_9V', diode_v: 0.535, voltage_v: 9.0, notes: 'دخل الشحن السريع 25W عبر فلاتة الصب' },
+      { connector: 'HDC6001 (AMOLED)', pin: 'Pin 6', net: 'ELVDD_4V6', diode_v: 0.47, voltage_v: 4.6, notes: 'تغذية شاشة Super AMOLED' },
+    ],
+    testpoints: [
+      { name: 'MTK BROM Testpoint', method: 'نقطة CLK/CMD بجوار معالج MT6789 لإصلاح Dead Boot أو تخطي SEC CTRL' },
+    ],
+    software_commands: [
+      'python mtk.py printgpt  # فحص جدول الأقسام عبر BROM المفتوح المصدر',
+      'heimdall flash --BOOT boot.img --VBMETA vbmeta.img',
+    ],
+  },
+  {
+    id: 'xiaomi-14-pro-23116pn5bc',
+    brand: 'Xiaomi',
+    model: 'Xiaomi 14 / 14 Pro (23116PN5BC)',
+    board_arch: 'qualcomm_flagship_board',
+    schematic_id: 'xiaomi_14_hyperos_qcom',
+    soc: 'Qualcomm Snapdragon 8 Gen 3 (SM8650)',
+    storage: 'UFS 4.0 (256GB - 1TB)',
+    ics: {
+      'Main PMIC': 'PM8550 + PMK8550',
+      'Charge Pump': 'Dual SMB1398 (120W HyperCharge)',
+      'Audio Codec': 'WCD9385 + CS35L41 Dual SmartPA',
+      'RF Transceiver': 'SDR875 + SDX75M',
+    },
+    connector_pinouts: [
+      { connector: 'J3001 (Battery)', pin: 'Pin 1', net: 'VBAT_2S', diode_v: 0.38, voltage_v: 3.85, notes: 'تغذية البطارية ثنائية الخلايا' },
+      { connector: 'J3102 (USB Sub)', pin: 'Pin 2', net: 'VBUS_20V_PPS', diode_v: 0.515, voltage_v: 20.0, notes: 'دخل HyperCharge حتى 120W' },
+    ],
+    testpoints: [
+      { name: 'EDL 9008 Pads', method: 'نقطتان بجوار درع المعالج SM8650 للدخول إلى وضع Sahara 05C6:9008' },
+    ],
+    software_commands: [
+      'edl printgpt --loader=prog_firehose_sm8650_xiaomi.elf',
+      'fastboot getvar anti  # التحقق من عداد Anti-Rollback قبل التفليش',
+    ],
+  },
+  {
+    id: 'redmi-note-13-pro-5g-2312dra50g',
+    brand: 'Xiaomi / Redmi',
+    model: 'Redmi Note 13 Pro 5G (2312DRA50G)',
+    board_arch: 'single_layer_shielded',
+    schematic_id: 'xiaomi_qualcomm_mtk_board',
+    soc: 'Qualcomm Snapdragon 7s Gen 2 (SM7435)',
+    storage: 'UFS 2.2 (256GB / 512GB)',
+    ics: {
+      'Main PMIC': 'PM7325B + PM8350C',
+      'Turbo Charge IC': 'BQ25980 / SC8551 (67W)',
+      'Display Bias': 'TPS65132B / AMOLED Bias',
+      'RF Transceiver': 'SDR735',
+    },
+    connector_pinouts: [
+      { connector: 'J_BATT', pin: 'Pin 1', net: 'VBAT_MAIN', diode_v: 0.39, voltage_v: 3.85, notes: 'خط البطارية الرئيسي' },
+      { connector: 'J_DISP', pin: 'Pin 5', net: 'OLED_VDD_3V0', diode_v: 0.45, voltage_v: 3.0, notes: 'تغذية شاشة AMOLED 1.5K' },
+    ],
+    testpoints: [
+      { name: 'EDL 9008 Testpoint', method: 'نقطتا EDL أسفل درع الذاكرة UFS بجوار كونكتر البطارية' },
+    ],
+    software_commands: [
+      'edl r persist persist.img --loader=prog_firehose_sm7435.elf',
+      'fastboot flash boot_ab boot.img',
+    ],
+  },
+  {
+    id: 'oneplus-12-cph2581',
+    brand: 'OnePlus',
+    model: 'OnePlus 12 5G (CPH2581)',
+    board_arch: 'qualcomm_flagship_board',
+    schematic_id: 'xiaomi_14_hyperos_qcom',
+    soc: 'Qualcomm Snapdragon 8 Gen 3 (SM8650)',
+    storage: 'UFS 4.0 (256GB / 512GB)',
+    ics: {
+      'Main PMIC': 'PM8550 + PMK8550',
+      'SuperVOOC IC': 'OPPO Custom Dual Charge Pump 100W',
+      'Audio PA': 'TFA9874 Dual Stereo',
+      'RF Transceiver': 'SDR875 + SDX75M',
+    },
+    connector_pinouts: [
+      { connector: 'J_BATT_2S', pin: 'Pin 1', net: 'VBAT_10V_2S', diode_v: 0.388, voltage_v: 7.74, notes: 'موجب البطارية ثنائية الخلايا SuperVOOC 100W' },
+      { connector: 'J_USB_SUB', pin: 'Pin 3', net: 'VBUS_SUPERVOOC', diode_v: 0.51, voltage_v: 11.0, notes: 'دخل الشحن فائق السرعة 100W' },
+    ],
+    testpoints: [
+      { name: 'EDL Testpoint', method: 'إزالة غطاء الجرافيت للوصول لنقطتي Qualcomm 9008 أو استخدام كابل EDL Deep Flash' },
+    ],
+    software_commands: [
+      'fastboot --set-active=a  # التحقق من السلوث النشط قبل تفليش OxygenOS',
+      'edl printgpt --loader=prog_firehose_ddr.elf',
+    ],
+  },
+  {
+    id: 'vivo-x100-pro-v2324a',
+    brand: 'vivo',
+    model: 'vivo X100 / X100 Pro (V2324A / V2309)',
+    board_arch: 'single_layer_shielded',
+    schematic_id: 'oppo_realme_dimensity_board',
+    soc: 'MediaTek Dimensity 9300 (MT6989 4nm)',
+    storage: 'UFS 4.0 (256GB - 1TB)',
+    ics: {
+      'Main PMIC': 'MT6363 + MT6368',
+      'Sub PMIC & FlashCharge': 'MT6373 + Dual SC8565 (120W FlashCharge)',
+      'Imaging ISP': 'vivo V3 Custom Imaging Chip',
+      'RF Transceiver': 'MT6195W',
+    },
+    connector_pinouts: [
+      { connector: 'J1001 (Battery)', pin: 'Pin 1', net: 'VBAT_MAIN', diode_v: 0.382, voltage_v: 3.88, notes: 'موجب البطارية الرئيسي' },
+      { connector: 'J2101 (Inductor)', pin: 'L2101', net: 'VSYS_3V85', diode_v: 0.355, voltage_v: 3.88, notes: 'ناقل VSYS المغذي لمعالجات MT6363/MT6368' },
+    ],
+    testpoints: [
+      { name: 'MTK BROM Pin', method: 'زر خفض الصوت مع توصيل USB للدخول السريع إلى 0E8D:0003 BROM' },
+    ],
+    software_commands: [
+      'python mtk.py w boot_a boot.img  # استعادة قسم الإقلاع لـ Dimensity 9300',
+      'python mtk.py r nvcfg,nvdata,nvram vivo_nv_backup/',
+    ],
+  },
+  {
+    id: 'infinix-note-40-pro-4g-x6850',
+    brand: 'Infinix',
+    model: 'Infinix Note 40 Pro 4G (X6850)',
+    board_arch: 'single_layer_shielded',
+    schematic_id: 'infinix_tecno_helio_board',
+    soc: 'MediaTek Helio G99 Ultimate (MT6789)',
+    storage: 'UFS 2.2 (256GB)',
+    ics: {
+      'Main PMIC': 'MT6358W',
+      'Charger & MagCharge': 'Cheetah X1 Power Management + MT6360',
+      'AMOLED Bias': 'TPS65633',
+      'RF Transceiver': 'MT6177M',
+    },
+    connector_pinouts: [
+      { connector: 'J500 (Battery)', pin: 'Pin 1', net: 'VBAT', diode_v: 0.378, voltage_v: 3.82, notes: 'موجب البطارية' },
+      { connector: 'L1001 (VSYS)', pin: 'Pad 1', net: 'VSYS', diode_v: 0.355, voltage_v: 3.82, notes: 'ملف VSYS الرئيسي لآيسي MT6358W' },
+    ],
+    testpoints: [
+      { name: 'MTK BROM Testpoint', method: 'نقطة تست بوينت بجوار حافظة UFS 2.2 لإحياء الجهاز أو فك الحماية عبر mtkclient' },
+    ],
+    software_commands: [
+      'python mtk.py e frp,persistent  # مسح حماية جوجل عبر mtkclient',
+      'python mtk.py da seccfg unlock',
+    ],
+  },
+  {
+    id: 'sony-xperia-1-v-xq-dq72',
+    brand: 'Sony',
+    model: 'Sony Xperia 1 V (XQ-DQ72)',
+    board_arch: 'qualcomm_flagship_board',
+    schematic_id: 'samsung_s24_ultra_sm8650',
+    soc: 'Qualcomm Snapdragon 8 Gen 2 (SM8550)',
+    storage: 'UFS 4.0 (256GB / 512GB)',
+    ics: {
+      'Main PMIC': 'PM8550 + PM8550VE',
+      'Sub PMIC / Charger': 'SMB1396 USB-PD 30W',
+      'RF Transceiver': 'SDR875 + SDX70M',
+      'Display Driver': '4K 120Hz OLED Power Controller',
+    },
+    connector_pinouts: [
+      { connector: 'CN5001 (Battery)', pin: 'Pin 1', net: 'VBAT_MAIN', diode_v: 0.386, voltage_v: 3.86, notes: 'موجب البطارية الرئيسي' },
+      { connector: 'CN7001 (USB-C)', pin: 'Pin 4', net: 'VBUS_PD_9V', diode_v: 0.515, voltage_v: 9.0, notes: 'دخل USB-PD' },
+    ],
+    testpoints: [
+      { name: 'Sony Flashmode / Fastboot', method: 'زر خفض الصوت (Flashmode 0FCE:ADDE) أو رفع الصوت (Fastboot 0FCE:0DDE)' },
+    ],
+    software_commands: [
+      'fastboot oem unlock 0xYOUR_CODE  # فتح البوتلودر الرسمي لهواتف سوني إكسبيريا',
+      'newflasher  # تفليش ملفات SIN الرسمية مفتوح المصدر على أنظمة Windows/Linux',
     ],
   },
 ];

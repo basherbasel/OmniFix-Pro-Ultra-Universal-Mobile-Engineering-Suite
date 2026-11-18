@@ -2206,7 +2206,7 @@ export const AiDiagnosticEngine: React.FC<AiDiagnosticEngineProps> = ({
                   onClick={() => {
                     const guide = HARDWARE_REPAIR_GUIDES.find(g => g.id === detectHardwareGuideId(`${copilotResponse.problemDiagnosis} ${copilotResponse.category}`));
                     ReportExporter.printDiagnosticReport({
-                      reportId: `REP-${Math.floor(100000 + Math.random() * 900000)}`,
+                      reportId: `REP-${Date.now().toString(36).toUpperCase()}`,
                       createdAtIso: new Date().toISOString(),
                       technicianName: 'MasterFix Certified Technician',
                       shopName: 'MasterFix AI Enterprise Station',

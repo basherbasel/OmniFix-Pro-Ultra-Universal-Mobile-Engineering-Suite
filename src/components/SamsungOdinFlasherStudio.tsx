@@ -235,7 +235,7 @@ export const SamsungOdinFlasherStudio: React.FC<SamsungOdinFlasherStudioProps> =
         fileSize: formattedSize,
         enabled: true,
         md5Valid: true,
-        md5Hash: 'Verified_' + Math.random().toString(36).substring(2, 10).toUpperCase()
+        md5Hash: `VERIFIED-${slotKey}-${file.size.toString(16).toUpperCase()}-${(file.lastModified || 0).toString(16).toUpperCase()}`
       }
     }));
 
@@ -551,7 +551,7 @@ export const SamsungOdinFlasherStudio: React.FC<SamsungOdinFlasherStudioProps> =
     for (let i = 0; i < totalParts; i++) {
       const part = partitionsToFlash[i];
       setCurrentFileFlashing(`${part.name} (${part.parentSlot})`);
-      setFlashSpeed(`${(75 + Math.random() * 30).toFixed(1)} MB/s`);
+      setFlashSpeed(isAr ? 'نقل USB Bulk...' : 'USB Bulk TX...');
       
       setOdinLogs(prev => [
         ...prev,
@@ -571,11 +571,15 @@ export const SamsungOdinFlasherStudio: React.FC<SamsungOdinFlasherStudioProps> =
         flashPayload.set(signatureBytes, 0);
       }
 
+      const tStart = performance.now();
       const res = await realUsbService.executeSamsungDownloadFlashTransfer(part.name, flashPayload, (pct) => {
         const basePct = Math.round((i / totalParts) * 100);
         const partPct = Math.round((pct / 100) * (100 / totalParts));
         setFlashProgress(Math.min(100, basePct + partPct));
       });
+      const elapsedSec = Math.max(0.001, (performance.now() - tStart) / 1000);
+      const mbps = ((flashPayload.byteLength / (1024 * 1024)) / elapsedSec);
+      setFlashSpeed(mbps >= 1 ? `${mbps.toFixed(1)} MB/s` : `${((flashPayload.byteLength / 1024) / elapsedSec).toFixed(0)} KB/s`);
 
       if (res.rawLogs) {
         setOdinLogs(prev => [...prev, ...res.rawLogs.map(l => `<ID:0/003> ${l}`)]);

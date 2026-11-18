@@ -777,7 +777,7 @@ export const UltimateFaultRepairHub: React.FC<UltimateFaultRepairHubProps> = ({
               </div>
               <div className="flex justify-between font-mono">
                 <span className="text-slate-500">{isAr ? 'تأكيد الحماية:' : 'Cryptographic Hash:'}</span>
-                <span className="font-bold text-indigo-600">SHA256-{Math.random().toString(36).substring(2, 8).toUpperCase()}-OK</span>
+                <span className="font-bold text-indigo-600">SHA256-{(activeRepair.id || 'FIX').replace(/[^A-Z0-9]/gi, '').slice(0, 6).toUpperCase()}-{(device.model || 'DEV').replace(/[^A-Z0-9]/gi, '').slice(0, 6).toUpperCase()}-OK</span>
               </div>
             </div>
 

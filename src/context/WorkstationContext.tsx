@@ -83,7 +83,45 @@ interface WorkstationContextType extends WorkstationState {
 const WorkstationContext = createContext<WorkstationContextType | undefined>(undefined);
 
 export function WorkstationProvider({ children }: { children: ReactNode }) {
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTabState] = useState<string>(() => {
+    if (typeof window !== 'undefined' && window.location?.search) {
+      const tabParam = new URLSearchParams(window.location.search).get('tab');
+      if (tabParam && tabParam.trim()) return tabParam.trim().toLowerCase();
+    }
+    return 'dashboard';
+  });
+
+  const setActiveTab = React.useCallback((nextTab: string) => {
+    const clean = (nextTab || 'dashboard').toString().trim().toLowerCase();
+    setActiveTabState(clean);
+    if (typeof window !== 'undefined' && window.history?.pushState && window.location?.href) {
+      try {
+        const url = new URL(window.location.href);
+        if (clean === 'dashboard') url.searchParams.delete('tab');
+        else url.searchParams.set('tab', clean);
+        if (url.toString() !== window.location.href) {
+          window.history.pushState({ tab: clean }, '', url.toString());
+        }
+      } catch {
+        // Ignore URL mutation errors in restricted test environments
+      }
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined' || !window.addEventListener) return;
+    const onPopState = () => {
+      try {
+        const tabParam = new URLSearchParams(window.location.search).get('tab');
+        setActiveTabState(tabParam && tabParam.trim() ? tabParam.trim().toLowerCase() : 'dashboard');
+      } catch {
+        setActiveTabState('dashboard');
+      }
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+
   const [currentDevice, setCurrentDevice] = useState<ConnectedDevice>(DEVICE_PRESETS[0]);
   const [deviceTelemetry, setDeviceTelemetry] = useState<ExtendedHardwareTelemetry>(() => 
     mockDeviceResponseService.generateFullTelemetryResponse(DEVICE_PRESETS[0])

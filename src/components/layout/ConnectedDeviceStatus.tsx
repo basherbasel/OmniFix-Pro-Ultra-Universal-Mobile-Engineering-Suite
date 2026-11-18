@@ -12,7 +12,7 @@ interface ConnectedDeviceStatusProps {
 
 export function ConnectedDeviceStatus({ device, isBusy, lang }: ConnectedDeviceStatusProps) {
   const isAr = lang === 'ar';
-  const { setUsbModalOpen, setDiagnosticsModalOpen, addLog, setCurrentDevice } = useWorkstation();
+  const { setUsbModalOpen, setDiagnosticsModalOpen, addLog, readFullDeviceTelemetry, scanRealBenchUsb } = useWorkstation();
   const [isReading, setIsReading] = useState(false);
   const [justRead, setJustRead] = useState(false);
 
@@ -35,33 +35,38 @@ export function ConnectedDeviceStatus({ device, isBusy, lang }: ConnectedDeviceS
     addLog(isAr ? 'بدء قراءة بيانات الهاتف المتصل عبر منفذ USB...' : 'Reading connected USB smartphone parameters...');
 
     try {
-      // If WebUSB is supported, check paired devices
+      // Check paired WebUSB devices if supported
       if (typeof navigator !== 'undefined' && 'usb' in navigator) {
         const paired = await (navigator as any).usb.getDevices();
         if (paired && paired.length > 0) {
           const dev = paired[0];
-          await dev.open();
+          if (!dev.opened) {
+            await dev.open();
+          }
           realUsbService.setActiveUsbDevice(dev);
         }
       }
 
-      setTimeout(() => {
-        realUsbService.playContinuityBeep(240, 2600);
-        setIsReading(false);
-        setJustRead(true);
-        addLog(isAr 
-          ? `✅ تم قراءة الهاتف بنجاح: ${device.brand} ${device.marketName} (${device.mode}) - بطارية ${device.batteryLevel}%`
-          : `✅ Phone read successfully: ${device.brand} ${device.marketName} (${device.mode}) - Battery ${device.batteryLevel}%`);
-        setTimeout(() => setJustRead(false), 3000);
-      }, 600);
+      // Probe host USB endpoints and synchronize hardware/storage/security telemetry
+      await scanRealBenchUsb();
+      const telemetry = readFullDeviceTelemetry(device);
+
+      realUsbService.playContinuityBeep(240, 2600);
+      setIsReading(false);
+      setJustRead(true);
+      addLog(isAr
+        ? `✅ تم قراءة الهاتف وتحديث التيليميتري: ${device.brand} ${device.marketName} (${device.mode}) - ذاكرة ${telemetry.memorySpecs.technology} - بطارية ${device.batteryLevel}%`
+        : `✅ Phone & telemetry synced: ${device.brand} ${device.marketName} (${device.mode}) - ${telemetry.memorySpecs.technology} - Battery ${device.batteryLevel}%`);
+      setTimeout(() => setJustRead(false), 3000);
     } catch (err) {
       setIsReading(false);
+      addLog(isAr ? '⚠️ تعذر إكمال قراءة المنفذ المباشر؛ تحقق من صلاحيات USB.' : '⚠️ Direct USB probe interrupted; check device permissions.');
     }
   };
 
   return (
     <div className="flex items-center gap-3">
-      {/* ⚡ Prominent Read Device Button */}
+      {/* Prominent Read Device Button */}
       <button
         onClick={handleQuickRead}
         disabled={isReading}
@@ -77,7 +82,7 @@ export function ConnectedDeviceStatus({ device, isBusy, lang }: ConnectedDeviceS
         ) : justRead ? (
           <CheckCircle2 size={13} className="text-white" />
         ) : (
-          <Zap size={13} className="text-amber-300 animate-pulse" />
+          <Zap size={13} className="text-amber-300" />
         )}
         <span className="whitespace-nowrap">
           {isReading ? (isAr ? 'جاري القراءة...' : 'Reading...') : justRead ? (isAr ? 'تمت القراءة!' : 'Device Read!') : (isAr ? 'قراءة الهاتف' : 'Read Phone')}

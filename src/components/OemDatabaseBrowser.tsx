@@ -153,7 +153,7 @@ export const OemDatabaseBrowser: React.FC<OemDatabaseBrowserProps> = ({
       <div className="p-4 rounded-xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border border-indigo-900/40 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center text-indigo-400 shrink-0 shadow-lg shadow-indigo-500/10">
-            <Database className="w-5 h-5 animate-pulse" />
+            <Database className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center gap-2">

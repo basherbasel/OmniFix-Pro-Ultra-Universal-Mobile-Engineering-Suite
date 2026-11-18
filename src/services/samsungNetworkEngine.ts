@@ -173,7 +173,7 @@ export class SamsungNetworkEngine {
     onProgress: SamsungRepairProgressCallback
   ): Promise<{ success: boolean; logs: string[]; backupHash: string }> {
     const logs: string[] = [];
-    const backupHash = 'MTK-A24-NV-' + Math.random().toString(36).substring(2, 9).toUpperCase();
+    const backupHash = `MTK-${(device.model || 'A24').replace(/[^A-Z0-9]/gi, '').toUpperCase()}-NV-${Date.now().toString(16).toUpperCase()}`;
 
     try {
       onProgress('1/6 Initializing MTK BROM / Preloader VCOM communication for Samsung Galaxy A-Series MTK...', 10, `[INIT] Target Model: ${device.model || 'SM-A245F'} (Helio G99 / MT6789)`);
@@ -225,7 +225,7 @@ export class SamsungNetworkEngine {
     onProgress: SamsungRepairProgressCallback
   ): Promise<{ success: boolean; logs: string[]; backupHash: string }> {
     const logs: string[] = [];
-    const backupHash = 'EFS-BAK-' + Math.random().toString(36).substring(2, 9).toUpperCase();
+    const backupHash = `EFS-${(device.model || 'SAM').replace(/[^A-Z0-9]/gi, '').toUpperCase()}-${Date.now().toString(16).toUpperCase()}`;
 
     try {
       // Step 1: EFS / NVRAM Backup

@@ -30,7 +30,7 @@ export interface MediaTekUsbDeviceInfo {
 }
 
 export function DeviceManager() {
-  const { lang, addLog, setCurrentDevice } = useWorkstation();
+  const { lang, addLog, connectDevice } = useWorkstation();
   const isAr = lang === 'ar';
 
   const [connectedDevices, setConnectedDevices] = useState<MediaTekUsbDeviceInfo[]>([]);
@@ -117,8 +117,8 @@ export function DeviceManager() {
         // Refresh paired list
         await scanPairedUsbDevices();
 
-        // Update context current device
-        setCurrentDevice({
+        // Update context current device & sync full telemetry
+        connectDevice({
           id: `mtk-${result.deviceInfo.vendorId}-${result.deviceInfo.productId}`,
           brand: 'MediaTek',
           model: result.deviceInfo.productName.includes('2000') ? 'Helio G99 / Dimensity' : 'MT67xx / MT68xx Series',
@@ -230,7 +230,7 @@ export function DeviceManager() {
       {/* Connection State Banner */}
       <div className="p-6 rounded-2xl bg-black/40 border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative z-10">
         <div className="flex items-center gap-4">
-          <Radio className="w-5 h-5 text-emerald-400 animate-pulse shrink-0" />
+          <Radio className="w-5 h-5 text-emerald-400 shrink-0" />
           <span className="text-xs font-mono text-slate-300 font-bold">
             {statusMessage}
           </span>
@@ -281,7 +281,7 @@ export function DeviceManager() {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
-                      <div className={`w-3 h-3 rounded-full ${dev.isMediaTekBrom ? 'bg-emerald-400 animate-ping' : 'bg-rose-400'}`} />
+                      <div className={`w-3 h-3 rounded-full ${dev.isMediaTekBrom ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.75)]' : 'bg-rose-400'}`} />
                       <h5 className="text-sm font-black italic uppercase text-slate-200">
                         {dev.productName}
                       </h5>

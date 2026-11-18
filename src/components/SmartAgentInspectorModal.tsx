@@ -171,7 +171,7 @@ export const SmartAgentInspectorModal: React.FC<SmartAgentInspectorModalProps> =
         <div className="flex items-start justify-between border-b border-slate-800 pb-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-600/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shrink-0 shadow-lg shadow-cyan-500/10">
-              <Bot className="w-6 h-6 animate-bounce" />
+              <Bot className="w-6 h-6" />
             </div>
             <div>
               <div className="flex items-center gap-2">
@@ -216,7 +216,7 @@ export const SmartAgentInspectorModal: React.FC<SmartAgentInspectorModalProps> =
         {inspectionStage === 'IDLE' ? (
           <div className="p-6 rounded-xl bg-gradient-to-br from-slate-900 via-slate-950 to-cyan-950/30 border border-cyan-800/40 text-center space-y-4">
             <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 mx-auto">
-              <Zap className="w-8 h-8 animate-pulse text-cyan-300" />
+              <Zap className="w-8 h-8 text-cyan-300" />
             </div>
 
             <div>

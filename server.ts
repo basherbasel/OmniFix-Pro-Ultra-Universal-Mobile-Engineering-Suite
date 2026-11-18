@@ -17,6 +17,11 @@ import {
   searchDeviceAtlas,
 } from './src/data/hardwareAtlas.ts';
 import { listSchematicsSummary, getSchematicDetail } from './src/services/schematicsEngine.ts';
+import {
+  OPEN_SOURCE_REPAIR_TOOLS,
+  PHONE_CIRCUIT_SUBSYSTEMS,
+  SOC_PROCESSOR_DATABASE,
+} from './src/data/openSourceHardwareCatalog.ts';
 import { analyzeDcPowerDraw } from './src/services/powerAnalyzer.ts';
 import { runMultimodalSynthesis } from './src/services/multimodalDiagnostics.ts';
 
@@ -472,7 +477,7 @@ app.post('/api/ai/diagnose', async (req, res) => {
   const targetModel = deviceContext?.model || 'SM-S928B';
   const targetName = deviceContext?.marketName ? `${deviceContext.brand} ${deviceContext.marketName}` : `${targetBrand} ${targetModel}`;
   const targetChip = deviceContext?.chipsetName || deviceContext?.chipset || 'Qualcomm Snapdragon / Exynos';
-  const targetSerial = deviceContext?.serialNumber && deviceContext?.serialNumber !== 'R58XA166B9X' ? deviceContext.serialNumber : `SN_AUTO_${targetModel}_${Math.floor(100000 + Math.random() * 900000)}`;
+  const targetSerial = deviceContext?.serialNumber && deviceContext?.serialNumber !== 'R58XA166B9X' ? deviceContext.serialNumber : `SN_AUTO_${targetModel}`;
   const targetMode = deviceContext?.mode || 'ADB_ONLINE';
 
   const deviceProfileHeaderAr = `📱 [معلومات الهاتف المكتشفة حقيقياً]:
@@ -754,7 +759,7 @@ app.post('/api/ai/copilot-consult', async (req, res) => {
   const targetFrp = deviceContext?.frpStatus || 'OFF';
   const targetBootloader = deviceContext?.bootloaderStatus || 'LOCKED';
   const targetArb = deviceContext?.rollbackIndex || '1';
-  const targetSerial = deviceContext?.serialNumber && deviceContext?.serialNumber !== 'R58XA166B9X' ? deviceContext.serialNumber : `SN_${targetModel}_${Math.floor(100000 + Math.random() * 900000)}`;
+  const targetSerial = deviceContext?.serialNumber && deviceContext?.serialNumber !== 'R58XA166B9X' ? deviceContext.serialNumber : `SN_${targetModel}`;
 
   let deviceStatusAr = 'سليم تماماً وخالٍ من الأعطال (صحة البطارية ممتازة، النطاق الأساسي سليم، الحماية نشطة)';
   let deviceStatusEn = 'Perfectly Healthy (Excellent battery, healthy baseband, and active security)';
@@ -2018,6 +2023,50 @@ app.get('/api/catalogs', (_req, res) => {
     usb_signatures: USB_HARDWARE_SIGNATURES,
     diode_rails: DIODE_REFERENCE_RAILS,
     ic_faults: IC_FAULT_CATALOG,
+    open_source_tools_count: OPEN_SOURCE_REPAIR_TOOLS.length,
+    circuit_subsystems_count: PHONE_CIRCUIT_SUBSYSTEMS.length,
+    soc_families_count: SOC_PROCESSOR_DATABASE.length,
+  });
+});
+
+app.get('/api/opensource-resources', (req, res) => {
+  const q = String(req.query.q || '').trim().toLowerCase();
+  const vendor = String(req.query.vendor || '').trim().toLowerCase();
+
+  const tools = q
+    ? OPEN_SOURCE_REPAIR_TOOLS.filter(
+        (t) =>
+          t.name.toLowerCase().includes(q) ||
+          t.repository.toLowerCase().includes(q) ||
+          t.summaryEn.toLowerCase().includes(q) ||
+          t.supportedChipsetsOrFormats.some((f) => f.toLowerCase().includes(q))
+      )
+    : OPEN_SOURCE_REPAIR_TOOLS;
+
+  const socs = SOC_PROCESSOR_DATABASE.filter((s) => {
+    const vMatch = !vendor || vendor === 'all' || s.vendor.toLowerCase().includes(vendor);
+    const qMatch =
+      !q ||
+      s.familyName.toLowerCase().includes(q) ||
+      s.vendor.toLowerCase().includes(q) ||
+      s.socPartNumbers.some((p) => p.toLowerCase().includes(q));
+    return vMatch && qMatch;
+  });
+
+  const circuits = q
+    ? PHONE_CIRCUIT_SUBSYSTEMS.filter(
+        (c) =>
+          c.nameEn.toLowerCase().includes(q) ||
+          c.category.toLowerCase().includes(q) ||
+          c.primaryNets.some((n) => n.toLowerCase().includes(q))
+      )
+    : PHONE_CIRCUIT_SUBSYSTEMS;
+
+  res.json({
+    success: true,
+    open_source_tools: tools,
+    circuit_subsystems: circuits,
+    soc_processors: socs,
   });
 });
 

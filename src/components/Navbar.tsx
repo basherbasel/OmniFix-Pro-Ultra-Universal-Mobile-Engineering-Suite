@@ -36,7 +36,6 @@ import {
   Printer,
   Binary
 } from 'lucide-react';
-import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import { useWorkstation } from '../context/WorkstationContext';
 
 export const Navbar: React.FC = () => {
@@ -48,6 +47,7 @@ export const Navbar: React.FC = () => {
 
   const isAr = lang === 'ar';
   const [selectedCategory, setSelectedCategory] = React.useState<string>('smart');
+  const activeTabButtonRef = React.useRef<HTMLButtonElement | null>(null);
 
   const navTabs = [
     // 1. SMART & 1-CLICK SOLUTIONS (الاستوديوهات الذكية والحلول الفورية)
@@ -150,26 +150,25 @@ export const Navbar: React.FC = () => {
   }, [activeTab]);
 
   React.useEffect(() => {
-    if (activeTabObj) {
+    if (activeTabObj && selectedCategory !== 'all') {
       setSelectedCategory(activeTabObj.category);
     }
   }, [activeTabObj]);
 
+  React.useEffect(() => {
+    if (activeTabButtonRef.current && typeof activeTabButtonRef.current.scrollIntoView === 'function') {
+      activeTabButtonRef.current.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' });
+    }
+  }, [activeTab]);
+
   const filteredTabs = React.useMemo(() => {
     if (selectedCategory === 'all') return navTabs;
     const items = navTabs.filter(tab => tab.category === selectedCategory);
-    // If current active tab is not in filtered category, make sure it's included so the active tab is never lost
     if (activeTabObj && !items.some(t => t.id === activeTabObj.id)) {
       return [activeTabObj, ...items];
     }
     return items;
   }, [selectedCategory, activeTabObj]);
-
-  const [activeTabsOrder, setActiveTabsOrder] = React.useState<string[]>([]);
-
-  React.useEffect(() => {
-    setActiveTabsOrder(filteredTabs.map(t => t.id));
-  }, [filteredTabs]);
 
   const handleCategorySelect = (categoryId: string) => {
     setSelectedCategory(categoryId);
@@ -190,9 +189,10 @@ export const Navbar: React.FC = () => {
           const isSelected = selectedCategory === cat.id;
           return (
             <button
+              type="button"
               key={cat.id}
               onClick={() => handleCategorySelect(cat.id)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black rounded-xl whitespace-nowrap transition-all border ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black rounded-xl whitespace-nowrap transition-all border cursor-pointer shrink-0 ${
                 isSelected
                   ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm shadow-indigo-600/30'
                   : 'bg-white text-slate-600 hover:bg-slate-100 border-slate-200'
@@ -207,51 +207,57 @@ export const Navbar: React.FC = () => {
 
       {/* Navigation Tabs Bar */}
       <div className="px-3 sm:px-6 relative overflow-hidden border-b border-slate-100">
-        <Reorder.Group 
-          axis="x" 
-          values={activeTabsOrder} 
-          onReorder={setActiveTabsOrder}
-          className="flex items-center gap-1 overflow-x-auto scrollbar-none py-2 cursor-grab active:cursor-grabbing"
+        <div
+          role="tablist"
+          aria-label={isAr ? 'أدوات المحطة' : 'Workstation Tools'}
+          className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-2"
         >
-          {/* Breadcrumb Indicator (Static) */}
-          <div className="hidden lg:flex items-center gap-3 mr-8 py-2 px-5 bg-slate-50 border border-slate-200/60 rounded-2xl shrink-0 shadow-sm select-none">
-            <Home className={`w-3.5 h-3.5 ${activeTab === 'dashboard' ? 'text-indigo-600' : 'text-slate-400'}`} />
+          {/* Clickable Home / Breadcrumb Indicator */}
+          <button
+            type="button"
+            onClick={() => setActiveTab('dashboard')}
+            className={`flex items-center gap-2 py-2 px-3.5 rounded-xl border shrink-0 shadow-sm transition-colors cursor-pointer ${
+              activeTab === 'dashboard'
+                ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
+                : 'bg-slate-50 hover:bg-indigo-50 border-slate-200 text-slate-700 hover:text-indigo-700'
+            }`}
+            title={isAr ? 'العودة إلى لوحة التحكم الرئيسية' : 'Return to Central Dashboard'}
+          >
+            <Home className={`w-3.5 h-3.5 ${activeTab === 'dashboard' ? 'text-indigo-600' : 'text-slate-500'}`} />
             {activeTab !== 'dashboard' && (
               <>
-                <ChevronRight className={`w-3 h-3 text-slate-300 ${isAr ? 'rotate-180' : ''}`} />
-                <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em] whitespace-nowrap">
-                  {categories.find(c => c.id === selectedCategory)?.labelEn || 'ALL'}
+                <span className="text-[10px] font-black whitespace-nowrap">
+                  {isAr ? 'لوحة التحكم' : 'Home'}
+                </span>
+                <ChevronRight className={`w-3 h-3 text-slate-400 ${isAr ? 'rotate-180' : ''}`} />
+                <span className="text-[10px] font-black text-indigo-600 uppercase tracking-wider whitespace-nowrap">
+                  {isAr ? (activeTabObj?.labelAr || activeTab) : (activeTabObj?.labelEn || activeTab)}
                 </span>
               </>
             )}
-          </div>
+          </button>
 
-          {activeTabsOrder.map((tabId) => {
-            const tab = navTabs.find(t => t.id === tabId);
-            if (!tab) return null;
+          {filteredTabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id || (activeTabObj && activeTabObj.id === tab.id);
             return (
-              <Reorder.Item
+              <button
+                type="button"
+                role="tab"
+                aria-selected={Boolean(isActive)}
+                ref={isActive ? activeTabButtonRef : undefined}
                 key={tab.id}
-                value={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2.5 px-4 py-2.5 text-[11px] font-black rounded-xl whitespace-nowrap transition-all cursor-pointer relative group select-none ${
+                className={`flex items-center gap-2 px-3.5 py-2 text-[11px] font-black rounded-xl whitespace-nowrap transition-all cursor-pointer shrink-0 select-none ${
                   isActive
-                    ? 'bg-indigo-50 text-indigo-700 border border-indigo-100 shadow-inner'
-                    : 'text-slate-400 hover:text-slate-600 border border-transparent'
+                    ? 'bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50 border border-transparent'
                 }`}
               >
-                {isActive && (
-                  <motion.div 
-                    layoutId="activeGlow"
-                    className="absolute inset-0 bg-indigo-500/5 blur-lg rounded-xl"
-                  />
-                )}
                 <Icon className={`w-4 h-4 transition-colors ${isActive ? 'text-indigo-600' : 'text-slate-400'}`} />
-                <span className="relative z-10 uppercase tracking-tighter">{isAr ? tab.labelAr : tab.labelEn}</span>
+                <span className="uppercase tracking-tight">{isAr ? tab.labelAr : tab.labelEn}</span>
                 {tab.badge && (
-                  <span className={`px-2 py-0.5 text-[8px] font-black rounded-full border relative z-10 ${
+                  <span className={`px-2 py-0.5 text-[8px] font-black rounded-full border ${
                     tab.id === 'cloud-security' || tab.id === 'quantum-bypass'
                       ? 'bg-amber-100 text-amber-700 border-amber-200'
                       : 'bg-indigo-100 text-indigo-700 border-indigo-200'
@@ -259,10 +265,10 @@ export const Navbar: React.FC = () => {
                     {tab.badge}
                   </span>
                 )}
-              </Reorder.Item>
+              </button>
             );
           })}
-        </Reorder.Group>
+        </div>
       </div>
     </div>
   );
